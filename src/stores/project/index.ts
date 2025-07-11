@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
 import { DirectoryNode, RecentProject, projectApi } from '@/services/project-api';
 import { router } from '@/routes/router';
 
@@ -35,7 +36,7 @@ export interface ProjectState {
     updateFileInTree: (filePath: string, action: 'created' | 'deleted' | 'modified') => void;
 }
 
-export const useProjectStore = create<ProjectState>((set, get) => ({
+export const useProjectStore = create(immer<ProjectState>((set, get) => ({
     // Initial state
     currentProject: null,
     projectName: null,
@@ -47,13 +48,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     // Set current project
     setCurrentProject: async (path: string) => {
         try {
-            set({ isLoadingProject: true });
+            set((state) => {
+                state.isLoadingProject = true;
+            });
             const projectPath = await projectApi.setCurrentProject(path);
             const projectName = path.split('/').pop() || 'Unknown Project';
 
-            set({
-                currentProject: projectPath,
-                projectName,
+            set((state) => {
+                state.currentProject = projectPath;
+                state.projectName = projectName;
             });
 
             // Load file tree for the new project
@@ -77,17 +80,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         } catch (error) {
             console.error('Error setting current project:', error);
         } finally {
-            set({ isLoadingProject: false });
+            set((state) => {
+                state.isLoadingProject = false;
+            });
         }
     },
 
     // Clear current project
     clearCurrentProject: () => {
         get().unwatchCurrentProject();
-        set({
-            currentProject: null,
-            projectName: null,
-            fileTree: null,
+        set((state) => {
+            state.currentProject = null;
+            state.projectName = null;
+            state.fileTree = null;
         });
 
         // Navigate back to home
@@ -104,7 +109,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
                 depth: 10,
                 includeFiles: true
             });
-            set({ fileTree: tree });
+            set((state) => {
+                state.fileTree = tree;
+            });
         } catch (error) {
             console.error('Error loading file tree:', error);
         }
@@ -113,13 +120,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     // Load recent projects
     loadRecentProjects: async () => {
         try {
-            set({ isLoadingRecentProjects: true });
+            set((state) => {
+                state.isLoadingRecentProjects = true;
+            });
             const projects = await projectApi.getRecentProjects();
-            set({ recentProjects: projects });
+            set((state) => {
+                state.recentProjects = projects;
+            });
         } catch (error) {
             console.error('Error loading recent projects:', error);
         } finally {
-            set({ isLoadingRecentProjects: false });
+            set((state) => {
+                state.isLoadingRecentProjects = false;
+            });
         }
     },
 
@@ -214,4 +227,4 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         // In a more sophisticated implementation, you could update specific nodes
         get().refreshFileTree();
     },
-}));
+})))

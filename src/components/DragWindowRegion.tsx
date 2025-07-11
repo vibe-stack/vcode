@@ -13,7 +13,7 @@ interface DragWindowRegionProps {
 
 export default function DragWindowRegion({ title }: DragWindowRegionProps) {
   return (
-    <div className="draglayer flex w-screen items-stretch border-b py-1">
+    <div className="draglayer relative z-1000 flex w-screen items-stretch border-b py-1">
       <div className="flex flex-1 items-center px-4">
         <div className="no-drag">
           <WindowButtons />
@@ -39,7 +39,7 @@ function WindowButtons() {
       <button
         type="button"
         title="Close"
-        className="p-2 hover:bg-red-300"
+        className="p-2 hover:bg-red-700 rounded-md cursor-default hover:cursor-default"
         onClick={closeWindow}
       >
         <svg
@@ -59,7 +59,7 @@ function WindowButtons() {
       <button
         title="Minimize"
         type="button"
-        className="p-2 hover:bg-slate-300"
+        className="p-2 hover:bg-slate-700 rounded-md cursor-default hover:cursor-default"
         onClick={minimizeWindow}
       >
         <svg
@@ -75,7 +75,7 @@ function WindowButtons() {
       <button
         title="Maximize"
         type="button"
-        className="p-2 hover:bg-slate-300"
+        className="p-2 hover:bg-slate-700 rounded-md cursor-default hover:cursor-default"
         onClick={maximizeWindow}
       >
         <svg

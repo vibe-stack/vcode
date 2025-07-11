@@ -16,21 +16,11 @@ export default function WorkspacePage() {
     }
   }, [currentProject]);
 
-  if (!currentProject || !fileTree) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">No project loaded</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full bg-background h-full max-h-full relative">
       <ResizablePanelGroup direction="horizontal" className="">
         {/* Left Panel - File Explorer */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
+        <ResizablePanel defaultSize={20}>
           <FileExplorer />
         </ResizablePanel>
         
@@ -44,7 +34,7 @@ export default function WorkspacePage() {
         <ResizableHandle withHandle />
         
         {/* Right Panel - Chat */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
+        <ResizablePanel defaultSize={20}>
           <ChatPanel />
         </ResizablePanel>
       </ResizablePanelGroup>

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
 import { useBufferStore } from '@/stores/buffers';
 
 export type SplitDirection = 'horizontal' | 'vertical';
@@ -85,419 +86,421 @@ export interface EditorSplitState {
 
 const generateId = () => `pane_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-export const useEditorSplitStore = create<EditorSplitState>((set, get) => ({
-  // Initial state
-  rootSplit: {
-    id: 'root',
-    type: 'pane',
-    pane: {
-      id: 'main',
-      bufferIds: [],
-      activeBufferId: null,
-    },
-  },
-  activePaneId: 'main',
-  isDragging: false,
-  draggedItem: null,
-  dropZones: [],
-  activeDropZone: null,
-
-  // Initialize with a single pane
-  initializeLayout: () => {
-    const mainPaneId = generateId();
-    set({
-      rootSplit: {
-        id: 'root',
-        type: 'pane',
-        pane: {
-          id: mainPaneId,
-          bufferIds: [],
-          activeBufferId: null,
-        },
+export const useEditorSplitStore = create<EditorSplitState>()(
+  immer((set, get) => ({
+    // Initial state
+    rootSplit: {
+      id: 'root',
+      type: 'pane',
+      pane: {
+        id: 'main',
+        bufferIds: [],
+        activeBufferId: null,
       },
-      activePaneId: mainPaneId,
-    });
-  },
+    },
+    activePaneId: 'main',
+    isDragging: false,
+    draggedItem: null,
+    dropZones: [],
+    activeDropZone: null,
 
-  // Open a file in the specified pane or active pane
-  openFile: async (filePath: string, paneId?: string) => {
-    const { openFile } = useBufferStore.getState();
-    const bufferId = await openFile(filePath);
-    
-    const state = get();
-    const targetPaneId = paneId || state.activePaneId;
-    
-    if (!targetPaneId) {
-      // No active pane, create one
-      state.initializeLayout();
-      const newState = get();
-      newState.setActivePaneBuffer(newState.activePaneId!, bufferId);
-      return;
-    }
-
-    const pane = state.getPane(targetPaneId);
-    if (!pane) return;
-
-    // Add buffer to pane if not already there
-    if (!pane.bufferIds.includes(bufferId)) {
-      state.updatePaneBuffers(targetPaneId, [...pane.bufferIds, bufferId]);
-    }
-
-    // Set as active buffer
-    state.setActivePaneBuffer(targetPaneId, bufferId);
-  },
-
-  // Create a new split
-  createSplit: (paneId: string, direction: SplitDirection, newPaneId?: string) => {
-    const state = get();
-    const newPaneIdActual = newPaneId || generateId();
-    
-    const findAndReplaceSplit = (split: EditorSplit): EditorSplit => {
-      if (split.type === 'pane' && split.pane?.id === paneId) {
-        // Replace this pane with a split containing the original pane and new pane
-        return {
-          id: generateId(),
-          type: 'split',
-          direction,
-          children: [
-            split, // Keep the original pane
-            {
-              id: generateId(),
-              type: 'pane',
-              pane: {
-                id: newPaneIdActual,
-                bufferIds: [],
-                activeBufferId: null,
-              },
-            },
-          ],
-        };
-      }
-      
-      if (split.type === 'split' && split.children) {
-        return {
-          ...split,
-          children: split.children.map(findAndReplaceSplit),
-        };
-      }
-      
-      return split;
-    };
-
-    const newRootSplit = findAndReplaceSplit(state.rootSplit);
-    set({
-      rootSplit: newRootSplit,
-      activePaneId: newPaneIdActual,
-    });
-  },
-
-  // Close a pane
-  closePane: (paneId: string) => {
-    const state = get();
-    
-    // Don't close the last pane
-    const allPanes = state.getAllPanes();
-    if (allPanes.length <= 1) return;
-
-    const removePaneFromSplit = (split: EditorSplit): EditorSplit | null => {
-      if (split.type === 'pane' && split.pane?.id === paneId) {
-        return null; // Mark for removal
-      }
-      
-      if (split.type === 'split' && split.children) {
-        const newChildren = split.children
-          .map(removePaneFromSplit)
-          .filter(Boolean) as EditorSplit[];
-        
-        // If only one child left, promote it up
-        if (newChildren.length === 1) {
-          return newChildren[0];
-        }
-        
-        // If no children left, mark for removal
-        if (newChildren.length === 0) {
-          return null;
-        }
-        
-        return {
-          ...split,
-          children: newChildren,
-        };
-      }
-      
-      return split;
-    };
-
-    const newRootSplit = removePaneFromSplit(state.rootSplit);
-    if (newRootSplit) {
+    // Initialize with a single pane
+    initializeLayout: () => {
+      const mainPaneId = generateId();
       set({
-        rootSplit: newRootSplit,
-        activePaneId: state.activePaneId === paneId ? 
-          state.getAllPanes().find(p => p.id !== paneId)?.id || null : 
-          state.activePaneId,
+        rootSplit: {
+          id: 'root',
+          type: 'pane',
+          pane: {
+            id: mainPaneId,
+            bufferIds: [],
+            activeBufferId: null,
+          },
+        },
+        activePaneId: mainPaneId,
       });
-    }
-  },
+    },
 
-  // Set active pane
-  setActivePane: (paneId: string) => {
-    set({ activePaneId: paneId });
-  },
+    // Open a file in the specified pane or active pane
+    openFile: async (filePath: string, paneId?: string) => {
+      const { openFile } = useBufferStore.getState();
+      const bufferId = await openFile(filePath);
+      
+      const state = get();
+      const targetPaneId = paneId || state.activePaneId;
+      
+      if (!targetPaneId) {
+        // No active pane, create one
+        state.initializeLayout();
+        const newState = get();
+        newState.setActivePaneBuffer(newState.activePaneId!, bufferId);
+        return;
+      }
 
-  // Move buffer between panes
-  moveBuffer: (bufferId: string, fromPaneId: string, toPaneId: string) => {
-    const state = get();
-    const fromPane = state.getPane(fromPaneId);
-    const toPane = state.getPane(toPaneId);
-    
-    if (!fromPane || !toPane) return;
+      const pane = state.getPane(targetPaneId);
+      if (!pane) return;
 
-    // Remove from source pane
-    const newFromBuffers = fromPane.bufferIds.filter(id => id !== bufferId);
-    state.updatePaneBuffers(fromPaneId, newFromBuffers);
+      // Add buffer to pane if not already there
+      if (!pane.bufferIds.includes(bufferId)) {
+        state.updatePaneBuffers(targetPaneId, [...pane.bufferIds, bufferId]);
+      }
 
-    // Add to target pane
-    if (!toPane.bufferIds.includes(bufferId)) {
-      state.updatePaneBuffers(toPaneId, [...toPane.bufferIds, bufferId]);
-    }
+      // Set as active buffer
+      state.setActivePaneBuffer(targetPaneId, bufferId);
+    },
 
-    // Set as active in target pane
-    state.setActivePaneBuffer(toPaneId, bufferId);
-  },
-
-  // Set active buffer for a pane
-  setActivePaneBuffer: (paneId: string, bufferId: string) => {
-    set((state) => {
-      const updatePaneInSplit = (split: EditorSplit): EditorSplit => {
+    // Create a new split
+    createSplit: (paneId: string, direction: SplitDirection, newPaneId?: string) => {
+      const state = get();
+      const newPaneIdActual = newPaneId || generateId();
+      
+      const findAndReplaceSplit = (split: EditorSplit): EditorSplit => {
         if (split.type === 'pane' && split.pane?.id === paneId) {
+          // Replace this pane with a split containing the original pane and new pane
           return {
-            ...split,
-            pane: {
-              ...split.pane,
-              activeBufferId: bufferId,
-            },
-          };
-        }
-        
-        if (split.type === 'split' && split.children) {
-          return {
-            ...split,
-            children: split.children.map(updatePaneInSplit),
-          };
-        }
-        
-        return split;
-      };
-
-      return {
-        rootSplit: updatePaneInSplit(state.rootSplit),
-        activePaneId: paneId,
-      };
-    });
-  },
-
-  // Close buffer in a pane
-  closeBufferInPane: (paneId: string, bufferId: string) => {
-    const state = get();
-    const pane = state.getPane(paneId);
-    if (!pane) return;
-
-    const newBuffers = pane.bufferIds.filter(id => id !== bufferId);
-    state.updatePaneBuffers(paneId, newBuffers);
-
-    // If this was the active buffer, switch to another or null
-    if (pane.activeBufferId === bufferId) {
-      const newActiveId = newBuffers.length > 0 ? newBuffers[newBuffers.length - 1] : null;
-      if (newActiveId) {
-        state.setActivePaneBuffer(paneId, newActiveId);
-      } else {
-        // Clear the active buffer for this pane
-        set((state) => {
-          const updatePaneInSplit = (split: EditorSplit): EditorSplit => {
-            if (split.type === 'pane' && split.pane?.id === paneId) {
-              return {
-                ...split,
+            id: generateId(),
+            type: 'split',
+            direction,
+            children: [
+              split, // Keep the original pane
+              {
+                id: generateId(),
+                type: 'pane',
                 pane: {
-                  ...split.pane,
+                  id: newPaneIdActual,
+                  bufferIds: [],
                   activeBufferId: null,
                 },
-              };
-            }
-            
-            if (split.type === 'split' && split.children) {
-              return {
-                ...split,
-                children: split.children.map(updatePaneInSplit),
-              };
-            }
-            
-            return split;
-          };
-
-          return {
-            rootSplit: updatePaneInSplit(state.rootSplit),
-          };
-        });
-      }
-    }
-  },
-
-  // Get pane by ID
-  getPane: (paneId: string) => {
-    const findPane = (split: EditorSplit): EditorPane | null => {
-      if (split.type === 'pane' && split.pane?.id === paneId) {
-        return split.pane;
-      }
-      
-      if (split.type === 'split' && split.children) {
-        for (const child of split.children) {
-          const found = findPane(child);
-          if (found) return found;
-        }
-      }
-      
-      return null;
-    };
-
-    return findPane(get().rootSplit);
-  },
-
-  // Get all panes
-  getAllPanes: () => {
-    const collectPanes = (split: EditorSplit): EditorPane[] => {
-      if (split.type === 'pane' && split.pane) {
-        return [split.pane];
-      }
-      
-      if (split.type === 'split' && split.children) {
-        return split.children.flatMap(collectPanes);
-      }
-      
-      return [];
-    };
-
-    return collectPanes(get().rootSplit);
-  },
-
-  // Find split containing a pane
-  findSplitContainingPane: (paneId: string) => {
-    const findSplit = (split: EditorSplit): EditorSplit | null => {
-      if (split.type === 'pane' && split.pane?.id === paneId) {
-        return split;
-      }
-      
-      if (split.type === 'split' && split.children) {
-        for (const child of split.children) {
-          const found = findSplit(child);
-          if (found) return split; // Return the parent split
-        }
-      }
-      
-      return null;
-    };
-
-    return findSplit(get().rootSplit);
-  },
-
-  // Start drag operation
-  startDrag: (type: 'file' | 'tab', data: string, sourcePaneId?: string) => {
-    set({
-      isDragging: true,
-      draggedItem: { type, data, sourcePaneId },
-    });
-  },
-
-  // End drag operation
-  endDrag: () => {
-    set({
-      isDragging: false,
-      draggedItem: null,
-      dropZones: [],
-      activeDropZone: null,
-    });
-  },
-
-  // Update drop zones
-  updateDropZones: (zones: DropZone[]) => {
-    set({ dropZones: zones });
-  },
-
-  // Set active drop zone
-  setActiveDropZone: (zone: DropZone | null) => {
-    set({ activeDropZone: zone });
-  },
-
-  // Handle drop operation
-  handleDrop: async (zone: DropZone) => {
-    const state = get();
-    const { draggedItem } = state;
-    
-    if (!draggedItem) return;
-
-    try {
-      if (draggedItem.type === 'file') {
-        // Handle file drop
-        if (zone.position === 'center') {
-          // Drop in existing pane
-          await state.openFile(draggedItem.data, zone.paneId);
-        } else {
-          // Create new split
-          const direction = zone.position === 'top' || zone.position === 'bottom' ? 'vertical' : 'horizontal';
-          state.createSplit(zone.paneId, direction);
-          const newPanes = state.getAllPanes();
-          const newPane = newPanes.find(p => p.id !== zone.paneId);
-          if (newPane) {
-            await state.openFile(draggedItem.data, newPane.id);
-          }
-        }
-      } else if (draggedItem.type === 'tab' && draggedItem.sourcePaneId) {
-        // Handle tab drop
-        if (zone.position === 'center') {
-          // Move to existing pane
-          state.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, zone.paneId);
-        } else {
-          // Create new split and move buffer
-          const direction = zone.position === 'top' || zone.position === 'bottom' ? 'vertical' : 'horizontal';
-          state.createSplit(zone.paneId, direction);
-          const newPanes = state.getAllPanes();
-          const newPane = newPanes.find(p => p.id !== zone.paneId);
-          if (newPane) {
-            state.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, newPane.id);
-          }
-        }
-      }
-    } finally {
-      state.endDrag();
-    }
-  },
-
-  // Helper method to update pane buffers
-  updatePaneBuffers: (paneId: string, bufferIds: string[]) => {
-    set((state) => {
-      const updatePaneInSplit = (split: EditorSplit): EditorSplit => {
-        if (split.type === 'pane' && split.pane?.id === paneId) {
-          return {
-            ...split,
-            pane: {
-              ...split.pane,
-              bufferIds,
-            },
+              },
+            ],
           };
         }
         
         if (split.type === 'split' && split.children) {
           return {
             ...split,
-            children: split.children.map(updatePaneInSplit),
+            children: split.children.map(findAndReplaceSplit),
           };
         }
         
         return split;
       };
 
-      return {
-        rootSplit: updatePaneInSplit(state.rootSplit),
+      const newRootSplit = findAndReplaceSplit(state.rootSplit);
+      set({
+        rootSplit: newRootSplit,
+        activePaneId: newPaneIdActual,
+      });
+    },
+
+    // Close a pane
+    closePane: (paneId: string) => {
+      const state = get();
+      
+      // Don't close the last pane
+      const allPanes = state.getAllPanes();
+      if (allPanes.length <= 1) return;
+
+      const removePaneFromSplit = (split: EditorSplit): EditorSplit | null => {
+        if (split.type === 'pane' && split.pane?.id === paneId) {
+          return null; // Mark for removal
+        }
+        
+        if (split.type === 'split' && split.children) {
+          const newChildren = split.children
+            .map(removePaneFromSplit)
+            .filter(Boolean) as EditorSplit[];
+          
+          // If only one child left, promote it up
+          if (newChildren.length === 1) {
+            return newChildren[0];
+          }
+          
+          // If no children left, mark for removal
+          if (newChildren.length === 0) {
+            return null;
+          }
+          
+          return {
+            ...split,
+            children: newChildren,
+          };
+        }
+        
+        return split;
       };
-    });
-  },
-}));
+
+      const newRootSplit = removePaneFromSplit(state.rootSplit);
+      if (newRootSplit) {
+        set({
+          rootSplit: newRootSplit,
+          activePaneId: state.activePaneId === paneId ? 
+            state.getAllPanes().find(p => p.id !== paneId)?.id || null : 
+            state.activePaneId,
+        });
+      }
+    },
+
+    // Set active pane
+    setActivePane: (paneId: string) => {
+      set({ activePaneId: paneId });
+    },
+
+    // Move buffer between panes
+    moveBuffer: (bufferId: string, fromPaneId: string, toPaneId: string) => {
+      const state = get();
+      const fromPane = state.getPane(fromPaneId);
+      const toPane = state.getPane(toPaneId);
+      
+      if (!fromPane || !toPane) return;
+
+      // Remove from source pane
+      const newFromBuffers = fromPane.bufferIds.filter(id => id !== bufferId);
+      state.updatePaneBuffers(fromPaneId, newFromBuffers);
+
+      // Add to target pane
+      if (!toPane.bufferIds.includes(bufferId)) {
+        state.updatePaneBuffers(toPaneId, [...toPane.bufferIds, bufferId]);
+      }
+
+      // Set as active in target pane
+      state.setActivePaneBuffer(toPaneId, bufferId);
+    },
+
+    // Set active buffer for a pane
+    setActivePaneBuffer: (paneId: string, bufferId: string) => {
+      set((state) => {
+        const updatePaneInSplit = (split: EditorSplit): EditorSplit => {
+          if (split.type === 'pane' && split.pane?.id === paneId) {
+            return {
+              ...split,
+              pane: {
+                ...split.pane,
+                activeBufferId: bufferId,
+              },
+            };
+          }
+          
+          if (split.type === 'split' && split.children) {
+            return {
+              ...split,
+              children: split.children.map(updatePaneInSplit),
+            };
+          }
+          
+          return split;
+        };
+
+        return {
+          rootSplit: updatePaneInSplit(state.rootSplit),
+          activePaneId: paneId,
+        };
+      });
+    },
+
+    // Close buffer in a pane
+    closeBufferInPane: (paneId: string, bufferId: string) => {
+      const state = get();
+      const pane = state.getPane(paneId);
+      if (!pane) return;
+
+      const newBuffers = pane.bufferIds.filter(id => id !== bufferId);
+      state.updatePaneBuffers(paneId, newBuffers);
+
+      // If this was the active buffer, switch to another or null
+      if (pane.activeBufferId === bufferId) {
+        const newActiveId = newBuffers.length > 0 ? newBuffers[newBuffers.length - 1] : null;
+        if (newActiveId) {
+          state.setActivePaneBuffer(paneId, newActiveId);
+        } else {
+          // Clear the active buffer for this pane
+          set((state) => {
+            const updatePaneInSplit = (split: EditorSplit): EditorSplit => {
+              if (split.type === 'pane' && split.pane?.id === paneId) {
+                return {
+                  ...split,
+                  pane: {
+                    ...split.pane,
+                    activeBufferId: null,
+                  },
+                };
+              }
+              
+              if (split.type === 'split' && split.children) {
+                return {
+                  ...split,
+                  children: split.children.map(updatePaneInSplit),
+                };
+              }
+              
+              return split;
+            };
+
+            return {
+              rootSplit: updatePaneInSplit(state.rootSplit),
+            };
+          });
+        }
+      }
+    },
+
+    // Get pane by ID
+    getPane: (paneId: string) => {
+      const findPane = (split: EditorSplit): EditorPane | null => {
+        if (split.type === 'pane' && split.pane?.id === paneId) {
+          return split.pane;
+        }
+        
+        if (split.type === 'split' && split.children) {
+          for (const child of split.children) {
+            const found = findPane(child);
+            if (found) return found;
+          }
+        }
+        
+        return null;
+      };
+
+      return findPane(get().rootSplit);
+    },
+
+    // Get all panes
+    getAllPanes: () => {
+      const collectPanes = (split: EditorSplit): EditorPane[] => {
+        if (split.type === 'pane' && split.pane) {
+          return [split.pane];
+        }
+        
+        if (split.type === 'split' && split.children) {
+          return split.children.flatMap(collectPanes);
+        }
+        
+        return [];
+      };
+
+      return collectPanes(get().rootSplit);
+    },
+
+    // Find split containing a pane
+    findSplitContainingPane: (paneId: string) => {
+      const findSplit = (split: EditorSplit): EditorSplit | null => {
+        if (split.type === 'pane' && split.pane?.id === paneId) {
+          return split;
+        }
+        
+        if (split.type === 'split' && split.children) {
+          for (const child of split.children) {
+            const found = findSplit(child);
+            if (found) return split; // Return the parent split
+          }
+        }
+        
+        return null;
+      };
+
+      return findSplit(get().rootSplit);
+    },
+
+    // Start drag operation
+    startDrag: (type: 'file' | 'tab', data: string, sourcePaneId?: string) => {
+      set({
+        isDragging: true,
+        draggedItem: { type, data, sourcePaneId },
+      });
+    },
+
+    // End drag operation
+    endDrag: () => {
+      set({
+        isDragging: false,
+        draggedItem: null,
+        dropZones: [],
+        activeDropZone: null,
+      });
+    },
+
+    // Update drop zones
+    updateDropZones: (zones: DropZone[]) => {
+      set({ dropZones: zones });
+    },
+
+    // Set active drop zone
+    setActiveDropZone: (zone: DropZone | null) => {
+      set({ activeDropZone: zone });
+    },
+
+    // Handle drop operation
+    handleDrop: async (zone: DropZone) => {
+      const state = get();
+      const { draggedItem } = state;
+      
+      if (!draggedItem) return;
+
+      try {
+        if (draggedItem.type === 'file') {
+          // Handle file drop
+          if (zone.position === 'center') {
+            // Drop in existing pane
+            await state.openFile(draggedItem.data, zone.paneId);
+          } else {
+            // Create new split
+            const direction = zone.position === 'top' || zone.position === 'bottom' ? 'vertical' : 'horizontal';
+            state.createSplit(zone.paneId, direction);
+            const newPanes = state.getAllPanes();
+            const newPane = newPanes.find(p => p.id !== zone.paneId);
+            if (newPane) {
+              await state.openFile(draggedItem.data, newPane.id);
+            }
+          }
+        } else if (draggedItem.type === 'tab' && draggedItem.sourcePaneId) {
+          // Handle tab drop
+          if (zone.position === 'center') {
+            // Move to existing pane
+            state.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, zone.paneId);
+          } else {
+            // Create new split and move buffer
+            const direction = zone.position === 'top' || zone.position === 'bottom' ? 'vertical' : 'horizontal';
+            state.createSplit(zone.paneId, direction);
+            const newPanes = state.getAllPanes();
+            const newPane = newPanes.find(p => p.id !== zone.paneId);
+            if (newPane) {
+              state.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, newPane.id);
+            }
+          }
+        }
+      } finally {
+        state.endDrag();
+      }
+    },
+
+    // Helper method to update pane buffers
+    updatePaneBuffers: (paneId: string, bufferIds: string[]) => {
+      set((state) => {
+        const updatePaneInSplit = (split: EditorSplit): EditorSplit => {
+          if (split.type === 'pane' && split.pane?.id === paneId) {
+            return {
+              ...split,
+              pane: {
+                ...split.pane,
+                bufferIds,
+              },
+            };
+          }
+          
+          if (split.type === 'split' && split.children) {
+            return {
+              ...split,
+              children: split.children.map(updatePaneInSplit),
+            };
+          }
+          
+          return split;
+        };
+
+        return {
+          rootSplit: updatePaneInSplit(state.rootSplit),
+        };
+      });
+    },
+  }))
+);

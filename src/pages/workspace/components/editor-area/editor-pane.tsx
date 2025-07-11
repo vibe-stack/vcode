@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Circle, MoreHorizontal, Plus } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
+import MonacoEditor from 'react-monaco-editor';
 
 interface EditorPaneProps {
   paneId: string;
@@ -133,9 +134,11 @@ function Editor({ buffer, onChange }: EditorProps) {
     );
   }
 
+  const language = buffer.extension || 'plaintext';
+
   return (
     <div className="h-full flex flex-col">
-      <Textarea
+      {/* <Textarea
         ref={textareaRef}
         value={content}
         onChange={handleContentChange}
@@ -144,33 +147,43 @@ function Editor({ buffer, onChange }: EditorProps) {
         style={{
           scrollbarWidth: 'thin',
         }}
+      /> */}
+      <MonacoEditor
+        theme="vs-dark"
+        language={getLanguageFromExtension(buffer.extension || '')}
+        value={typeof content === 'string' ? content : new TextDecoder().decode(content)}
+        options={{}}
+        onChange={(value, ev) => {
+          if (ev) {
+            setContent(value);
+            onChange(value);
+          }
+        }}
       />
     </div>
   );
 }
 
 export function EditorPane({ paneId, className }: EditorPaneProps) {
-  const { 
-    buffers, 
-    closeBuffer, 
-    updateBufferContent 
-  } = useBufferStore();
+  // Use separate selectors to ensure re-renders when state changes
+  const buffers = useBufferStore(state => state.buffers);
+  const closeBuffer = useBufferStore(state => state.closeBuffer);
+  const updateBufferContent = useBufferStore(state => state.updateBufferContent);
   
-  const { 
-    getPane, 
-    setActivePane, 
-    setActivePaneBuffer, 
-    closeBufferInPane, 
-    moveBuffer,
-    startDrag,
-    endDrag,
-    activePaneId
-  } = useEditorSplitStore();
+  // Select the pane object directly so this component re-renders on state change
+  const pane = useEditorSplitStore(state => state.getPane(paneId));
+  const setActivePane = useEditorSplitStore(state => state.setActivePane);
+  const setActivePaneBuffer = useEditorSplitStore(state => state.setActivePaneBuffer);
+  const closeBufferInPane = useEditorSplitStore(state => state.closeBufferInPane);
+  const moveBuffer = useEditorSplitStore(state => state.moveBuffer);
+  const startDrag = useEditorSplitStore(state => state.startDrag);
+  const endDrag = useEditorSplitStore(state => state.endDrag);
+  const activePaneId = useEditorSplitStore(state => state.activePaneId);
   
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
 
-  const pane = getPane(paneId);
+  // Use the selected pane object for bufferIds and activeBufferId
   const paneBuffers = pane?.bufferIds.map(id => buffers.get(id)!).filter(Boolean) || [];
   const activeBuffer = pane?.activeBufferId ? buffers.get(pane.activeBufferId) : null;
   const isActivePane = activePaneId === paneId;
@@ -287,4 +300,28 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
       </div>
     </div>
   );
+}
+
+const getLanguageFromExtension = (extension: string): string => {
+  switch (extension.toLowerCase()) {
+    case 'js':
+    case 'jsx':
+      return 'javascript';
+    case 'ts':
+    case 'tsx':
+      return 'typescript';
+    case 'py':
+      return 'python';
+    case 'java':
+      return 'java';
+    case 'c':
+    case 'cpp':
+      return 'c';
+    case 'html':
+      return 'html';
+    case 'css':
+      return 'css';
+    default:
+      return 'plaintext';
+  }
 }

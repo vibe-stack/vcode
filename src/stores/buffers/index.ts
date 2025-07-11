@@ -1,97 +1,7 @@
 import { create } from 'zustand';
 import { projectApi } from '@/services/project-api';
+import { BufferType, getFileType, getFileTypeFromExtension, getMimeType } from './utils';
 
-export type BufferType = 'text' | 'binary' | 'image' | 'pdf' | 'archive' | 'executable' | 'unknown';
-
-// Utility functions for file type detection
-const getFileTypeFromExtension = (extension: string | null): BufferType => {
-    if (!extension) return 'unknown';
-    
-    const ext = extension.toLowerCase();
-    
-    // Text files
-    const textExtensions = [
-        'txt', 'md', 'markdown', 'json', 'js', 'ts', 'jsx', 'tsx', 'html', 'htm', 'css', 'scss', 'sass',
-        'less', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'py', 'java', 'c', 'cpp', 'h', 'hpp',
-        'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'sh', 'bash', 'zsh', 'fish', 'ps1', 'bat',
-        'cmd', 'sql', 'r', 'matlab', 'm', 'pl', 'pm', 'tcl', 'lua', 'vim', 'dockerfile', 'makefile',
-        'gitignore', 'gitattributes', 'editorconfig', 'prettierrc', 'eslintrc', 'tsconfig', 'jsconfig',
-        'log', 'csv', 'tsv', 'rtf', 'tex', 'bib', 'org', 'adoc', 'rst', 'wiki'
-    ];
-    
-    // Image files
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif', 'avif'];
-    
-    // PDF files
-    const pdfExtensions = ['pdf'];
-    
-    // Archive files
-    const archiveExtensions = ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'tar.gz', 'tar.bz2', 'tar.xz'];
-    
-    // Executable files
-    const executableExtensions = ['exe', 'msi', 'deb', 'rpm', 'dmg', 'pkg', 'app', 'bin', 'run', 'com'];
-    
-    if (textExtensions.includes(ext)) return 'text';
-    if (imageExtensions.includes(ext)) return 'image';
-    if (pdfExtensions.includes(ext)) return 'pdf';
-    if (archiveExtensions.includes(ext)) return 'archive';
-    if (executableExtensions.includes(ext)) return 'executable';
-    
-    return 'binary';
-};
-
-const getMimeType = (extension: string | null): string => {
-    if (!extension) return 'application/octet-stream';
-    
-    const ext = extension.toLowerCase();
-    const mimeTypes: Record<string, string> = {
-        // Text
-        'txt': 'text/plain',
-        'md': 'text/markdown',
-        'html': 'text/html',
-        'htm': 'text/html',
-        'css': 'text/css',
-        'js': 'text/javascript',
-        'ts': 'text/typescript',
-        'json': 'application/json',
-        'xml': 'application/xml',
-        'yaml': 'application/yaml',
-        'yml': 'application/yaml',
-        
-        // Images
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'bmp': 'image/bmp',
-        'webp': 'image/webp',
-        'svg': 'image/svg+xml',
-        'ico': 'image/x-icon',
-        'tiff': 'image/tiff',
-        'tif': 'image/tiff',
-        
-        // Documents
-        'pdf': 'application/pdf',
-        'doc': 'application/msword',
-        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        
-        // Archives
-        'zip': 'application/zip',
-        'rar': 'application/vnd.rar',
-        '7z': 'application/x-7z-compressed',
-        'tar': 'application/x-tar',
-        'gz': 'application/gzip',
-        
-        // Executables
-        'exe': 'application/x-msdownload',
-        'msi': 'application/x-msi',
-        'deb': 'application/vnd.debian.binary-package',
-        'rpm': 'application/x-rpm',
-        'dmg': 'application/x-apple-diskimage',
-    };
-    
-    return mimeTypes[ext] || 'application/octet-stream';
-};
 
 const isTextFile = (type: BufferType): boolean => {
     return type === 'text';
@@ -117,8 +27,8 @@ export interface BufferContent {
     filePath: string | null;
     /** The type of buffer content */
     type: BufferType;
-    /** The actual content of the buffer (string for text, base64 for binary, or null for large binaries) */
-    content: string | null;
+    /** The actual content of the buffer (string for text, Uint8Array for binary, or null for large binaries) */
+    content: string | Uint8Array | null;
     /** Whether the buffer has unsaved changes */
     isDirty: boolean;
     /** Whether this buffer is currently being saved */
@@ -165,7 +75,7 @@ export interface BufferState {
 
     // Actions
     /** Create a new empty buffer */
-    createBuffer: (name?: string, content?: string) => string;
+    createBuffer: (name?: string, content?: string | Uint8Array) => string;
     /** Open a file into a buffer */
     openFile: (filePath: string) => Promise<string>;
     /** Save a buffer to its associated file */
@@ -181,7 +91,7 @@ export interface BufferState {
     /** Set the active buffer */
     setActiveBuffer: (bufferId: string) => void;
     /** Update buffer content */
-    updateBufferContent: (bufferId: string, content: string) => void;
+    updateBufferContent: (bufferId: string, content: string | Uint8Array) => void;
     /** Mark a buffer as dirty/clean */
     setBufferDirty: (bufferId: string, isDirty: boolean) => void;
     /** Get a buffer by ID */
@@ -228,20 +138,22 @@ export const useBufferStore = create<BufferState>((set, get) => ({
     nextBufferId: 1,
 
     // Create a new empty buffer
-    createBuffer: (name?: string, content = '') => {
+    createBuffer: (name?: string, content: string | Uint8Array = '') => {
         const state = get();
         const bufferId = `buffer_${state.nextBufferId}`;
         const bufferName = name || state.getNextBufferName();
         const extension = bufferName.includes('.') ? bufferName.split('.').pop() || null : null;
-        const bufferType = getFileTypeFromExtension(extension);
-        
+        // getFileType expects Uint8Array, so pass empty Uint8Array if content is not string
+        const bufferType = getFileType({ extension, buffer: typeof content === 'string' ? new TextEncoder().encode(content) : content });
+
+        const isText = typeof content === 'string';
         const newBuffer: BufferContent = {
             id: bufferId,
             name: bufferName,
             filePath: null,
             type: bufferType,
             content,
-            isDirty: content.length > 0,
+            isDirty: isText ? content.length > 0 : (content instanceof Uint8Array ? content.length > 0 : false),
             isSaving: false,
             isLoading: false,
             extension,
@@ -432,7 +344,6 @@ export const useBufferStore = create<BufferState>((set, get) => ({
             console.error('Buffer has no content to save:', bufferId);
             return false;
         }
-
         // Set saving state
         set((state) => {
             const newBuffers = new Map(state.buffers);
@@ -445,8 +356,23 @@ export const useBufferStore = create<BufferState>((set, get) => ({
             }
             return { buffers: newBuffers };
         });
-
         try {
+            // Only save string content for now; skip binary
+            if (typeof buffer.content !== 'string') {
+                console.error('Cannot save non-string buffer content:', bufferId);
+                set((state) => {
+                    const newBuffers = new Map(state.buffers);
+                    const currentBuffer = newBuffers.get(bufferId);
+                    if (currentBuffer) {
+                        newBuffers.set(bufferId, {
+                            ...currentBuffer,
+                            isSaving: false,
+                        });
+                    }
+                    return { buffers: newBuffers };
+                });
+                return false;
+            }
             const success = await projectApi.saveFile(buffer.filePath, buffer.content);
             
             if (success) {
@@ -503,7 +429,6 @@ export const useBufferStore = create<BufferState>((set, get) => ({
             console.error('Buffer has no content to save:', bufferId);
             return false;
         }
-
         // Set saving state
         set((state) => {
             const newBuffers = new Map(state.buffers);
@@ -516,8 +441,23 @@ export const useBufferStore = create<BufferState>((set, get) => ({
             }
             return { buffers: newBuffers };
         });
-
         try {
+            // Only save string content for now; skip binary
+            if (typeof buffer.content !== 'string') {
+                console.error('Cannot save non-string buffer content:', bufferId);
+                set((state) => {
+                    const newBuffers = new Map(state.buffers);
+                    const currentBuffer = newBuffers.get(bufferId);
+                    if (currentBuffer) {
+                        newBuffers.set(bufferId, {
+                            ...currentBuffer,
+                            isSaving: false,
+                        });
+                    }
+                    return { buffers: newBuffers };
+                });
+                return false;
+            }
             const success = await projectApi.saveFile(filePath, buffer.content);
             
             if (success) {
@@ -643,7 +583,7 @@ export const useBufferStore = create<BufferState>((set, get) => ({
     },
 
     // Update buffer content
-    updateBufferContent: (bufferId: string, content: string) => {
+    updateBufferContent: (bufferId: string, content: string | Uint8Array) => {
         set((state) => {
             const newBuffers = new Map(state.buffers);
             const buffer = newBuffers.get(bufferId);
@@ -651,7 +591,7 @@ export const useBufferStore = create<BufferState>((set, get) => ({
                 newBuffers.set(bufferId, {
                     ...buffer,
                     content,
-                    isDirty: true,
+                    isDirty: typeof content === 'string' ? content.length > 0 : (content instanceof Uint8Array ? content.length > 0 : false),
                     lastModified: new Date(),
                 });
             }

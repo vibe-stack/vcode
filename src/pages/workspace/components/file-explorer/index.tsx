@@ -1,0 +1,128 @@
+import React, { useState, useCallback } from 'react';
+import { useProjectStore } from '@/stores/project';
+import { useBufferStore } from '@/stores/buffers';
+import { useEditorSplitStore } from '@/stores/editor-splits';
+import { DirectoryNode } from '@/services/project-api';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Search,
+    Plus,
+    MoreHorizontal
+} from 'lucide-react';
+import { FileTreeNode } from './file-tree-node'; // Assuming you have a FileTreeNode component
+
+export function FileExplorer() {
+    const { fileTree, projectName, currentProject } = useProjectStore();
+    const { openFile: openFileInSplit, startDrag } = useEditorSplitStore();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+    const handleFileClick = useCallback(async (filePath: string) => {
+        try {
+            // Use the split store to open the file
+            await openFileInSplit(filePath);
+        } catch (error) {
+            console.error('Failed to open file:', error);
+        }
+    }, [openFileInSplit]);
+
+    const handleFileDragStart = useCallback((filePath: string, event: React.DragEvent) => {
+        startDrag('file', filePath);
+        event.dataTransfer.setData('text/plain', filePath);
+        event.dataTransfer.setData('application/x-file-path', filePath);
+        event.dataTransfer.effectAllowed = 'move';
+    }, [startDrag]);
+
+    const handleToggleFolder = useCallback((path: string) => {
+        setExpandedFolders(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(path)) {
+                newSet.delete(path);
+            } else {
+                newSet.add(path);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const filteredTree = useCallback((node: DirectoryNode): DirectoryNode | null => {
+        if (!searchQuery.trim()) return node;
+
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = node.name.toLowerCase().includes(query);
+
+        if (node.type === 'file') {
+            return matchesSearch ? node : null;
+        }
+
+        // For directories, check if any children match
+        const filteredChildren = node.children?.map(child => filteredTree(child)).filter(Boolean) || [];
+
+        if (matchesSearch || filteredChildren.length > 0) {
+            return {
+                ...node,
+                children: filteredChildren as DirectoryNode[]
+            };
+        }
+
+        return null;
+    }, [searchQuery]);
+
+    if (!fileTree) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <p className="text-muted-foreground text-sm">No project loaded</p>
+            </div>
+        );
+    }
+
+    const displayTree = filteredTree(fileTree);
+
+    return (
+        <div className="h-full flex flex-col border-r">
+            {/* Header */}
+            <div className="border-b p-3 flex flex-row gap-2">
+                {/* Search */}
+                <div className="relative grow">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                        placeholder="Search files..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-7 h-7 text-xs"
+                    />
+                </div>
+                <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <Plus className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <MoreHorizontal className="h-3 w-3" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* File Tree */}
+            <ScrollArea className="flex-1">
+                <div className="p-1">
+                    {displayTree ? (
+                        <FileTreeNode
+                            node={displayTree}
+                            level={0}
+                            onFileClick={handleFileClick}
+                            onFileDragStart={handleFileDragStart}
+                            expandedFolders={expandedFolders}
+                            onToggleFolder={handleToggleFolder}
+                        />
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-muted-foreground text-sm">No files found</p>
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
+        </div>
+    );
+}
