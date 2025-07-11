@@ -1,0 +1,217 @@
+import { create } from 'zustand';
+import { DirectoryNode, RecentProject, projectApi } from '@/services/project-api';
+import { router } from '@/routes/router';
+
+export interface ProjectState {
+    // Current project
+    currentProject: string | null;
+    projectName: string | null;
+
+    // File tree
+    fileTree: DirectoryNode | null;
+
+    // Recent projects
+    recentProjects: RecentProject[];
+
+    // Loading states
+    isLoadingProject: boolean;
+    isLoadingRecentProjects: boolean;
+
+    // Actions
+    setCurrentProject: (path: string) => Promise<void>;
+    loadFileTree: (rootPath: string) => Promise<void>;
+    loadRecentProjects: () => Promise<void>;
+    openProject: (path?: string) => Promise<void>;
+    addRecentProject: (path: string, name?: string) => Promise<void>;
+    removeRecentProject: (path: string) => Promise<void>;
+    clearCurrentProject: () => void;
+
+    // File watching
+    watchCurrentProject: () => Promise<void>;
+    unwatchCurrentProject: () => Promise<void>;
+
+    // File tree updates
+    refreshFileTree: () => Promise<void>;
+    updateFileInTree: (filePath: string, action: 'created' | 'deleted' | 'modified') => void;
+}
+
+export const useProjectStore = create<ProjectState>((set, get) => ({
+    // Initial state
+    currentProject: null,
+    projectName: null,
+    fileTree: null,
+    recentProjects: [],
+    isLoadingProject: false,
+    isLoadingRecentProjects: false,
+
+    // Set current project
+    setCurrentProject: async (path: string) => {
+        try {
+            set({ isLoadingProject: true });
+            const projectPath = await projectApi.setCurrentProject(path);
+            const projectName = path.split('/').pop() || 'Unknown Project';
+
+            set({
+                currentProject: projectPath,
+                projectName,
+            });
+
+            // Load file tree for the new project
+            await get().loadFileTree(projectPath);
+
+            // Add to recent projects
+            await get().addRecentProject(projectPath, projectName);
+
+            // Start watching the project
+            await get().watchCurrentProject();
+
+            // Navigate to workspace (you might want to handle this differently)
+
+            // window.history.pushState({}, '', '/workspace');
+            router.navigate({
+                to: '/workspace',
+            });
+            window.dispatchEvent(new PopStateEvent('popstate'));
+
+
+        } catch (error) {
+            console.error('Error setting current project:', error);
+        } finally {
+            set({ isLoadingProject: false });
+        }
+    },
+
+    // Clear current project
+    clearCurrentProject: () => {
+        get().unwatchCurrentProject();
+        set({
+            currentProject: null,
+            projectName: null,
+            fileTree: null,
+        });
+
+        // Navigate back to home
+        if (typeof window !== 'undefined' && window.location.pathname === '/workspace') {
+            window.history.pushState({}, '', '/');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        }
+    },
+
+    // Load file tree
+    loadFileTree: async (rootPath: string) => {
+        try {
+            const tree = await projectApi.getDirectoryTree(rootPath, {
+                depth: 10,
+                includeFiles: true
+            });
+            set({ fileTree: tree });
+        } catch (error) {
+            console.error('Error loading file tree:', error);
+        }
+    },
+
+    // Load recent projects
+    loadRecentProjects: async () => {
+        try {
+            set({ isLoadingRecentProjects: true });
+            const projects = await projectApi.getRecentProjects();
+            set({ recentProjects: projects });
+        } catch (error) {
+            console.error('Error loading recent projects:', error);
+        } finally {
+            set({ isLoadingRecentProjects: false });
+        }
+    },
+
+    // Open project (with optional path)
+    openProject: async (path?: string) => {
+        try {
+            const selectedPath = await projectApi.openFolder(path);
+            if (selectedPath) {
+                await get().setCurrentProject(selectedPath);
+            }
+        } catch (error) {
+            console.error('Error opening project:', error);
+        }
+    },
+
+    // Add recent project
+    addRecentProject: async (path: string, name?: string) => {
+        try {
+            const updatedProjects = await projectApi.addRecentProject(path, name);
+            set({ recentProjects: updatedProjects });
+        } catch (error) {
+            console.error('Error adding recent project:', error);
+        }
+    },
+
+    // Remove recent project
+    removeRecentProject: async (path: string) => {
+        try {
+            const updatedProjects = await projectApi.removeRecentProject(path);
+            set({ recentProjects: updatedProjects });
+        } catch (error) {
+            console.error('Error removing recent project:', error);
+        }
+    },
+
+    // Watch current project for changes
+    watchCurrentProject: async () => {
+        const { currentProject } = get();
+        if (!currentProject) return;
+
+        try {
+            // Set up file change listeners
+            projectApi.onFileChanged((filePath, eventType) => {
+                get().updateFileInTree(filePath, eventType as 'created' | 'deleted' | 'modified');
+            });
+
+            projectApi.onFileCreated((filePath) => {
+                get().updateFileInTree(filePath, 'created');
+            });
+
+            projectApi.onFileDeleted((filePath) => {
+                get().updateFileInTree(filePath, 'deleted');
+            });
+
+            projectApi.onFileRenamed((oldPath, newPath) => {
+                get().updateFileInTree(oldPath, 'deleted');
+                get().updateFileInTree(newPath, 'created');
+            });
+
+            await projectApi.watchFileChanges(currentProject);
+        } catch (error) {
+            console.error('Error watching project:', error);
+        }
+    },
+
+    // Unwatch current project
+    unwatchCurrentProject: async () => {
+        const { currentProject } = get();
+        if (!currentProject) return;
+
+        try {
+            await projectApi.unwatchFileChanges(currentProject);
+        } catch (error) {
+            console.error('Error unwatching project:', error);
+        }
+    },
+
+    // Refresh file tree
+    refreshFileTree: async () => {
+        const { currentProject } = get();
+        if (currentProject) {
+            await get().loadFileTree(currentProject);
+        }
+    },
+
+    // Update file in tree (optimistic update)
+    updateFileInTree: (filePath: string, action: 'created' | 'deleted' | 'modified') => {
+        const { fileTree } = get();
+        if (!fileTree) return;
+
+        // For now, just refresh the entire tree
+        // In a more sophisticated implementation, you could update specific nodes
+        get().refreshFileTree();
+    },
+}));
