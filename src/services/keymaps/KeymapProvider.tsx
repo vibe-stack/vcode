@@ -27,7 +27,8 @@ export const KeymapProvider: React.FC<KeymapProviderProps> = ({
  * Global keymap provider that should wrap your entire application
  */
 export const GlobalKeymapProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  useKeyboardHandler();
+  // Use document-level handler for global shortcuts
+  useKeyboardHandler(undefined, 'global');
 
   return <>{children}</>;
 };
@@ -40,7 +41,7 @@ export const EditorKeymapProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useKeyboardHandler(editorRef, 'editor');
 
   return (
-    <div ref={editorRef} className="editor-keymap-provider">
+    <div ref={editorRef} className="editor-keymap-provider w-full h-full">
       {children}
     </div>
   );

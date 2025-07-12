@@ -4,6 +4,7 @@ import { KeyBinding, KeymapProfile, KeymapState, KeyCommand, KeyEventInfo } from
 import { getDefaultProfiles } from './profiles';
 import { registerDefaultCommands } from './commands';
 import { keyEventToString, matchesKeyCombination, isValidKeyCombination } from './utils';
+import { useBufferStore } from '@/stores/buffers';
 
 export const useKeymapStore = create<KeymapState>()(
   immer((set, get) => ({
@@ -86,6 +87,11 @@ export const useKeymapStore = create<KeymapState>()(
       const binding = state.getKeyBinding(keyCombination);
       
       if (!binding || !binding.enabled) return false;
+
+      // Safety check: Don't intercept critical browser shortcuts in certain contexts
+      if (shouldPreserveBrowserShortcut(event, binding)) {
+        return false;
+      }
 
       // Check context
       const context = getEventContext(event);
@@ -192,6 +198,63 @@ function getEventContext(event: KeyboardEvent): string {
   }
   
   return 'global';
+}
+
+/**
+ * Check if we should preserve browser shortcuts to prevent breaking critical functionality
+ */
+function shouldPreserveBrowserShortcut(event: KeyboardEvent, binding: KeyBinding): boolean {
+  const target = event.target as HTMLElement;
+  const keyCombination = keyEventToString(event);
+  
+  // Critical browser shortcuts that should never be intercepted
+  const criticalShortcuts = [
+    'cmd+r',     // Refresh page
+    'ctrl+r',    // Refresh page
+    'cmd+shift+r', // Hard refresh
+    'ctrl+shift+r', // Hard refresh
+    'f5',        // Refresh
+    'ctrl+f5',   // Hard refresh
+    'cmd+q',     // Quit application (macOS)
+    'alt+f4',    // Close window (Windows)
+    'cmd+m',     // Minimize window (macOS)
+    'cmd+h',     // Hide window (macOS)
+    'cmd+tab',   // Switch applications (macOS)
+    'alt+tab',   // Switch applications (Windows)
+    'ctrl+shift+i', // Dev tools
+    'cmd+option+i', // Dev tools (macOS)
+    'f12',       // Dev tools
+  ];
+  
+  if (criticalShortcuts.some(shortcut => matchesKeyCombination(shortcut, keyCombination))) {
+    return true;
+  }
+  
+  // Always intercept Cmd+W / Ctrl+W to prevent accidentally closing the browser
+  if (keyCombination === 'cmd+w' || keyCombination === 'ctrl+w') {
+    // Always prevent browser from closing tab/window
+    return false; // Allow our handler to process it
+  }
+  
+  // Don't intercept shortcuts in input fields unless specifically designed for them
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+    // Allow some common editing shortcuts
+    const editorShortcuts = [
+      'cmd+a', 'ctrl+a', // Select all
+      'cmd+c', 'ctrl+c', // Copy
+      'cmd+v', 'ctrl+v', // Paste
+      'cmd+x', 'ctrl+x', // Cut
+      'cmd+z', 'ctrl+z', // Undo
+      'cmd+y', 'ctrl+y', // Redo
+      'cmd+shift+z', 'ctrl+shift+z', // Redo (alt)
+    ];
+    
+    if (!editorShortcuts.some(shortcut => matchesKeyCombination(shortcut, keyCombination))) {
+      return true; // Preserve browser behavior for other shortcuts in inputs
+    }
+  }
+  
+  return false;
 }
 
 /**

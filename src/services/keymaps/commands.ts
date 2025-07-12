@@ -76,11 +76,15 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
       const activeBuffer = bufferStore.activeBufferId;
       if (activeBuffer) {
         await bufferStore.closeBuffer(activeBuffer);
+        console.log('Closed editor tab:', activeBuffer);
+      } else {
+        // No active buffer to close - this prevents accidental app closure
+        console.log('No active tab to close - Cmd+W intercepted to prevent browser closure');
       }
     },
     canExecute: () => {
-      const bufferStore = useBufferStore.getState();
-      return bufferStore.activeBufferId !== null;
+      // Always allow execution to prevent browser default behavior
+      return true;
     }
   });
   

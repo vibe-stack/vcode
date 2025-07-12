@@ -1,0 +1,8 @@
+export { EditorPane } from './editor-pane';
+export { Editor } from './editor';
+export { Tab } from './tab';
+export { TabBar } from './tab-bar';
+export type { EditorPaneProps } from './types';
+export type { EditorProps } from './editor';
+export type { TabProps } from './tab';
+export type { TabBarProps } from './tab-bar';

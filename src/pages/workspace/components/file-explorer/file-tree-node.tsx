@@ -26,7 +26,7 @@ export function FileTreeNode({
     expandedFolders,
     onToggleFolder
 }: FileTreeNodeProps) {
-    const isExpanded = expandedFolders.has(node.path);
+    const isExpanded = level === 0 || expandedFolders.has(node.path);
     const isDirectory = node.type === 'directory';
     const hasChildren = node.children && node.children.length > 0;
 

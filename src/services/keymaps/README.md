@@ -24,6 +24,8 @@ function App() {
 }
 ```
 
+⚠️ **Important**: The keymap system includes safety checks to prevent intercepting critical browser shortcuts like `Cmd+R` (refresh) and `Cmd+Q` (quit). **The `Cmd+W` shortcut is always intercepted to prevent accidentally closing the browser tab/window** - it will close editor tabs when available, or do nothing if no tabs are open.
+
 ### 2. Use context-specific providers
 
 ```tsx
@@ -299,6 +301,19 @@ Key combinations are normalized internally, so you can use `cmd+w` in your bindi
 - Use the utility functions to detect platform
 - Test key combinations on different systems
 - Consider providing alternative key combinations
+
+### Browser shortcuts being intercepted
+The keymap system includes safety checks to prevent breaking critical browser functionality:
+
+- **Critical shortcuts** like `Cmd+R` (refresh), `Cmd+Q` (quit), `F12` (dev tools) are never intercepted
+- **`Cmd+W` behavior**: Always intercepted to prevent accidentally closing the browser tab/window. Will close editor tabs when available, or safely do nothing if no tabs are open.
+- **Input field shortcuts**: Common editing shortcuts work normally in input fields
+- **Context awareness**: Shortcuts only work in their designated contexts
+
+If you're experiencing issues with browser shortcuts:
+1. Check if you're in the correct context (editor, explorer, etc.)
+2. Verify that you have files open when using file-related shortcuts
+3. Use the settings panel to disable specific key bindings if needed
 
 ## API Reference
 

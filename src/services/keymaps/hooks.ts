@@ -22,6 +22,22 @@ export const useKeyboardHandler = (
       targetRef.current.setAttribute('data-context', context);
     }
 
+    // For global context, handle all events
+    // For specific contexts, only handle events from target or children
+    if (context !== 'global' && targetRef?.current && !targetRef.current.contains(keyboardEvent.target as Node)) {
+      return;
+    }
+
+    // Always handle Cmd+W / Ctrl+W to prevent browser closure
+    const key = keyboardEvent.key.toLowerCase();
+    const isCloseShortcut = (keyboardEvent.metaKey || keyboardEvent.ctrlKey) && key === 'w';
+    
+    if (isCloseShortcut) {
+      // Always prevent default for Cmd+W / Ctrl+W
+      keyboardEvent.preventDefault();
+      keyboardEvent.stopPropagation();
+    }
+
     handleKeyEvent(keyboardEvent);
   }, [handleKeyEvent, enabled, context, targetRef]);
 

@@ -10,13 +10,13 @@ export function EditorArea() {
   // Use separate selectors to ensure re-renders when state changes
   const buffers = useBufferStore(state => state.buffers);
   const tabOrder = useBufferStore(state => state.tabOrder);
-  
+
   // Use separate selectors to ensure re-renders when state changes
   const rootSplit = useEditorSplitStore(state => state.rootSplit);
   const isDragging = useEditorSplitStore(state => state.isDragging);
   const activeDropZone = useEditorSplitStore(state => state.activeDropZone);
   const draggedItem = useEditorSplitStore(state => state.draggedItem);
-  
+
   // Get actions
   const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
   const handleDrop = useEditorSplitStore(state => state.handleDrop);
@@ -25,8 +25,6 @@ export function EditorArea() {
   const startDrag = useEditorSplitStore(state => state.startDrag);
   const endDrag = useEditorSplitStore(state => state.endDrag);
   const initializeLayout = useEditorSplitStore(state => state.initializeLayout);
-
-  console.log("open buffers", buffers, "tab order", tabOrder, rootSplit,);
 
   const dragRef = useRef<HTMLDivElement>(null);
 
@@ -209,34 +207,44 @@ export function EditorArea() {
     const zone = activeDropZone;
     const rect = zone.rect;
 
+    // Get the editor area container to calculate relative positioning
+    const editorContainer = dragRef.current?.getBoundingClientRect();
+    if (!editorContainer) return null;
+
+    // Calculate position relative to the editor container
+    const relativeRect = {
+      left: rect.left - editorContainer.left,
+      top: rect.top - editorContainer.top,
+      width: rect.width,
+      height: rect.height
+    };
+
     return (
       <div className="absolute inset-0 pointer-events-none z-50">
         <div
           className={cn(
-            "absolute border-2 border-dashed transition-all duration-150",
+            "absolute transition-all duration-150",
             zone.position === 'center' ?
-              "border-blue-500 bg-blue-500/10" :
-              "border-blue-400 bg-blue-400/20"
+              "border-emerald-500 bg-emerald-500/10" :
+              "border-emerald-400 bg-emerald-400/20"
           )}
           style={{
-            left: `${rect.left}px`,
-            top: `${rect.top}px`,
-            width: `${rect.width}px`,
-            height: `${rect.height}px`,
+            left: `${relativeRect.left}px`,
+            top: `${relativeRect.top}px`,
+            width: `${relativeRect.width}px`,
+            height: `${relativeRect.height}px`,
           }}
         />
 
         {/* Drop indicator */}
         <div
-          className="absolute flex items-center justify-center text-blue-600 font-medium text-sm"
+          className="absolute flex items-center justify-center text-emerald-600 font-medium text-sm whitespace-nowrap"
           style={{
-            left: `${rect.left + rect.width / 2 - 50}px`,
-            top: `${rect.top + rect.height / 2 - 10}px`,
-            width: '100px',
-            height: '20px',
+            left: `${relativeRect.left + relativeRect.width / 2}px`,
+            top: `${relativeRect.top + relativeRect.height / 2}px`,
+            transform: 'translate(-50%, -50%)',
           }}
         >
-          {zone.position === 'center' ? 'Open Here' : `Split ${zone.position}`}
         </div>
       </div>
     );
@@ -254,21 +262,7 @@ export function EditorArea() {
         onDragLeave={handleDragLeave}
         onDrop={handleDropEvent}
       >
-        {(
-          renderSplit(rootSplit)
-        )
-          // : (
-          //   <div className="h-full flex items-center justify-center">
-          //     <div className="text-center">
-          //       <p className="text-muted-foreground text-sm mb-2">No files open</p>
-          //       <p className="text-xs text-muted-foreground">
-          //         Click on a file in the explorer to open it
-          //       </p>
-          //     </div>
-          //   </div>
-          // )
-        }
-
+        {renderSplit(rootSplit)}
         {renderDropZones()}
       </div>
     </EditorKeymapProvider>

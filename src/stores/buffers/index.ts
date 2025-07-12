@@ -8,14 +8,8 @@ const isTextFile = (type: BufferType): boolean => {
 };
 
 const canEditFile = (type: BufferType): boolean => {
+    console.log("testing can edit", type)
     return type === 'text';
-};
-
-const shouldLoadContent = (type: BufferType, fileSize?: number): boolean => {
-    // Don't load content for binary files or very large files
-    if (type !== 'text') return false;
-    if (fileSize && fileSize > 10 * 1024 * 1024) return false; // 10MB limit
-    return true;
 };
 
 export interface BufferContent {
@@ -194,29 +188,29 @@ export const useBufferStore = create<BufferState>((set, get) => ({
         const bufferId = `buffer_${state.nextBufferId}`;
         const fileName = filePath.split('/').pop() || 'Untitled';
         const extension = fileName.includes('.') ? fileName.split('.').pop() || null : null;
-        const bufferType = getFileTypeFromExtension(extension);
-        const mimeType = getMimeType(extension);
-        const isEditable = canEditFile(bufferType);
 
         try {
-            // Get file stats first to determine size and type
+            // Get file stats first to determine size
             const fileStats = await projectApi.getFileStats(filePath);
-            const shouldLoad = shouldLoadContent(bufferType, fileStats.size);
+            
+            // Always try to load content first to determine type accurately
+            // Only skip loading for very large files
+            const shouldLoad = fileStats.size <= 10 * 1024 * 1024; // 10MB limit
 
-            // Set loading state
+            // Set initial loading state with unknown type
             const loadingBuffer: BufferContent = {
                 id: bufferId,
                 name: fileName,
                 filePath,
-                type: bufferType,
-                content: shouldLoad ? '' : null,
+                type: 'unknown',
+                content: null,
                 isDirty: false,
                 isSaving: false,
                 isLoading: shouldLoad,
                 extension,
                 fileSize: fileStats.size,
-                mimeType,
-                isEditable,
+                mimeType: 'application/octet-stream',
+                isEditable: false,
                 createdAt: new Date(),
                 lastModified: new Date(),
                 isNewFile: false,
@@ -236,8 +230,18 @@ export const useBufferStore = create<BufferState>((set, get) => ({
 
             if (shouldLoad) {
                 try {
-                    // Load file content for text files
+                    // Load file content to determine actual type
                     const fileData = await projectApi.openFile(filePath);
+                    
+                    // Determine the actual buffer type based on content
+                    const actualBufferType = getFileType({ 
+                        extension, 
+                        buffer: typeof fileData.content === 'string' ? 
+                            new TextEncoder().encode(fileData.content) : 
+                            fileData.content 
+                    });
+                    const actualMimeType = getMimeType(extension);
+                    const actualIsEditable = canEditFile(actualBufferType);
                     
                     set((state) => {
                         const newBuffers = new Map(state.buffers);
@@ -246,13 +250,16 @@ export const useBufferStore = create<BufferState>((set, get) => ({
                             newBuffers.set(bufferId, {
                                 ...buffer,
                                 content: fileData.content,
+                                type: actualBufferType,
+                                mimeType: actualMimeType,
+                                isEditable: actualIsEditable,
                                 isLoading: false,
                             });
                         }
                         return { buffers: newBuffers };
                     });
                 } catch (error) {
-                    // Handle text file loading error
+                    // Handle file loading error
                     set((state) => {
                         const newBuffers = new Map(state.buffers);
                         const buffer = newBuffers.get(bufferId);
@@ -268,13 +275,20 @@ export const useBufferStore = create<BufferState>((set, get) => ({
                     });
                 }
             } else {
-                // For binary files, just mark as loaded without content
+                // For very large files, we can't load content, so we have to use extension-based detection as fallback
+                const fallbackType = getFileTypeFromExtension(extension);
+                const fallbackMimeType = getMimeType(extension);
+                const fallbackIsEditable = canEditFile(fallbackType);
+                
                 set((state) => {
                     const newBuffers = new Map(state.buffers);
                     const buffer = newBuffers.get(bufferId);
                     if (buffer) {
                         newBuffers.set(bufferId, {
                             ...buffer,
+                            type: fallbackType,
+                            mimeType: fallbackMimeType,
+                            isEditable: fallbackIsEditable,
                             isLoading: false,
                         });
                     }

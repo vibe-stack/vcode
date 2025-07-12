@@ -23,7 +23,7 @@ function createWindow() {
 
       preload: preload,
     },
-    frame: false,
+    frame: true,
   });
   registerListeners(mainWindow);
 
