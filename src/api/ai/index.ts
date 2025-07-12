@@ -1,35 +1,24 @@
-import { xai } from '@ai-sdk/xai';
-import { CoreMessage, streamText } from 'ai';
-import * as readline from 'node:readline/promises';
+import { createXai } from '@ai-sdk/xai';
+import { CoreMessage, generateText, streamText } from 'ai';
 
-const terminal = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+const model = createXai({
+  apiKey: "",
+})
 
-const messages: CoreMessage[] = [];
-
-async function main() {
-  while (true) {
-    const userInput = await terminal.question('You: ');
-
-    messages.push({ role: 'user', content: userInput });
-
+export async function chatApi({ messages }: { messages: CoreMessage[] }) {
+  console.log("received on api side");
+  
+  try {
     const result = streamText({
-      model: xai('grok-3-mini'),
+      model: model("grok-3-mini"),
       messages,
+      maxTokens: 10000,
     });
 
-    let fullResponse = '';
-    process.stdout.write('\nAssistant: ');
-    for await (const delta of result.textStream) {
-      fullResponse += delta;
-      process.stdout.write(delta);
-    }
-    process.stdout.write('\n\n');
-
-    messages.push({ role: 'assistant', content: fullResponse });
+    console.log("returning result");
+    return result.toDataStream();
+  } catch (error) {
+    console.error("Error in AI API:", error);
+    throw new Error("Failed to generate AI response");
   }
 }
-
-main().catch(console.error);

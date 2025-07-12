@@ -18,7 +18,55 @@ interface ElectronWindow {
   close: () => Promise<void>;
 }
 
+interface ProjectApi {
+  openFolder: (folderPath?: string) => Promise<void>;
+  getCurrentProject: () => Promise<string | null>; 
+  setCurrentProject: (projectPath: string) => Promise<void>;
+  openFile: (filePath: string) => Promise<void>;
+  saveFile: (filePath: string, content: string) => Promise<void>;
+  createFile: (filePath: string, content?: string) => Promise<void>;
+  createFolder: (folderPath: string) => Promise<void>;
+  deleteFile: (filePath: string) => Promise<void>;
+  deleteFolder: (folderPath: string) => Promise<void>;
+  renameFile: (oldPath: string, newPath: string) => Promise<void>;
+  renameFolder: (oldPath: string, newPath: string) => Promise<void>;
+  getFileStats: (filePath: string) => Promise<{
+    size: number;
+    createdAt: Date;
+    modifiedAt: Date;
+  }>;
+  getDirectoryTree: (
+    rootPath: string,
+    options?: { depth?: number; includeFiles?: boolean } 
+  ) => Promise<any>;
+  watchFileChanges: (filePath: string) => Promise<void>;
+  unwatchFileChanges: (filePath: string) => Promise<void>;
+  searchFiles: (
+    query: string,
+    rootPath?: string,
+    options?: { includePatterns?: string[]; excludePatterns?: string[] }
+  ) => Promise<string[]>;
+  searchInFiles: (
+    query: string,
+    rootPath?: string,
+    options?: { filePatterns?: string[]; excludePatterns?: string[] }
+  ) => Promise<string[]>;
+  getRecentProjects: () => Promise<string[]>;
+  addRecentProject: (projectPath: string, projectName?: string) => Promise<void>;
+  removeRecentProject: (projectPath: string) => Promise<void>;
+}
+
+interface AI {
+  sendMessage: (payload: { messages: import('ai').CoreMessage[], requestId: string }) => Promise<{ success: boolean, requestId: string }>;
+  onStreamChunk: (callback: (data: { requestId: string, chunk: Uint8Array }) => void) => void;
+  onStreamEnd: (callback: (data: { requestId: string }) => void) => void;
+  onStreamError: (callback: (data: { requestId: string, error: string }) => void) => void;
+  removeAllListeners: () => void;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
+  projectApi: ProjectApi;
+  ai: AI;
 }
