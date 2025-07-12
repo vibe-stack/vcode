@@ -194,128 +194,128 @@ export const detectEncoding = (content: string): string => {
 };
 
 export const getLanguageFromExtension = (extension: string | null): string => {
-    if (!extension) return 'Plain Text';
+    if (!extension) return 'plaintext';
 
     const ext = extension.toLowerCase();
     const languageMap: Record<string, string> = {
         // JavaScript/TypeScript
-        'js': 'JavaScript',
-        'jsx': 'JavaScript React',
-        'ts': 'TypeScript',
-        'tsx': 'TypeScript React',
-        'mjs': 'JavaScript',
-        'cjs': 'JavaScript',
+        'js': 'javascript',
+        'jsx': 'javascript',
+        'ts': 'typescript',
+        'tsx': 'typescript',
+        'mjs': 'javascript',
+        'cjs': 'javascript',
         
         // Web
-        'html': 'HTML',
-        'htm': 'HTML',
-        'css': 'CSS',
-        'scss': 'SCSS',
-        'sass': 'Sass',
-        'less': 'Less',
-        'vue': 'Vue',
-        'svelte': 'Svelte',
+        'html': 'html',
+        'htm': 'html',
+        'css': 'css',
+        'scss': 'scss',
+        'sass': 'sass',
+        'less': 'less',
+        'vue': 'html', // Vue files are often treated as HTML with special syntax
+        'svelte': 'html',
         
         // Python
-        'py': 'Python',
-        'pyx': 'Python',
-        'pyi': 'Python',
-        'pyc': 'Python',
+        'py': 'python',
+        'pyx': 'python',
+        'pyi': 'python',
+        'pyc': 'python',
         
         // Java/JVM
-        'java': 'Java',
-        'kt': 'Kotlin',
-        'kts': 'Kotlin',
-        'scala': 'Scala',
-        'sc': 'Scala',
-        'groovy': 'Groovy',
-        'gradle': 'Gradle',
+        'java': 'java',
+        'kt': 'kotlin',
+        'kts': 'kotlin',
+        'scala': 'scala',
+        'sc': 'scala',
+        'groovy': 'groovy',
+        'gradle': 'groovy',
         
         // C/C++
-        'c': 'C',
-        'h': 'C',
-        'cpp': 'C++',
-        'cxx': 'C++',
-        'cc': 'C++',
-        'hpp': 'C++',
-        'hxx': 'C++',
-        'hh': 'C++',
+        'c': 'c',
+        'h': 'c',
+        'cpp': 'cpp',
+        'cxx': 'cpp',
+        'cc': 'cpp',
+        'hpp': 'cpp',
+        'hxx': 'cpp',
+        'hh': 'cpp',
         
         // C#
-        'cs': 'C#',
-        'csx': 'C#',
+        'cs': 'csharp',
+        'csx': 'csharp',
         
         // Rust
-        'rs': 'Rust',
+        'rs': 'rust',
         
         // Go
-        'go': 'Go',
+        'go': 'go',
         
         // PHP
-        'php': 'PHP',
-        'phtml': 'PHP',
-        'php3': 'PHP',
-        'php4': 'PHP',
-        'php5': 'PHP',
+        'php': 'php',
+        'phtml': 'php',
+        'php3': 'php',
+        'php4': 'php',
+        'php5': 'php',
         
         // Ruby
-        'rb': 'Ruby',
-        'rbx': 'Ruby',
-        'rjs': 'Ruby',
-        'gemspec': 'Ruby',
+        'rb': 'ruby',
+        'rbx': 'ruby',
+        'rjs': 'ruby',
+        'gemspec': 'ruby',
         
         // Shell
-        'sh': 'Shell',
-        'bash': 'Bash',
-        'zsh': 'Zsh',
-        'fish': 'Fish',
-        'ps1': 'PowerShell',
-        'psm1': 'PowerShell',
-        'bat': 'Batch',
-        'cmd': 'Batch',
+        'sh': 'shell',
+        'bash': 'shell',
+        'zsh': 'shell',
+        'fish': 'shell',
+        'ps1': 'powershell',
+        'psm1': 'powershell',
+        'bat': 'bat',
+        'cmd': 'bat',
         
         // Data formats
-        'json': 'JSON',
-        'xml': 'XML',
-        'yaml': 'YAML',
-        'yml': 'YAML',
-        'toml': 'TOML',
-        'ini': 'INI',
-        'cfg': 'Config',
-        'conf': 'Config',
-        'properties': 'Properties',
+        'json': 'json',
+        'xml': 'xml',
+        'yaml': 'yaml',
+        'yml': 'yaml',
+        'toml': 'ini', // Monaco doesn't have TOML, use INI as fallback
+        'ini': 'ini',
+        'cfg': 'ini',
+        'conf': 'ini',
+        'properties': 'ini',
         
         // Markdown
-        'md': 'Markdown',
-        'markdown': 'Markdown',
-        'mdown': 'Markdown',
-        'mkd': 'Markdown',
-        'mdx': 'MDX',
+        'md': 'markdown',
+        'markdown': 'markdown',
+        'mdown': 'markdown',
+        'mkd': 'markdown',
+        'mdx': 'markdown',
         
         // SQL
-        'sql': 'SQL',
-        'mysql': 'MySQL',
-        'pgsql': 'PostgreSQL',
-        'plsql': 'PL/SQL',
+        'sql': 'sql',
+        'mysql': 'mysql',
+        'pgsql': 'pgsql',
+        'plsql': 'sql',
         
         // Other
-        'r': 'R',
-        'R': 'R',
-        'matlab': 'MATLAB',
-        'm': 'MATLAB',
-        'pl': 'Perl',
-        'pm': 'Perl',
-        'tcl': 'Tcl',
-        'lua': 'Lua',
-        'vim': 'Vim',
-        'dockerfile': 'Dockerfile',
-        'makefile': 'Makefile',
-        'cmake': 'CMake',
-        'tex': 'LaTeX',
-        'bib': 'BibTeX',
-        'log': 'Log',
-        'txt': 'Plain Text',
+        'r': 'r',
+        'R': 'r',
+        'matlab': 'm3', // Monaco uses m3 for MATLAB-like syntax
+        'm': 'm3',
+        'pl': 'perl',
+        'pm': 'perl',
+        'tcl': 'tcl',
+        'lua': 'lua',
+        'vim': 'plaintext', // Monaco doesn't have vim syntax
+        'dockerfile': 'dockerfile',
+        'makefile': 'makefile',
+        'cmake': 'cmake',
+        'tex': 'latex',
+        'bib': 'latex',
+        'log': 'plaintext',
+        'txt': 'plaintext',
     };
 
-    return languageMap[ext] || 'Plain Text';
+    return languageMap[ext] || 'plaintext';
 };

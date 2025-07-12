@@ -27,6 +27,9 @@ function createWindow() {
   });
   registerListeners(mainWindow);
 
+  // Let the renderer process keymap system handle Cmd+W entirely
+  // It will close tabs when available and prevent app closure when appropriate
+
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {

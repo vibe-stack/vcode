@@ -17,6 +17,8 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   const setActivePane = useEditorSplitStore(state => state.setActivePane);
   const setActivePaneBuffer = useEditorSplitStore(state => state.setActivePaneBuffer);
   const closeBufferInPane = useEditorSplitStore(state => state.closeBufferInPane);
+  const closePane = useEditorSplitStore(state => state.closePane);
+  const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
   const moveBuffer = useEditorSplitStore(state => state.moveBuffer);
   const startDrag = useEditorSplitStore(state => state.startDrag);
   const endDrag = useEditorSplitStore(state => state.endDrag);
@@ -32,6 +34,8 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   const handleTabClick = useCallback((bufferId: string) => {
     setActivePane(paneId);
     setActivePaneBuffer(paneId, bufferId);
+    // Also update the global buffer store's active buffer for commands like Cmd+W
+    useBufferStore.getState().setActiveBuffer(bufferId);
   }, [paneId, setActivePane, setActivePaneBuffer]);
 
   const handleTabClose = useCallback(async (bufferId: string) => {
@@ -74,7 +78,19 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
 
   const handlePaneClick = useCallback(() => {
     setActivePane(paneId);
-  }, [paneId, setActivePane]);
+    // Also update the global buffer store's active buffer when pane is clicked
+    if (activeBuffer) {
+      useBufferStore.getState().setActiveBuffer(activeBuffer.id);
+    }
+  }, [paneId, setActivePane, activeBuffer]);
+
+  const handleClosePane = useCallback(() => {
+    // Get all panes to check if this is the last one
+    const allPanes = getAllPanes();
+    if (allPanes.length > 1) {
+      closePane(paneId);
+    }
+  }, [closePane, paneId, getAllPanes]);
 
   return (
     <div 
@@ -94,6 +110,8 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
         onTabDragEnd={handleTabDragEnd}
         onTabDrop={handleTabDrop}
         draggedTabId={draggedTabId}
+        onClosePane={handleClosePane}
+        canClosePane={getAllPanes().length > 1}
       />
 
       {/* Editor Content */}

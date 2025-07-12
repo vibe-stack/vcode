@@ -73,7 +73,17 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
   commands.set('file.close', {
     execute: async () => {
       const bufferStore = useBufferStore.getState();
-      const activeBuffer = bufferStore.activeBufferId;
+      const editorSplitStore = useEditorSplitStore.getState();
+      
+      // Try to get the active buffer from the global buffer store first
+      let activeBuffer = bufferStore.activeBufferId;
+      
+      // If no global active buffer, try to get from the active pane
+      if (!activeBuffer && editorSplitStore.activePaneId) {
+        const activePane = editorSplitStore.getPane(editorSplitStore.activePaneId);
+        activeBuffer = activePane?.activeBufferId || null;
+      }
+      
       if (activeBuffer) {
         await bufferStore.closeBuffer(activeBuffer);
         console.log('Closed editor tab:', activeBuffer);

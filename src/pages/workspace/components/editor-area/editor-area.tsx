@@ -45,7 +45,7 @@ export function EditorArea() {
       const paneElement = document.querySelector(`[data-pane-id="${pane.id}"]`);
       if (paneElement) {
         const rect = paneElement.getBoundingClientRect();
-        const threshold = 50; // pixels from edge
+        const threshold = 200; // pixels from edge
 
         // Center zone (entire pane)
         zones.push({
