@@ -8,7 +8,6 @@ const isTextFile = (type: BufferType): boolean => {
 };
 
 const canEditFile = (type: BufferType): boolean => {
-    console.log("testing can edit", type)
     return type === 'text';
 };
 

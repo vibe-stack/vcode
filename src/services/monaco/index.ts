@@ -5,9 +5,6 @@ import { RegisteredFileSystemProvider, RegisteredMemoryFile, registerFileSystemO
 // Import monaco editor types from original monaco-editor for types
 import type * as MonacoTypes from 'monaco-editor';
 
-// Import enhanced monaco editor API
-import * as monaco from 'monaco-editor';
-
 // Service overrides
 import getBaseServiceOverride from '@codingame/monaco-vscode-base-service-override';
 import getHostServiceOverride from '@codingame/monaco-vscode-host-service-override';
@@ -38,15 +35,20 @@ export interface MonacoEditorInstance {
 // Global initialization state
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+let monaco: any = null; // Will be set after initialization
 
 /**
  * Initialize Monaco VSCode API services
  */
 async function initializeMonacoServices(): Promise<void> {
+    console.log('initializeMonacoServices: Starting, isInitialized:', isInitialized, 'initializationPromise:', !!initializationPromise);
+    
     if (isInitialized) return;
     if (initializationPromise) return initializationPromise;
 
     initializationPromise = (async () => {
+        console.log('initializeMonacoServices: Configuring Monaco Environment...');
+        
         // Configure Monaco Environment
         window.MonacoEnvironment = {
             getWorker(_workerId: any, label: string) {
@@ -54,6 +56,8 @@ async function initializeMonacoServices(): Promise<void> {
             }
         };
 
+        console.log('initializeMonacoServices: Initializing VSCode services...');
+        
         // Initialize VSCode services
         await initialize({
             ...getBaseServiceOverride(),
@@ -70,10 +74,24 @@ async function initializeMonacoServices(): Promise<void> {
             // Skip editor service override for now as it requires specific configuration
         });
 
+        // Import the enhanced monaco instance after initialization
+        monaco = await import('monaco-editor');
+
+        console.log('initializeMonacoServices: VSCode services initialized successfully');
         isInitialized = true;
     })();
 
     return initializationPromise;
+}
+
+/**
+ * Get the enhanced Monaco instance (only available after initialization)
+ */
+function getMonaco() {
+    if (!monaco) {
+        throw new Error('Monaco services not initialized yet. Initialization is in progress...');
+    }
+    return monaco;
 }
 
 class MonacoEditorRegistry {
@@ -82,6 +100,7 @@ class MonacoEditorRegistry {
 
     constructor() {
         // Ensure Monaco services are initialized
+        console.log('MonacoEditorRegistry: Starting initialization...');
         initializeMonacoServices().then(() => {
             console.log('Monaco services initialized successfully');
         }).catch(err => {
@@ -99,7 +118,20 @@ class MonacoEditorRegistry {
         language?: string,
         filePath?: string
     ): Promise<MonacoTypes.editor.IStandaloneCodeEditor> {
-        // Ensure Monaco services are initialized
+        console.log('createEditor: Starting for buffer:', bufferId);
+        
+        // Wait for Monaco services to be initialized (started in constructor)
+        console.log('createEditor: Waiting for Monaco services initialization...');
+        if (initializationPromise) {
+            await initializationPromise;
+        }
+        console.log('createEditor: Monaco services ready, creating editor...');
+
+        // Ensure we have the enhanced monaco instance
+        if (!monaco) {
+            throw new Error('Monaco instance not available after initialization');
+        }
+        
         const editorId = `editor_${bufferId}_${Date.now()}`;
         let modelRef: any; // Enhanced model reference from monaco-vscode-api
         let fileSystemProvider: RegisteredFileSystemProvider | undefined;
@@ -117,7 +149,6 @@ class MonacoEditorRegistry {
             overlayDisposable = registerFileSystemOverlay(1, fileSystemProvider);
 
             // Use createModelReference for better VSCode integration
-            // @ts-expect-error - createModelReference is added by monaco-vscode-api
             modelRef = await monaco.editor.createModelReference(fileUri);
 
             editor = monaco.editor.create(container, {
@@ -160,6 +191,7 @@ class MonacoEditorRegistry {
         this.editors.set(editorId, editorInstance);
         this.editorsByBuffer.set(bufferId, editorId);
 
+        console.log('createEditor: Editor created successfully for buffer:', bufferId, 'with ID:', editorId);
         return editor;
     }
 
@@ -224,7 +256,7 @@ class MonacoEditorRegistry {
      * Get available languages
      */
     getAvailableLanguages(): string[] {
-        return monaco.languages.getLanguages().map(lang => lang.id);
+        return monaco.languages.getLanguages().map((lang: any) => lang.id);
     }
 
     /**
@@ -417,13 +449,19 @@ class MonacoEditorRegistry {
             editor.setScrollLeft(left);
         }
     }
+
+    /**
+     * Get the enhanced Monaco instance (safe method)
+     */
+    getMonaco() {
+        return getMonaco();
+    }
 }
 
 // Export singleton instance
 export const monacoEditorRegistry = new MonacoEditorRegistry();
 
 // Export types for external use
-export { monaco };
 export type { MonacoTypes };
 
 // Export VSCode API functionality

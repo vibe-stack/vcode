@@ -119,7 +119,6 @@ export function isTextBuffer(buffer: Uint8Array, sampleSize = 8000): boolean {
 export function getFileType({ extension, buffer }: { extension?: string | null, buffer?: Uint8Array }): BufferType {
     if (buffer) {
         const istext = isTextBuffer(buffer);
-        console.log(istext)
         if (istext) return 'text';
         // Could add more heuristics for image/pdf/archive here
         return 'binary';

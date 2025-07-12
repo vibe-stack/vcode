@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { BufferContent } from '@/stores/buffers';
 import { getLanguageFromExtension } from '@/stores/buffers/utils';
-import { monacoEditorRegistry, monaco, type MonacoTypes } from '@/services/monaco';
+import { monacoEditorRegistry, type MonacoTypes } from '@/services/monaco';
 
 export interface EditorProps {
     buffer: BufferContent;
@@ -19,19 +19,30 @@ export function Editor({ buffer, onChange }: EditorProps) {
     }, [buffer.content]);
 
     // Initialize Monaco Editor
-    useEffect(() => {
-        if (!containerRef.current) return;
+    useLayoutEffect(() => {
+        if (!containerRef.current) {
+            console.warn('Monaco Editor containerRef.current is null, cannot initialize editor');
+            return;
+        }
 
-        const initializeEditor = async () => {
+        let disposed = false;
+        let cleanup: (() => void) | undefined;
+
+        (async () => {
             try {
+                console.log('Initializing Monaco editor for buffer:', buffer.id);
+                // Always use the latest buffer values to avoid stale closure
                 const language = getLanguageFromExtension(buffer.extension || '');
-                const value = typeof content === 'string' 
-                    ? content 
-                    : (content ? new TextDecoder().decode(content) : '');
+                const value = typeof buffer.content === 'string' 
+                    ? buffer.content 
+                    : (buffer.content ? new TextDecoder().decode(buffer.content) : '');
 
                 // Create a virtual file path for VSCode integration if not provided
                 const filePath = buffer.filePath || `/virtual/${buffer.id}${buffer.extension || '.txt'}`;
 
+                console.log('Creating editor with params:', { bufferId: buffer.id, language, filePath });
+                console.log('containerRef.current:', containerRef.current);
+                
                 // Create editor instance with VSCode API
                 const editor = await monacoEditorRegistry.createEditor(
                     buffer.id,
@@ -45,8 +56,9 @@ export function Editor({ buffer, onChange }: EditorProps) {
                     filePath // Use file path for better VSCode integration
                 );
 
+                console.log('Monaco editor created successfully for buffer:', buffer.id);
                 editorRef.current = editor;
-                setIsEditorReady(true);
+                if (!disposed) setIsEditorReady(true);
 
                 // Listen to content changes
                 const onContentChange = editor.onDidChangeModelContent(() => {
@@ -73,7 +85,7 @@ export function Editor({ buffer, onChange }: EditorProps) {
                 editor.focus();
 
                 // Store disposables for cleanup
-                return () => {
+                cleanup = () => {
                     onContentChange.dispose();
                     onCursorChange.dispose();
                     onScrollChange.dispose();
@@ -83,23 +95,23 @@ export function Editor({ buffer, onChange }: EditorProps) {
                 };
             } catch (error) {
                 console.error('Failed to initialize Monaco editor:', error);
-                setIsEditorReady(false);
+                console.error('Error details:', {
+                    bufferId: buffer.id,
+                    hasContainer: !!containerRef.current,
+                    bufferContent: buffer.content ? 'present' : 'missing',
+                    bufferExtension: buffer.extension
+                });
+                if (!disposed) setIsEditorReady(false);
             }
-        };
+        })();
 
-        let cleanup: (() => void) | undefined;
-        
-        initializeEditor().then((cleanupFn) => {
-            cleanup = cleanupFn;
-        });
-
-        // Cleanup on unmount
         return () => {
+            disposed = true;
             if (cleanup) {
                 cleanup();
             }
         };
-    }, [buffer.id]); // Only re-create when buffer ID changes
+    }, [buffer.id, buffer.filePath]); // Only re-create when buffer ID or filePath changes
 
     // Update editor content when buffer content changes
     useEffect(() => {
@@ -121,6 +133,7 @@ export function Editor({ buffer, onChange }: EditorProps) {
             const language = getLanguageFromExtension(buffer.extension);
             const model = editorRef.current.getModel();
             if (model) {
+                const monaco = monacoEditorRegistry.getMonaco();
                 monaco.editor.setModelLanguage(model, language);
             }
         }
@@ -148,45 +161,40 @@ export function Editor({ buffer, onChange }: EditorProps) {
         }
     }, [buffer.scrollPosition, buffer.id, isEditorReady]);
 
-    if (buffer.isLoading || !isEditorReady) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">
-                    {buffer.isLoading ? 'Loading...' : 'Initializing editor...'}
-                </p>
-            </div>
-        );
-    }
-
-    if (buffer.error) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-destructive text-sm mb-2">Error loading file</p>
-                    <p className="text-xs text-muted-foreground">{buffer.error}</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!buffer.isEditable) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-muted-foreground text-sm mb-2">
-                        Cannot edit {buffer.type} file
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        File size: {buffer.fileSize ? `${Math.round(buffer.fileSize / 1024)}KB` : 'Unknown'}
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
+    // Always render the container div so ref is available for Monaco
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col relative">
             <div ref={containerRef} className="h-full w-full" />
+            {/* Loading/initializing overlay */}
+            {(buffer.isLoading || !isEditorReady) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                    <p className="text-muted-foreground text-sm">
+                        {buffer.isLoading ? 'Loading...' : 'Initializing editor...'}
+                    </p>
+                </div>
+            )}
+            {/* Error overlay */}
+            {buffer.error && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                    <div className="text-center">
+                        <p className="text-destructive text-sm mb-2">Error loading file</p>
+                        <p className="text-xs text-muted-foreground">{buffer.error}</p>
+                    </div>
+                </div>
+            )}
+            {/* Readonly overlay */}
+            {!buffer.isEditable && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                    <div className="text-center">
+                        <p className="text-muted-foreground text-sm mb-2">
+                            Cannot edit {buffer.type} file
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            File size: {buffer.fileSize ? `${Math.round(buffer.fileSize / 1024)}KB` : 'Unknown'}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
