@@ -1,6 +1,7 @@
 {
-  "name": "Hundred Oceans - Fork",
+  "name": "Vibe Dark",
   "type": "dark",
+  "base": "vs-dark",
   "semanticHighlighting": true,
   "semanticTokenColors": {
     "enumMember": {

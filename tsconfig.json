@@ -2,8 +2,8 @@
   "compilerOptions": {
     "jsx": "react",
     "target": "ESNext",
-    "module": "CommonJS",
-    "lib": ["dom", "ESNext"],
+    "module": "ESNext",
+    "lib": ["dom", "ESNext", "WebWorker"],
     "experimentalDecorators": true,
     "composite": true,
     "declaration": true,
