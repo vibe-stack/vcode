@@ -24,6 +24,8 @@ import {
   PROJECT_REMOVE_RECENT_PROJECT_CHANNEL,
   PROJECT_GET_CURRENT_PROJECT_CHANNEL,
   PROJECT_SET_CURRENT_PROJECT_CHANNEL,
+  PROJECT_SET_LAST_OPENED_PROJECT_CHANNEL,
+  PROJECT_GET_LAST_OPENED_PROJECT_CHANNEL,
   PROJECT_FILE_CHANGED_EVENT,
   PROJECT_FILE_CREATED_EVENT,
   PROJECT_FILE_DELETED_EVENT,
@@ -65,9 +67,40 @@ interface RecentProject {
 
 // Global state
 let currentProjectPath: string | null = null;
+let lastOpenedProjectPath: string | null = null;
 let recentProjects: RecentProject[] = [];
 let fileWatchers: Map<string, FSWatcher> = new Map();
 let mainWindow: BrowserWindow | null = null;
+
+// Load last opened project from storage
+async function loadLastOpenedProject(): Promise<void> {
+  try {
+    const userDataPath = require('electron').app.getPath('userData');
+    const lastOpenedPath = path.join(userDataPath, 'last-opened-project.json');
+    
+    if (fsSync.existsSync(lastOpenedPath)) {
+      const data = await fs.readFile(lastOpenedPath, 'utf8');
+      const parsed = JSON.parse(data);
+      lastOpenedProjectPath = parsed.path || null;
+    }
+  } catch (error) {
+    console.error('Error loading last opened project:', error);
+    lastOpenedProjectPath = null;
+  }
+}
+
+// Save last opened project to storage
+async function saveLastOpenedProject(): Promise<void> {
+  try {
+    const userDataPath = require('electron').app.getPath('userData');
+    const lastOpenedPath = path.join(userDataPath, 'last-opened-project.json');
+    
+    const data = { path: lastOpenedProjectPath };
+    await fs.writeFile(lastOpenedPath, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error('Error saving last opened project:', error);
+  }
+}
 
 // Load recent projects from storage
 async function loadRecentProjects(): Promise<void> {
@@ -273,6 +306,10 @@ export function addProjectEventListeners(window: BrowserWindow): void {
   
   // Load recent projects on startup
   loadRecentProjects();
+  
+  // Load last opened project on startup
+  loadLastOpenedProject();
+  loadLastOpenedProject();
 
   // Project management
   ipcMain.handle(PROJECT_OPEN_FOLDER_CHANNEL, async (_, folderPath?: string) => {
@@ -488,6 +525,16 @@ export function addProjectEventListeners(window: BrowserWindow): void {
     recentProjects = recentProjects.filter(project => project.path !== projectPath);
     await saveRecentProjects();
     return recentProjects;
+  });
+
+  // Last opened project
+  ipcMain.handle(PROJECT_SET_LAST_OPENED_PROJECT_CHANNEL, async (_, projectPath: string) => {
+    lastOpenedProjectPath = projectPath;
+    await saveLastOpenedProject();
+  });
+
+  ipcMain.handle(PROJECT_GET_LAST_OPENED_PROJECT_CHANNEL, () => {
+    return lastOpenedProjectPath;
   });
 }
 

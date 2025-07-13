@@ -3,6 +3,7 @@ import { exposeWindowContext } from "./window/window-context";
 import { exposeProjectContext } from "./project/project-context";
 import { exposeAIContext } from "./ai/ai-context";
 import { exposeSettingsContext } from "./settings/settings-context";
+import { exposeGitContext } from "./git/git-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -10,4 +11,5 @@ export default function exposeContexts() {
   exposeProjectContext();
   exposeAIContext();
   exposeSettingsContext();
+  exposeGitContext();
 }

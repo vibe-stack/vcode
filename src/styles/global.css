@@ -395,3 +395,31 @@ body {
 .mention-suggestions button[data-selected="true"] {
   @apply bg-accent text-accent-foreground;
 }
+
+/* Global Modern Dark macOS-like Scrollbar Styles */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #222c36 #181a1b;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: #181a1b;
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #222c36;
+  border-radius: 8px;
+  min-height: 24px;
+  border: 2px solid #181a1b;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #2d3742;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #181a1b;
+}

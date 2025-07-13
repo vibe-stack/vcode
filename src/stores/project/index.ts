@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { DirectoryNode, RecentProject, projectApi } from '@/services/project-api';
 import { router } from '@/routes/router';
+import { useGitStore } from '@/stores/git';
 
 export interface ProjectState {
     // Current project
@@ -26,6 +27,11 @@ export interface ProjectState {
     addRecentProject: (path: string, name?: string) => Promise<void>;
     removeRecentProject: (path: string) => Promise<void>;
     clearCurrentProject: () => void;
+
+    // Auto-open functionality
+    setLastOpenedProject: (path: string) => Promise<void>;
+    getLastOpenedProject: () => Promise<string | null>;
+    autoOpenLastProject: () => Promise<void>;
 
     // File watching
     watchCurrentProject: () => Promise<void>;
@@ -65,8 +71,14 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
             // Add to recent projects
             await get().addRecentProject(projectPath, projectName);
 
+            // Save as last opened project for auto-open
+            await get().setLastOpenedProject(projectPath);
+
             // Start watching the project
             await get().watchCurrentProject();
+
+            // Initialize git store for the new project
+            useGitStore.getState().setCurrentProject(projectPath);
 
             // Navigate to workspace (you might want to handle this differently)
 
@@ -89,6 +101,10 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
     // Clear current project
     clearCurrentProject: () => {
         get().unwatchCurrentProject();
+        
+        // Clear git store
+        useGitStore.getState().clearGitState();
+        
         set((state) => {
             state.currentProject = null;
             state.projectName = null;
@@ -165,6 +181,37 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
             set({ recentProjects: updatedProjects });
         } catch (error) {
             console.error('Error removing recent project:', error);
+        }
+    },
+
+    // Set last opened project for auto-open
+    setLastOpenedProject: async (path: string) => {
+        try {
+            await projectApi.setLastOpenedProject(path);
+        } catch (error) {
+            console.error('Error setting last opened project:', error);
+        }
+    },
+
+    // Get last opened project
+    getLastOpenedProject: async () => {
+        try {
+            return await projectApi.getLastOpenedProject();
+        } catch (error) {
+            console.error('Error getting last opened project:', error);
+            return null;
+        }
+    },
+
+    // Auto-open last project
+    autoOpenLastProject: async () => {
+        try {
+            const path = await projectApi.getLastOpenedProject();
+            if (path) {
+                await get().setCurrentProject(path);
+            }
+        } catch (error) {
+            console.error('Error auto-opening last project:', error);
         }
     },
 

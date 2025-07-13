@@ -83,6 +83,8 @@ declare global {
       getRecentProjects: () => Promise<RecentProject[]>;
       addRecentProject: (projectPath: string, projectName?: string) => Promise<RecentProject[]>;
       removeRecentProject: (projectPath: string) => Promise<RecentProject[]>;
+      setLastOpenedProject: (projectPath: string) => Promise<void>;
+      getLastOpenedProject: () => Promise<string | null>;
       
       // Event listeners
       onFileChanged: (callback: (filePath: string, eventType: string) => void) => () => void;
@@ -274,7 +276,23 @@ export class ProjectApiService {
     if (!this.isAvailable()) throw new Error('Project API not available');
     return await window.projectApi.removeRecentProject(projectPath);
   }
-  
+
+  /**
+   * Set the last opened project for auto-open on startup
+   */
+  async setLastOpenedProject(projectPath: string): Promise<void> {
+    if (!this.isAvailable()) throw new Error('Project API not available');
+    return await window.projectApi.setLastOpenedProject(projectPath);
+  }
+
+  /**
+   * Get the last opened project
+   */
+  async getLastOpenedProject(): Promise<string | null> {
+    if (!this.isAvailable()) throw new Error('Project API not available');
+    return await window.projectApi.getLastOpenedProject();
+  }
+
   /**
    * Listen for file change events
    */

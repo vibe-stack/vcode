@@ -19,6 +19,8 @@ import {
   PROJECT_REMOVE_RECENT_PROJECT_CHANNEL,
   PROJECT_GET_CURRENT_PROJECT_CHANNEL,
   PROJECT_SET_CURRENT_PROJECT_CHANNEL,
+  PROJECT_SET_LAST_OPENED_PROJECT_CHANNEL,
+  PROJECT_GET_LAST_OPENED_PROJECT_CHANNEL,
 } from "./project-channels";
 
 export function exposeProjectContext() {
@@ -60,6 +62,10 @@ export function exposeProjectContext() {
     addRecentProject: (projectPath: string, projectName?: string) => 
       ipcRenderer.invoke(PROJECT_ADD_RECENT_PROJECT_CHANNEL, projectPath, projectName),
     removeRecentProject: (projectPath: string) => ipcRenderer.invoke(PROJECT_REMOVE_RECENT_PROJECT_CHANNEL, projectPath),
+    
+    // Last opened project
+    setLastOpenedProject: (projectPath: string) => ipcRenderer.invoke(PROJECT_SET_LAST_OPENED_PROJECT_CHANNEL, projectPath),
+    getLastOpenedProject: () => ipcRenderer.invoke(PROJECT_GET_LAST_OPENED_PROJECT_CHANNEL),
     
     // Event listeners
     onFileChanged: (callback: (filePath: string, eventType: string) => void) => {

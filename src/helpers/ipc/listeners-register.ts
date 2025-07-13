@@ -4,6 +4,7 @@ import { addWindowEventListeners } from "./window/window-listeners";
 import { addProjectEventListeners } from "./project/project-listeners";
 import { addAIEventListeners } from "./ai/ai-listeners";
 import { addSettingsEventListeners } from "./settings/settings-listeners";
+import { addGitEventListeners } from "./git/git-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   addWindowEventListeners(mainWindow);
@@ -11,4 +12,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addProjectEventListeners(mainWindow);
   addAIEventListeners();
   addSettingsEventListeners();
+  addGitEventListeners(mainWindow);
 }

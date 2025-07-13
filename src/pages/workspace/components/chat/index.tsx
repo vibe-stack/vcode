@@ -269,7 +269,7 @@ export function ChatPanel() {
     }, [addToolResult]);
 
     return (
-        <div className="h-full flex flex-col border-l bg-background w-full min-w-0">
+        <div className="h-full flex flex-col border-l bg-background w-full max-w-full min-w-0">
             {/* Header */}
             <div className="border-b p-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
@@ -297,9 +297,9 @@ export function ChatPanel() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-hidden min-w-0">
-                <ScrollArea className="h-full w-full">
-                    <div className="p-3 space-y-4 min-w-0">
+            <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                    <div className="p-3 space-y-4">
                         {messages.map((message) => (
                             <MessageComponent
                                 key={message.id}
@@ -312,18 +312,16 @@ export function ChatPanel() {
                         ))}
 
                         {isLoading && (
-
-                            <div className="flex-1 min-w-0">
+                            <div className="flex justify-start">
                                 <DotMatrix
                                     baseColor='#444'
                                     fillColor="#4caf50"
                                     dotSize={3}
                                     rows={3}
-                                    fillSpeed={1200}
+                                    fillSpeed={3000}
                                     autoFill={true}
                                 />
                             </div>
-
                         )}
 
                         <div ref={messagesEndRef} />

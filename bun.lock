@@ -65,6 +65,7 @@
         "input-otp": "^1.4.2",
         "lucide-react": "^0.525.0",
         "monaco-editor": "^0.52.2",
+        "motion": "^12.23.3",
         "next-themes": "^0.4.6",
         "react": "^19.1.0",
         "react-day-picker": "^9.8.0",
@@ -1587,6 +1588,8 @@
 
     "forwarded": ["forwarded@0.2.0", "", {}, "sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow=="],
 
+    "framer-motion": ["framer-motion@12.23.3", "", { "dependencies": { "motion-dom": "^12.23.2", "motion-utils": "^12.23.2", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-llmLkf44zuIZOPSrE4bl4J0UTg6bav+rlKEfMRKgvDMXqBrUtMg6cspoQeRVK3nqRLxTmAJhfGXk39UDdZD7Kw=="],
+
     "fresh": ["fresh@0.5.2", "", {}, "sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q=="],
 
     "fs-extra": ["fs-extra@10.1.0", "", { "dependencies": { "graceful-fs": "^4.2.0", "jsonfile": "^6.0.1", "universalify": "^2.0.0" } }, "sha512-oRXApq54ETRj4eMiFzGnHWGy+zo5raudjuxN0b8H7s/RU2oW0Wvsx9O0ACRN/kRq9E8Vu/ReskGB5o3ji+FzHQ=="],
@@ -2068,6 +2071,12 @@
     "monaco-editor-wrapper": ["monaco-editor-wrapper@6.9.0", "", { "dependencies": { "@codingame/monaco-vscode-api": "~18.1.0", "@codingame/monaco-vscode-editor-api": "~18.1.0", "@codingame/monaco-vscode-editor-service-override": "~18.1.0", "@codingame/monaco-vscode-extension-api": "~18.1.0", "@codingame/monaco-vscode-language-pack-cs": "~18.1.0", "@codingame/monaco-vscode-language-pack-de": "~18.1.0", "@codingame/monaco-vscode-language-pack-es": "~18.1.0", "@codingame/monaco-vscode-language-pack-fr": "~18.1.0", "@codingame/monaco-vscode-language-pack-it": "~18.1.0", "@codingame/monaco-vscode-language-pack-ja": "~18.1.0", "@codingame/monaco-vscode-language-pack-ko": "~18.1.0", "@codingame/monaco-vscode-language-pack-pl": "~18.1.0", "@codingame/monaco-vscode-language-pack-pt-br": "~18.1.0", "@codingame/monaco-vscode-language-pack-qps-ploc": "~18.1.0", "@codingame/monaco-vscode-language-pack-ru": "~18.1.0", "@codingame/monaco-vscode-language-pack-tr": "~18.1.0", "@codingame/monaco-vscode-language-pack-zh-hans": "~18.1.0", "@codingame/monaco-vscode-language-pack-zh-hant": "~18.1.0", "@codingame/monaco-vscode-monarch-service-override": "~18.1.0", "@codingame/monaco-vscode-textmate-service-override": "~18.1.0", "@codingame/monaco-vscode-theme-defaults-default-extension": "~18.1.0", "@codingame/monaco-vscode-theme-service-override": "~18.1.0", "@codingame/monaco-vscode-views-service-override": "~18.1.0", "@codingame/monaco-vscode-workbench-service-override": "~18.1.0", "monaco-languageclient": "~9.8.0", "vscode": "npm:@codingame/monaco-vscode-extension-api@~18.1.0", "vscode-languageclient": "~9.0.1", "vscode-languageserver-protocol": "~3.17.5", "vscode-ws-jsonrpc": "~3.4.0" } }, "sha512-JvmSNNdeyGXeTNDD+iRAt2Cf8wjaWfMKpA8YKFkBQ5KoA47Rwndcbu2dGcKNmT4AT/TwGQw4HvhsdEvvI7jySw=="],
 
     "monaco-languageclient": ["monaco-languageclient@9.8.0", "", { "dependencies": { "@codingame/monaco-vscode-api": "~18.1.0", "@codingame/monaco-vscode-configuration-service-override": "~18.1.0", "@codingame/monaco-vscode-editor-api": "~18.1.0", "@codingame/monaco-vscode-editor-service-override": "~18.1.0", "@codingame/monaco-vscode-extension-api": "~18.1.0", "@codingame/monaco-vscode-extensions-service-override": "~18.1.0", "@codingame/monaco-vscode-languages-service-override": "~18.1.0", "@codingame/monaco-vscode-localization-service-override": "~18.1.0", "@codingame/monaco-vscode-log-service-override": "~18.1.0", "@codingame/monaco-vscode-model-service-override": "~18.1.0", "vscode": "npm:@codingame/monaco-vscode-extension-api@~18.1.0", "vscode-languageclient": "~9.0.1" } }, "sha512-xQ82vs0xWdeaxDK0lXJdN81CGC0gzMOVhmr7bN71y+tFezsToAW0+tt+IpQbyw1i3lQQxjdh1ci+Hu5CCx43ew=="],
+
+    "motion": ["motion@12.23.3", "", { "dependencies": { "framer-motion": "^12.23.3", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-7N0Q4c+Xms+wuq2o27rPONLYNOhQUsLRpMi8CcVxv9FFJhGAqRNjJ1hrBCxHh+Rx6B2W2WPbCOLQc+QJ3rw6Rw=="],
+
+    "motion-dom": ["motion-dom@12.23.2", "", { "dependencies": { "motion-utils": "^12.23.2" } }, "sha512-73j6xDHX/NvVh5L5oS1ouAVnshsvmApOq4F3VZo5MkYSD/YVsVLal4Qp9wvVgJM9uU2bLZyc0Sn8B9c/MMKk4g=="],
+
+    "motion-utils": ["motion-utils@12.23.2", "", {}, "sha512-cIEXlBlXAOUyiAtR0S+QPQUM9L3Diz23Bo+zM420NvSd/oPQJwg6U+rT+WRTpp0rizMsBGQOsAwhWIfglUcZfA=="],
 
     "ms": ["ms@2.1.3", "", {}, "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="],
 

@@ -7,6 +7,7 @@ import React, { type ReactNode, useState } from "react";
 import GlobalCommands from "./global-commands";
 import { SettingsIcon } from "lucide-react";
 import { SettingsModal } from "./SettingsModal";
+import { Link } from "@tanstack/react-router";
 
 interface DragWindowRegionProps {
   title?: ReactNode;
@@ -20,7 +21,9 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
       <div className="draglayer relative z-1000 flex w-screen items-stretch border-b py-1">
         <div className="flex flex-1 items-center px-4">
           <div className="no-drag">
-            <WindowButtons />
+            <Link to="/">
+              <div className="text-xs">vCode</div>
+            </Link>
           </div>
         </div>
         <div className="flex items-center">

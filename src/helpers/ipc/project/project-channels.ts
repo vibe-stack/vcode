@@ -19,6 +19,8 @@ export const PROJECT_ADD_RECENT_PROJECT_CHANNEL = "project:add-recent-project";
 export const PROJECT_REMOVE_RECENT_PROJECT_CHANNEL = "project:remove-recent-project";
 export const PROJECT_GET_CURRENT_PROJECT_CHANNEL = "project:get-current-project";
 export const PROJECT_SET_CURRENT_PROJECT_CHANNEL = "project:set-current-project";
+export const PROJECT_SET_LAST_OPENED_PROJECT_CHANNEL = "project:set-last-opened-project";
+export const PROJECT_GET_LAST_OPENED_PROJECT_CHANNEL = "project:get-last-opened-project";
 
 // File system events
 export const PROJECT_FILE_CHANGED_EVENT = "project:file-changed";

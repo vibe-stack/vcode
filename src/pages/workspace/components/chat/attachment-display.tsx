@@ -38,8 +38,10 @@ export const AttachmentDisplay: React.FC<AttachmentDisplayProps> = ({ attachment
     return `${size.toFixed(1)} ${sizes[i]}`;
   };
 
+  return null;
+
   return (
-    <div className="mt-2">
+    <div className="mt-2 max-w-full">
       <div className="flex items-center gap-1 mb-2">
         <Paperclip className="h-3 w-3 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">

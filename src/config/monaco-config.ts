@@ -103,12 +103,12 @@ export const getMonacoEditorOptions = (config: Partial<MonacoEditorConfig> = {})
             showSnippets: true,
             showWords: true,
             showColors: true,
-            showFiles: true,
-            showReferences: true,
-            showFolders: true,
+            showFiles: false, // Disable to reduce worker dependency
+            showReferences: false, // Disable to reduce worker dependency
+            showFolders: false, // Disable to reduce worker dependency
             showTypeParameters: true,
-            showIssues: true,
-            showUsers: true,
+            showIssues: false, // Disable to reduce worker dependency
+            showUsers: false, // Disable to reduce worker dependency
             showValues: true,
             filterGraceful: true,
             localityBonus: true,

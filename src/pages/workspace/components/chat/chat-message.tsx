@@ -33,13 +33,13 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
         // If no parts, render the content directly (fallback)
         if (!message.parts || message.parts.length === 0) {
             return (
-                <div className="text-sm whitespace-pre-wrap break-words overflow-hidden w-full" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                <div className="text-sm whitespace-pre-wrap break-words">
                     <Markdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
-                            p: ({ children }) => <p className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</p>,
-                            code: ({ children }) => <code className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</code>,
-                            pre: ({ children }) => <pre className="break-words overflow-hidden overflow-x-auto" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</pre>
+                            p: ({ children }) => <p className="break-words">{children}</p>,
+                            code: ({ children }) => <code className="break-all">{children}</code>,
+                            pre: ({ children }) => <pre className="overflow-x-auto">{children}</pre>
                         }}
                     >
                         {message.content}
@@ -49,17 +49,17 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
         }
 
         return (
-            <div className="space-y-2">
+            <>
                 {message.parts.map((part, index) => {
                     if (part.type === 'text') {
                         return (
-                            <div key={index} className="text-sm whitespace-pre-wrap break-words overflow-hidden w-full" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                            <div key={index} className="text-sm whitespace-pre-wrap break-words">
                                 <Markdown 
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                        p: ({ children }) => <p className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</p>,
-                                        code: ({ children }) => <code className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</code>,
-                                        pre: ({ children }) => <pre className="break-words overflow-hidden overflow-x-auto" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</pre>
+                                        p: ({ children }) => <p className="break-words">{children}</p>,
+                                        code: ({ children }) => <code className="break-all">{children}</code>,
+                                        pre: ({ children }) => <pre className="overflow-x-auto">{children}</pre>
                                     }}
                                 >
                                     {part.text}
@@ -82,22 +82,21 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                     }
                     return null;
                 })}
-            </div>
+            </>
         );
     };
 
     return (
         <div
             className={cn(
-                "flex gap-3 p-3 rounded-lg min-w-0 w-full",
+                "flex gap-3 p-3 rounded-lg",
                 message.role === 'user' && "bg-primary/10 ml-8"
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            style={{ maxWidth: '100%' }}
         >
-            <div className="flex-1 min-w-0 overflow-hidden w-full" style={{ maxWidth: '100%' }}>
-                <div className="min-w-0 w-full" style={{ maxWidth: '100%' }}>
+            <div className="flex-1 overflow-hidden">
+                <div className="space-y-2">
                     {renderMessageParts()}
                 </div>
 

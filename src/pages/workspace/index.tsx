@@ -19,24 +19,28 @@ export default function WorkspacePage() {
 
   return (
     <div className="w-full bg-background h-full max-h-full relative flex flex-col">
-      <ResizablePanelGroup direction="horizontal" className="">
+      <ResizablePanelGroup direction="horizontal">
         {/* Left Panel - File Explorer */}
         <ResizablePanel defaultSize={20}>
-          <FileExplorer />
+          <div className="h-full w-full">
+            <FileExplorer />
+          </div>
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        <ResizableHandle />
 
         {/* Center Panel - Editor Area */}
         <ResizablePanel defaultSize={60} minSize={30}>
           <EditorArea />
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        <ResizableHandle />
 
         {/* Right Panel - Chat */}
         <ResizablePanel defaultSize={20} minSize={15}>
-          <ChatPanel />
+          <div className="h-full w-full">
+            <ChatPanel />
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
       <WorkspaceFooter />

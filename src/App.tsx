@@ -6,14 +6,19 @@ import "./localization/i18n";
 import { updateAppLanguage } from "./helpers/language_helpers";
 import { router } from "./routes/router";
 import { RouterProvider } from "@tanstack/react-router";
+import { useProjectStore } from "./stores/project";
 
 export default function App() {
   const { i18n } = useTranslation();
+  const { autoOpenLastProject } = useProjectStore();
 
   useEffect(() => {
     syncThemeWithLocal();
     updateAppLanguage(i18n);
-  }, [i18n]);
+    
+    // Auto-open last project on startup
+    autoOpenLastProject();
+  }, [i18n, autoOpenLastProject]);
 
   return <RouterProvider router={router} />;
 }

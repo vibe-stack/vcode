@@ -1,23 +1,30 @@
 import React, { useState, useCallback } from 'react';
 import { useProjectStore } from '@/stores/project';
+import { useGitStore } from '@/stores/git';
 import { useBufferStore } from '@/stores/buffers';
 import { useEditorSplitStore } from '@/stores/editor-splits';
 import { DirectoryNode } from '@/services/project-api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Search,
     Plus,
-    MoreHorizontal
+    MoreHorizontal,
+    Files,
+    GitBranch
 } from 'lucide-react';
-import { FileTreeNode } from './file-tree-node'; // Assuming you have a FileTreeNode component
+import { FileTreeNode } from './file-tree-node';
+import { GitPanel } from './git-panel';
 
 export function FileExplorer() {
     const { fileTree, projectName, currentProject } = useProjectStore();
+    const { isGitRepo } = useGitStore();
     const { openFile: openFileInSplit, startDrag } = useEditorSplitStore();
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+    const [activeTab, setActiveTab] = useState<'files' | 'git'>('files');
 
     const handleFileClick = useCallback(async (filePath: string) => {
         try {
@@ -100,47 +107,67 @@ export function FileExplorer() {
 
     return (
         <div className="h-full flex flex-col border-r">
-            {/* Header */}
-            <div className="border-b p-3 flex flex-row gap-2">
-                {/* Search */}
-                <div className="relative grow">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                    <Input
-                        placeholder="Search files..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-7 h-7 text-xs"
-                    />
-                </div>
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                        <Plus className="h-3 w-3" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                        <MoreHorizontal className="h-3 w-3" />
-                    </Button>
-                </div>
-            </div>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'files' | 'git')} className="h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-2 border-b rounded-none h-10">
+                    <TabsTrigger value="files" className="flex items-center gap-2">
+                        <Files className="h-3 w-3" />
+                        Files
+                    </TabsTrigger>
+                    <TabsTrigger value="git" className="flex items-center gap-2" disabled={!isGitRepo}>
+                        <GitBranch className="h-3 w-3" />
+                        Git
+                    </TabsTrigger>
+                </TabsList>
 
-            {/* File Tree */}
-            <ScrollArea className="flex-1">
-                <div className="p-1">
-                    {displayTree ? (
-                        <FileTreeNode
-                            node={displayTree}
-                            level={0}
-                            onFileClick={handleFileClick}
-                            onFileDragStart={handleFileDragStart}
-                            expandedFolders={expandedFolders}
-                            onToggleFolder={handleToggleFolder}
-                        />
-                    ) : (
-                        <div className="text-center py-8">
-                            <p className="text-muted-foreground text-sm">No files found</p>
+                {/* Files Tab */}
+                <TabsContent value="files" className="flex-1 flex flex-col m-0 p-0 overflow-y-auto">
+                    {/* Search Header */}
+                    <div className="border-b p-3 flex flex-row gap-2">
+                        <div className="relative grow">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                            <Input
+                                placeholder="Search files..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-7 h-7 text-xs"
+                            />
                         </div>
-                    )}
-                </div>
-            </ScrollArea>
+                        <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                <Plus className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* File Tree */}
+                    <ScrollArea className="flex-1">
+                        <div className="p-1">
+                            {displayTree ? (
+                                <FileTreeNode
+                                    node={displayTree}
+                                    level={0}
+                                    onFileClick={handleFileClick}
+                                    onFileDragStart={handleFileDragStart}
+                                    expandedFolders={expandedFolders}
+                                    onToggleFolder={handleToggleFolder}
+                                />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-muted-foreground text-sm">No files found</p>
+                                </div>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </TabsContent>
+
+                {/* Git Tab */}
+                <TabsContent value="git" className="flex-1 flex flex-col m-0 p-0 overflow-y-auto">
+                    <GitPanel />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

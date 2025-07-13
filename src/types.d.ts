@@ -54,6 +54,8 @@ interface ProjectApi {
   getRecentProjects: () => Promise<string[]>;
   addRecentProject: (projectPath: string, projectName?: string) => Promise<void>;
   removeRecentProject: (projectPath: string) => Promise<void>;
+  setLastOpenedProject: (projectPath: string) => Promise<void>;
+  getLastOpenedProject: () => Promise<string | null>;
 }
 
 interface AI {
