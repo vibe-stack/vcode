@@ -6,14 +6,14 @@ i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
-        appName: "electron-shadcn",
+        appName: "vcode",
         titleHomePage: "Home Page",
         titleSecondPage: "Second Page",
       },
     },
     "pt-BR": {
       translation: {
-        appName: "electron-shadcn",
+        appName: "vcode",
         titleHomePage: "Página Inicial",
         titleSecondPage: "Segunda Página",
       },

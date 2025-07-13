@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "electron-shadcn",
+      "name": "vcode-ide",
       "dependencies": {
         "@ai-sdk/openai": "^1.3.23",
         "@ai-sdk/xai": "^1.2.17",

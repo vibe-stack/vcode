@@ -1,8 +1,8 @@
 {
-  "name": "electron-shadcn",
-  "productName": "electron-shadcn Template",
-  "version": "1.0.0",
-  "description": "Electron Forge with shadcn-ui (Vite + Typescript)",
+  "name": "vcode-ide",
+  "productName": "vcode vibe coding IDE",
+  "version": "0.0.1",
+  "description": "A modern IDE for coding with a focus on vibe coding and productivity with grok.",
   "main": ".vite/build/main.js",
   "private": true,
   "scripts": {
@@ -19,7 +19,7 @@
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test"
   },
-  "author": "ROG <luan.roger.2003@gmail.com>",
+  "author": "Robot <alightinastorm@icloud.com>",
   "license": "MIT",
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
