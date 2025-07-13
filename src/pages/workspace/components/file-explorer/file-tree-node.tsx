@@ -66,7 +66,7 @@ export const FileTreeNode = React.memo<FileTreeNodeProps>(({
         <div>
             <div
                 className={cn(
-                    "flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm",
+                    "flex items-center gap-1 px-2 py-1 cursor-default hover:bg-accent hover:text-accent-foreground rounded-sm",
                     "text-sm select-none",
                     gitColor
                 )}

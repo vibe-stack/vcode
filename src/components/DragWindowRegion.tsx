@@ -22,7 +22,7 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
         <div className="flex flex-1 items-center px-4">
           <div className="no-drag">
             <Link to="/">
-              <div className="text-xs">vCode</div>
+              <img src="src/assets/imgs/vcode_long.svg" className="text-xs h-4" />
             </Link>
           </div>
         </div>
