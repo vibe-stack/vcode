@@ -1,9 +1,7 @@
 import React, { useEffect } from "react";
 import ToggleTheme from "@/components/ToggleTheme";
 import { useTranslation } from "react-i18next";
-import LangToggle from "@/components/LangToggle";
 import Footer from "@/components/template/Footer";
-import InitialIcons from "@/components/template/InitialIcons";
 import { useProjectStore } from "@/stores/project";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  FolderOpen, 
-  Clock, 
-  Plus, 
+import {
+  FolderOpen,
+  Clock,
+  Plus,
   Trash2,
   ExternalLink
 } from "lucide-react";

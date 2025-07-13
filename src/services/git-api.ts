@@ -66,37 +66,37 @@ export const gitApi = window.gitApi;
 export const getGitStatusColor = (workingTreeStatus: string, indexStatus: string) => {
   // Modified files (orange)
   if (workingTreeStatus === 'M' || indexStatus === 'M') {
-    return 'text-orange-500';
+    return 'text-orange-300';
   }
   
   // Added files (green)
   if (workingTreeStatus === 'A' || indexStatus === 'A') {
-    return 'text-green-500';
+    return 'text-green-300';
   }
   
   // Deleted files (red)
   if (workingTreeStatus === 'D' || indexStatus === 'D') {
-    return 'text-red-500';
+    return 'text-red-300';
   }
   
   // Renamed files (blue)
   if (workingTreeStatus === 'R' || indexStatus === 'R') {
-    return 'text-blue-500';
+    return 'text-blue-300';
   }
   
   // Untracked files (gray)
   if (workingTreeStatus === '?' || indexStatus === '?') {
-    return 'text-gray-500';
+    return 'text-gray-300';
   }
   
   // Copied files (cyan)
   if (workingTreeStatus === 'C' || indexStatus === 'C') {
-    return 'text-cyan-500';
+    return 'text-cyan-300';
   }
   
   // Updated but unmerged (purple)
   if (workingTreeStatus === 'U' || indexStatus === 'U') {
-    return 'text-purple-500';
+    return 'text-purple-300';
   }
   
   return '';

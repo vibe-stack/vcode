@@ -3,6 +3,8 @@ import { BufferContent } from '@/stores/buffers';
 import { Button } from '@/components/ui/button';
 import { X, Circle } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
+import { useFileGitStatus } from '@/hooks/use-file-git-status';
+import { getGitStatusColor } from '@/services/git-api';
 
 export interface TabProps {
   buffer: BufferContent;
@@ -20,6 +22,8 @@ export function Tab({ buffer, isActive, onClick, onClose, onDragStart, onDragEnd
     onClose();
   }, [onClose]);
 
+  const gitFileStatus = useFileGitStatus(buffer.filePath);
+
   return (
     <div
       className={cn(
@@ -33,15 +37,17 @@ export function Tab({ buffer, isActive, onClick, onClose, onDragStart, onDragEnd
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      <span className="text-sm truncate flex-1 min-w-0">
+      <span className={
+        cn("text-sm truncate flex-1 min-w-0", gitFileStatus ? getGitStatusColor(gitFileStatus?.workingTreeStatus, gitFileStatus?.indexStatus) : '')
+      }>
         {buffer.name}
       </span>
-      
+
       <div className="flex items-center gap-1">
         {buffer.isDirty && (
           <Circle className="h-2 w-2 fill-current text-orange-500" />
         )}
-        
+
         <Button
           variant="ghost"
           size="sm"
