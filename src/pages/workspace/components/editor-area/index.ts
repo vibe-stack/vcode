@@ -7,3 +7,4 @@ export type { EditorProps } from './editor';
 export type { TabProps } from './tab';
 export type { TabBarProps } from './tab-bar';
 export { EditorArea } from './editor-area';
+export { EditorWithTerminal } from './editor-with-terminal';

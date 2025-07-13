@@ -1,6 +1,6 @@
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { FileExplorer, EditorArea, ChatPanel } from './components';
+import { FileExplorer, EditorWithTerminal, ChatPanel } from './components';
 import { useProjectStore } from '@/stores/project';
 import { useEffect } from 'react';
 import { WorkspaceFooter } from './components/footer';
@@ -31,7 +31,7 @@ export default function WorkspacePage() {
 
         {/* Center Panel - Editor Area */}
         <ResizablePanel defaultSize={60} minSize={30}>
-          <EditorArea />
+          <EditorWithTerminal />
         </ResizablePanel>
 
         <ResizableHandle />

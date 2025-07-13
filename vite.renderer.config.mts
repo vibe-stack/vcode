@@ -23,6 +23,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      external: ['node-pty', 'electron'],
       output: {
         manualChunks: {
           monaco: ['monaco-editor']
@@ -31,6 +32,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
+    exclude: ['node-pty', 'electron'],
     include: [
       'monaco-editor/esm/vs/editor/editor.api',
       'monaco-editor/esm/vs/editor/editor.worker',

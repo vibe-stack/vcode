@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
+import { cleanupTerminals } from "./helpers/ipc/terminal/terminal-listeners";
 // "electron-squirrel-startup" seems broken when packaging with vite
 //import started from "electron-squirrel-startup";
 import path from "path";
@@ -52,6 +53,7 @@ app.whenReady().then(createWindow).then(installExtensions);
 
 //osX only
 app.on("window-all-closed", () => {
+  cleanupTerminals();
   if (process.platform !== "darwin") {
     app.quit();
   }
@@ -61,5 +63,9 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+app.on("before-quit", () => {
+  cleanupTerminals();
 });
 //osX only ends

@@ -82,10 +82,24 @@ interface SettingsApi {
   listSecureKeys: () => Promise<string[]>;
 }
 
+interface TerminalApi {
+  create: (options?: { cwd?: string; title?: string }) => Promise<{ id: string; title: string; cwd: string; pid: number }>;
+  write: (terminalId: string, data: string) => Promise<boolean>;
+  resize: (terminalId: string, cols: number, rows: number) => Promise<boolean>;
+  kill: (terminalId: string) => Promise<boolean>;
+  killAll: () => Promise<boolean>;
+  list: () => Promise<{ id: string; title: string; cwd: string; pid: number }[]>;
+  onData: (callback: (data: { terminalId: string; data: string }) => void) => () => void;
+  onExit: (callback: (data: { terminalId: string; exitCode: number }) => void) => () => void;
+  onError: (callback: (data: { terminalId: string; error: string }) => void) => () => void;
+  removeAllListeners: () => void;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
   projectApi: ProjectApi;
   ai: AI;
   settingsApi: SettingsApi;
+  terminalApi: TerminalApi;
 }

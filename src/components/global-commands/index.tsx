@@ -9,7 +9,8 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { Settings } from "lucide-react";
+import { Settings, Terminal } from "lucide-react";
+import { useTerminalStore } from "@/stores/terminal";
 
 interface GlobalCommandsProps {
   onOpenSettings?: () => void;
@@ -18,6 +19,12 @@ interface GlobalCommandsProps {
 export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) {
   const [focused, setFocused] = React.useState(false);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } = useTerminalStore();
+
+  const handleToggleTerminal = () => {
+    setTerminalVisible(!isTerminalVisible);
+    setFocused(false);
+  };
 
   return (
     <div ref={wrapperRef} className="relative w-full max-w-xs min-w-[350px]">
@@ -35,6 +42,14 @@ export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) 
                 <CommandItem>Calendar</CommandItem>
                 <CommandItem>Search Emoji</CommandItem>
                 <CommandItem>Calculator</CommandItem>
+              </CommandGroup>
+              <CommandSeparator />
+              <CommandGroup heading="Terminal">
+                <CommandItem onSelect={handleToggleTerminal}>
+                  <Terminal className="mr-2 h-4 w-4" />
+                  {isTerminalVisible ? 'Hide Terminal' : 'Show Terminal'}
+                  <CommandShortcut>⌘`</CommandShortcut>
+                </CommandItem>
               </CommandGroup>
               <CommandSeparator />
               <CommandGroup heading="Settings">

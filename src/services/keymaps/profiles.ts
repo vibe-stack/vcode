@@ -246,10 +246,37 @@ export const createDefaultKeyBindings = (): KeyBinding[] => {
       id: 'view.toggleTerminal',
       description: 'Toggle terminal',
       key: isMacOS() ? 'ctrl+`' : 'ctrl+`',
-      command: 'view.toggleTerminal',
+      command: 'terminal.toggle',
       enabled: true,
       category: 'view',
       context: 'global'
+    },
+    {
+      id: 'terminal.new',
+      description: 'New terminal',
+      key: `${cmdKey}+shift+\``,
+      command: 'terminal.new',
+      enabled: true,
+      category: 'terminal',
+      context: 'global'
+    },
+    {
+      id: 'terminal.kill',
+      description: 'Kill terminal',
+      key: `${cmdKey}+shift+k`,
+      command: 'terminal.kill',
+      enabled: true,
+      category: 'terminal',
+      context: 'terminal'
+    },
+    {
+      id: 'terminal.split',
+      description: 'Split terminal',
+      key: `${cmdKey}+shift+5`,
+      command: 'terminal.split',
+      enabled: true,
+      category: 'terminal',
+      context: 'terminal'
     },
     {
       id: 'view.zoomIn',

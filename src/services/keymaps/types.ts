@@ -16,7 +16,7 @@ export interface KeyBinding {
   /** Whether this key binding is enabled */
   enabled: boolean;
   /** Category for organization */
-  category: 'file' | 'edit' | 'view' | 'navigation' | 'debug' | 'custom';
+  category: 'file' | 'edit' | 'view' | 'navigation' | 'debug' | 'terminal' | 'custom';
 }
 
 export interface KeymapProfile {

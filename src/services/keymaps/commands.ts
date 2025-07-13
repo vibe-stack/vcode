@@ -1,5 +1,7 @@
 import { useBufferStore } from '@/stores/buffers';
 import { useEditorSplitStore } from '@/stores/editor-splits';
+import { useTerminalStore } from '@/stores/terminal';
+import { useProjectStore } from '@/stores/project';
 import { KeyCommand } from './types';
 
 /**
@@ -422,6 +424,72 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
       // You would implement quick open functionality
     },
     canExecute: () => true
+  });
+
+  // Terminal commands
+  commands.set('terminal.toggle', {
+    execute: async () => {
+      const terminalStore = useTerminalStore.getState();
+      terminalStore.setVisible(!terminalStore.isVisible);
+    },
+    canExecute: () => true
+  });
+
+  commands.set('terminal.new', {
+    execute: async () => {
+      const terminalStore = useTerminalStore.getState();
+      const projectStore = useProjectStore.getState();
+      try {
+        const terminalInfo = await window.terminalApi.create({
+          title: `Terminal ${terminalStore.tabs.length + 1}`,
+          cwd: projectStore.currentProject || undefined
+        });
+        terminalStore.createTab(terminalInfo);
+      } catch (error) {
+        console.error('Failed to create terminal:', error);
+      }
+    },
+    canExecute: () => !!(typeof window !== 'undefined' && window.terminalApi)
+  });
+
+  commands.set('terminal.kill', {
+    execute: async () => {
+      const terminalStore = useTerminalStore.getState();
+      if (terminalStore.activeTabId) {
+        try {
+          await window.terminalApi.kill(terminalStore.activeTabId);
+          terminalStore.removeTab(terminalStore.activeTabId);
+        } catch (error) {
+          console.error('Failed to kill terminal:', error);
+        }
+      }
+    },
+    canExecute: () => {
+      const terminalStore = useTerminalStore.getState();
+      return !!(terminalStore.activeTabId && typeof window !== 'undefined' && window.terminalApi);
+    }
+  });
+
+  commands.set('terminal.split', {
+    execute: async () => {
+      const terminalStore = useTerminalStore.getState();
+      const projectStore = useProjectStore.getState();
+      if (terminalStore.activeTabId) {
+        try {
+          const terminalInfo = await window.terminalApi.create({
+            title: `Split ${terminalStore.splits.length + 1}`,
+            cwd: projectStore.currentProject || undefined
+          });
+          terminalStore.createSplit(terminalStore.activeTabId, terminalInfo);
+        } catch (error) {
+          console.error('Failed to create split:', error);
+        }
+      }
+    },
+    canExecute: () => {
+      const terminalStore = useTerminalStore.getState();
+      return !!(terminalStore.activeTabId && typeof window !== 'undefined' && window.terminalApi);
+    }
   });
   
   return commands;

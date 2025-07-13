@@ -1,11 +1,19 @@
 import { useBufferStore } from "@/stores/buffers";
 import { useProjectStore } from "@/stores/project";
+import { useTerminalStore } from "@/stores/terminal";
 import { detectLineEnding, detectIndentation, detectEncoding, getLanguageFromExtension } from "@/stores/buffers/utils";
+import { Button } from "@/components/ui/button";
+import { Terminal } from "lucide-react";
 import React from "react";
 
 export function WorkspaceFooter() {
     const { } = useProjectStore();
     const { buffers, activeBufferId } = useBufferStore();
+    const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } = useTerminalStore();
+
+    const handleToggleTerminal = () => {
+        setTerminalVisible(!isTerminalVisible);
+    };
 
     // Get active buffer reactively from the store
     const activeBuffer = activeBufferId ? buffers.get(activeBufferId) : null;
@@ -35,7 +43,15 @@ export function WorkspaceFooter() {
             <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
                 <div className="flex items-center gap-4">
                     <div className="">main</div>
-
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleToggleTerminal}
+                        className="h-6 px-2 hover:bg-gray-700"
+                    >
+                        <Terminal className="h-3 w-3 mr-1" />
+                        Terminal
+                    </Button>
                 </div>
 
                 <div className="flex items-center gap-4">
