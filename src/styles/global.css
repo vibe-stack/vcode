@@ -358,3 +358,40 @@
 body {
   letter-spacing: var(--tracking-normal);
 }
+
+/* Enhanced Chat Input Styles */
+.ProseMirror {
+  outline: none;
+  min-height: 80px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ProseMirror .mention {
+  @apply bg-accent text-accent-foreground px-1 py-0.5 rounded text-xs font-medium;
+}
+
+.ProseMirror .mention:hover {
+  @apply bg-accent/80;
+}
+
+.ProseMirror p {
+  margin: 0;
+}
+
+.ProseMirror p + p {
+  margin-top: 8px;
+}
+
+.mention-suggestions {
+  @apply bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto z-50;
+}
+
+.mention-suggestions button {
+  @apply w-full text-left p-2 hover:bg-accent hover:text-accent-foreground flex items-center gap-2 transition-colors;
+}
+
+.mention-suggestions button[data-selected="true"] {
+  @apply bg-accent text-accent-foreground;
+}

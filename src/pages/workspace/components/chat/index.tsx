@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Send, Bot, Trash2, MoreHorizontal } from 'lucide-react';
-import { EnhancedChatInput } from './enhanced-chat-input';
+import { ChatInput } from './chat-input';
 import { useChat } from '@ai-sdk/react';
 import { chatFetch } from './chat-fetch';
 import { MessageComponent } from './chat-message';
@@ -221,7 +221,7 @@ export function ChatPanel() {
 
             {/* Input Area */}
             <div className="border-t p-3 flex-shrink-0">
-                <EnhancedChatInput
+                <ChatInput
                     onSend={handleEnhancedSend}
                     onStop={handleStop}
                     isLoading={isLoading}

@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Button } from '@/c                    }
-                    return null;/ui/button';
+import { Button } from '@/components/ui/button';
 import { Bot, User, Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
@@ -80,13 +79,6 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                                 onCancel={onToolCancel}
                             />
                         );
-                    } else if (part.type === 'file') {
-                        return (
-                            <AttachmentDisplay
-                                key={`${message.id}-attachment-${index}`}
-                                attachments={[part.attachment]}
-                            />
-                        );
                     }
                     return null;
                 })}
@@ -108,6 +100,20 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                 <div className="min-w-0 w-full" style={{ maxWidth: '100%' }}>
                     {renderMessageParts()}
                 </div>
+
+                {/* Display attachments if present */}
+                {(message as any).experimental_attachments && (message as any).experimental_attachments.length > 0 && (
+                    <AttachmentDisplay
+                        attachments={(message as any).experimental_attachments.map((attachment: any) => ({
+                            id: `attachment-${attachment.name}`,
+                            type: attachment.url?.startsWith('file://') ? 'file' : 'url',
+                            name: attachment.name,
+                            url: attachment.url,
+                            path: attachment.url?.startsWith('file://') ? attachment.url.replace('file://', '') : undefined,
+                            content: attachment.content,
+                        }))}
+                    />
+                )}
 
                 <div className="flex items-end justify-between mt-2 gap-2">
                     <span className="text-xs text-muted-foreground flex-shrink-0">
