@@ -1,10 +1,10 @@
-# > ⚠️ **Early Access Disclaimer**
+# ⚠️ **Early Access Disclaimer**
 > 
 > **vCode IDE is currently in alpha and is not ready for production use.** This is an early access version intended for testing and feedback. Expect frequent updates and potential breaking changes.
 
 # vCode IDE
 
-![vCode Logo](src/imgs/vcode_long.svg)
+![vCode Logo](src/assets/imgs/vcode_long.svg)
 
 vCode IDE (short for vibe-code IDE) is a modern, opinionated Integrated Development Environment designed to work seamlessly with Grok as an AI agent. It provides a powerful, user-friendly interface for coding, project management, and AI-assisted development workflows. This IDE is intentionally minimal and focused, offering a distraction-free environment for developers.
 
