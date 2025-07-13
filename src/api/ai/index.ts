@@ -1,22 +1,29 @@
 import { createXai } from '@ai-sdk/xai';
-import { CoreMessage, generateText, streamText } from 'ai';
+import { CoreMessage, streamText, createDataStreamResponse } from 'ai';
+import { tools } from '../../pages/workspace/components/chat/tools';
 
 const model = createXai({
-  apiKey: "",
 })
 
 export async function chatApi({ messages }: { messages: CoreMessage[] }) {
-  console.log("received on api side");
+  console.log("received on api side, calling streamtext");
   
   try {
-    const result = streamText({
-      model: model("grok-3-mini"),
-      messages,
-      maxTokens: 10000,
-    });
+    return createDataStreamResponse({
+      execute: async (dataStream) => {
+        const result = streamText({
+          model: model("grok-4-0709"),
+          messages,
+          tools,
+          maxSteps: 10,
+          maxTokens: 10000,
+        });
 
-    console.log("returning result");
-    return result.toDataStream();
+        result.mergeIntoDataStream(dataStream);
+        const txt = await result.text;
+        console.log("merged into data stream", txt);
+      },
+    });
   } catch (error) {
     console.error("Error in AI API:", error);
     throw new Error("Failed to generate AI response");

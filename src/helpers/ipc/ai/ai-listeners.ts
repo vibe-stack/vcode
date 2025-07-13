@@ -5,7 +5,14 @@ import { chatApi } from '@/api/ai';
 export function addAIEventListeners() {
   ipcMain.handle(AI_SEND_MESSAGE_CHANNEL, async (event, { messages, requestId }) => {
     try {
-      const stream = await chatApi({ messages });
+      const response = await chatApi({ messages });
+      
+      // Get the stream from the response body
+      const stream = response.body;
+      if (!stream) {
+        throw new Error('No stream in response body');
+      }
+      
       const reader = stream.getReader();
       const webContents = event.sender;
       

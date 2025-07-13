@@ -22,7 +22,7 @@ interface ProjectApi {
   openFolder: (folderPath?: string) => Promise<void>;
   getCurrentProject: () => Promise<string | null>; 
   setCurrentProject: (projectPath: string) => Promise<void>;
-  openFile: (filePath: string) => Promise<void>;
+  openFile: (filePath: string) => Promise<{ content: string; path: string }>;
   saveFile: (filePath: string, content: string) => Promise<void>;
   createFile: (filePath: string, content?: string) => Promise<void>;
   createFolder: (folderPath: string) => Promise<void>;

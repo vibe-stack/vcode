@@ -3,74 +3,109 @@ import { Button } from '@/components/ui/button';
 import { Bot, User, Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
+import { ToolCallHandler } from './tool-call-handler';
+import Markdown from 'react-markdown'
 
 interface MessageProps {
-  message: Message;
-  onCopy: (content: string) => void;
-  onDelete: (id: string) => void;
+    message: Message;
+    onCopy: (content: string) => void;
+    onDelete: (id: string) => void;
+    onToolApprove?: (toolCallId: string) => void;
+    onToolCancel?: (toolCallId: string) => void;
 }
 
 
-export function MessageComponent({ message, onCopy, onDelete }: MessageProps) {
-  const [isHovered, setIsHovered] = useState(false);
+export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onToolCancel }: MessageProps) {
+    const [isHovered, setIsHovered] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    onCopy(message.content);
-  }, [message.content, onCopy]);
+    const handleCopy = useCallback(() => {
+        onCopy(message.content);
+    }, [message.content, onCopy]);
 
-  const handleDelete = useCallback(() => {
-    onDelete(message.id);
-  }, [message.id, onDelete]);
+    const handleDelete = useCallback(() => {
+        onDelete(message.id);
+    }, [message.id, onDelete]);
 
-  return (
-    <div
-      className={cn(
-        "flex gap-3 p-3 rounded-lg",
-        message.role === 'user' ? "bg-primary/10 ml-8" : "bg-muted/50 mr-8"
-      )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="flex-shrink-0">
-        {message.role === 'user' ? (
-          <User className="h-5 w-5 text-primary" />
-        ) : (
-          <Bot className="h-5 w-5 text-blue-500" />
-        )}
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="text-sm whitespace-pre-wrap break-words">
-          {message.content}
-        </div>
-        
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-muted-foreground">
-            {message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : 'Just now'}
-          </span>
-          
-          {isHovered && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={handleCopy}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+    // Function to render message parts
+    const renderMessageParts = () => {
+        // If no parts, render the content directly (fallback)
+        if (!message.parts || message.parts.length === 0) {
+            return (
+                <div className="text-sm whitespace-pre-wrap break-words">
+                    <Markdown>
+                        {message.content}
+                    </Markdown>
+                </div>
+            );
+        }
+
+        return (
+            <div className="space-y-2">
+                {message.parts.map((part, index) => {
+                    if (part.type === 'text') {
+                        return (
+                            <div key={index} className="text-sm whitespace-pre-wrap break-words">
+                                {part.text}
+                            </div>
+                        );
+                    } else if (part.type === 'tool-invocation') {
+                        return (
+                            <ToolCallHandler
+                                key={`${message.id}-tool-${index}`}
+                                toolCallId={part.toolInvocation.toolCallId}
+                                toolName={part.toolInvocation.toolName}
+                                args={part.toolInvocation.args}
+                                state={part.toolInvocation.state}
+                                result={part.toolInvocation.state === 'result' ? (part.toolInvocation as any).result : undefined}
+                                onApprove={onToolApprove}
+                                onCancel={onToolCancel}
+                            />
+                        );
+                    }
+                    return null;
+                })}
             </div>
-          )}
+        );
+    };
+
+    return (
+        <div
+            className={cn(
+                "flex gap-3 p-3 rounded-lg",
+                message.role === 'user' && "bg-primary/10 ml-8"
+            )}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <div className="flex-1 min-w-0">
+                {renderMessageParts()}
+
+                <div className="flex items-end justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">
+                        {message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : 'Just now'}
+                    </span>
+
+
+                    <div className={cn("flex items-center gap-1 opacity-0", isHovered && "opacity-100")}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={handleCopy}
+                        >
+                            <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={handleDelete}
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }

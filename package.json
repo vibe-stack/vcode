@@ -125,6 +125,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.60.0",
     "react-i18next": "^15.5.1",
+    "react-markdown": "^10.1.0",
     "react-monaco-editor": "^0.58.0",
     "react-resizable-panels": "^3.0.3",
     "recharts": "2.15.4",
