@@ -13,14 +13,12 @@ export function EditorWithTerminal() {
 
   return (
     <ResizablePanelGroup direction="vertical" className="h-full">
-      {/* Editor Area */}
       <ResizablePanel defaultSize={70} minSize={30}>
         <EditorArea />
       </ResizablePanel>
 
       <ResizableHandle />
 
-      {/* Terminal Area */}
       <ResizablePanel defaultSize={30} minSize={15}>
         <TerminalPanel />
       </ResizablePanel>

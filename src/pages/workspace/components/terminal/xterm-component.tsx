@@ -25,7 +25,7 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
     // Create terminal instance with VSCode-like theme
     const terminal = new Terminal({
       theme: {
-        background: '#1e1e1e', // VSCode dark theme background
+        background: '#000000', // VSCode dark theme background
         foreground: '#cccccc',
         cursor: '#ffffff',
         cursorAccent: '#000000',
@@ -72,11 +72,6 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
     // Open terminal in DOM
     terminal.open(terminalRef.current);
 
-    // Handle user input
-    terminal.onData(data => {
-      onWrite(data);
-    });
-
     // Handle resize
     terminal.onResize(({ cols, rows }) => {
       window.terminalApi?.resize(terminalId, cols, rows);
@@ -106,16 +101,19 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
       fitAddonRef.current = null;
       setIsInitialized(false);
     };
-  }, [terminalId]); // Only depend on terminalId, not onWrite
+  }, [terminalId]); // Only depend on terminalId
 
-  // Handle onWrite callback changes
+  // Handle user input - separate effect to manage the data listener properly
   useEffect(() => {
-    if (xtermRef.current) {
-      // Remove previous listener and add new one
-      xtermRef.current.onData(data => {
-        onWrite(data);
-      });
-    }
+    if (!xtermRef.current) return;
+
+    const disposable = xtermRef.current.onData(data => {
+      onWrite(data);
+    });
+
+    return () => {
+      disposable.dispose();
+    };
   }, [onWrite]);
 
   // Handle data from backend

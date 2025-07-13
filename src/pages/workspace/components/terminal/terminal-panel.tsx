@@ -213,59 +213,51 @@ export function TerminalPanel() {
 
       {/* Terminal Content */}
       <div className="flex-1 relative overflow-hidden">
-        {tabs.map((tab) => {
-          const handleTabWrite = useCallback((data: string) => handleWrite(tab.id, data), [tab.id, handleWrite]);
-          
-          return (
-            <div
-              key={tab.id}
-              className={cn(
-                "absolute inset-0",
-                !tab.isActive && "hidden"
-              )}
-            >
-              {activeSplits.length === 0 ? (
-                <TerminalView
-                  terminalId={tab.id}
-                  isActive={tab.isActive}
-                  onWrite={handleTabWrite}
-                />
-              ) : (
-                <div className="flex h-full">
-                  <div className="flex-1">
-                    <TerminalView
-                      terminalId={tab.id}
-                      isActive={tab.isActive}
-                      onWrite={handleTabWrite}
-                    />
-                  </div>
-                  <div className="w-px bg-[#3e3e42]" />
-                  <div className="flex-1">
-                    {activeSplits.map((split) => {
-                      const handleSplitWrite = useCallback((data: string) => handleWrite(split.terminalId, data), [split.terminalId, handleWrite]);
-                      
-                      return (
-                        <div
-                          key={split.id}
-                          className={cn(
-                            "h-full",
-                            split.id !== activeSplitId && "hidden"
-                          )}
-                        >
-                          <TerminalView
-                            terminalId={split.terminalId}
-                            isActive={split.id === activeSplitId}
-                            onWrite={handleSplitWrite}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
+            className={cn(
+              "absolute inset-0",
+              !tab.isActive && "hidden"
+            )}
+          >
+            {activeSplits.length === 0 ? (
+              <TerminalView
+                terminalId={tab.id}
+                isActive={tab.isActive}
+                onWrite={(data) => handleWrite(tab.id, data)}
+              />
+            ) : (
+              <div className="flex h-full">
+                <div className="flex-1">
+                  <TerminalView
+                    terminalId={tab.id}
+                    isActive={tab.isActive}
+                    onWrite={(data) => handleWrite(tab.id, data)}
+                  />
                 </div>
-              )}
-            </div>
-          );
-        })}
+                <div className="w-px bg-[#3e3e42]" />
+                <div className="flex-1">
+                  {activeSplits.map((split) => (
+                    <div
+                      key={split.id}
+                      className={cn(
+                        "h-full",
+                        split.id !== activeSplitId && "hidden"
+                      )}
+                    >
+                      <TerminalView
+                        terminalId={split.terminalId}
+                        isActive={split.id === activeSplitId}
+                        onWrite={(data) => handleWrite(split.terminalId, data)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
         
         {tabs.length === 0 && (
           <div className="flex items-center justify-center h-full text-gray-500">
