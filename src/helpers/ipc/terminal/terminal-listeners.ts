@@ -1,5 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
-import { spawn, IPty } from 'node-pty';
+const nodePty = require('node-pty');
+const spawn = nodePty.spawn;
+type IPty = typeof nodePty.spawn extends (...args: any[]) => infer R ? R : never;
 import * as os from 'os';
 import * as path from 'path';
 import {

@@ -10,7 +10,14 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['node-pty', 'electron']
+      external: [
+        'node-pty',
+        'electron',
+        "fs",
+        "path",
+        "os",
+        "child_process",
+      ]
     }
   }
 });

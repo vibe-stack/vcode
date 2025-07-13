@@ -23,7 +23,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['electron'],
+      external: ['node-pty',
+        'electron',
+        "fs",
+        "path",
+        "os",
+        "child_process",],
       output: {
         manualChunks: {
           monaco: ['monaco-editor']

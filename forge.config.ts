@@ -10,9 +10,7 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: {
-      unpack: '**/node_modules/node-pty/build/Release/*'
-    },
+    asar: true,
     osxUniversal: {
       x64ArchFiles: '*',
     },
@@ -20,9 +18,7 @@ const config: ForgeConfig = {
   rebuildConfig: {
     extraModules: [
       "node-pty",
-      "node-pty-prebuilt-multiarch",
     ],
-    
   },
   makers: [
     new MakerSquirrel({}),
