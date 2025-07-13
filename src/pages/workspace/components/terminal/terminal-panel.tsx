@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { useTerminalStore } from '@/stores/terminal';
 import { useProjectStore } from '@/stores/project';
 import { Button } from '@/components/ui/button';
 import { X, Plus, Split, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
+import { XTerminal } from './xterm-component';
 
 // Simple terminal component using pre-styled div (will be replaced with xterm.js later)
 interface TerminalViewProps {
@@ -12,81 +13,17 @@ interface TerminalViewProps {
   onWrite: (data: string) => void;
 }
 
-function TerminalView({ terminalId, isActive, onWrite }: TerminalViewProps) {
-  const [output, setOutput] = useState<string>('');
-  const [input, setInput] = useState<string>('');
-  const outputRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isActive && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isActive]);
-
-  useEffect(() => {
-    if (outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
-    }
-  }, [output]);
-
-  useEffect(() => {
-    const unsubscribeData = window.terminalApi.onData((data) => {
-      if (data.terminalId === terminalId) {
-        setOutput(prev => prev + data.data);
-      }
-    });
-
-    const unsubscribeExit = window.terminalApi.onExit((data) => {
-      if (data.terminalId === terminalId) {
-        setOutput(prev => prev + `\n[Process exited with code ${data.exitCode}]\n`);
-      }
-    });
-
-    return () => {
-      unsubscribeData();
-      unsubscribeExit();
-    };
-  }, [terminalId]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const command = input + '\n';
-      onWrite(command);
-      setInput('');
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      // Handle tab completion later
-    }
-  };
-
+const TerminalView = memo(function TerminalView({ terminalId, isActive, onWrite }: TerminalViewProps) {
   return (
-    <div className={cn(
-      "flex flex-col h-full bg-black text-white font-mono text-sm",
-      !isActive && "hidden"
-    )}>
-      <div
-        ref={outputRef}
-        className="flex-1 p-2 overflow-y-auto whitespace-pre-wrap"
-        style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace' }}
-      >
-        {output}
-      </div>
-      <div className="flex items-center p-2 border-t border-gray-700">
-        <span className="text-blue-400 mr-2">$</span>
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="flex-1 bg-transparent border-none outline-none text-green-400"
-          placeholder="Type your command..."
-        />
-      </div>
+    <div className="h-full w-full">
+      <XTerminal
+        terminalId={terminalId}
+        isActive={isActive}
+        onWrite={onWrite}
+      />
     </div>
   );
-}
+});
 
 export function TerminalPanel() {
   const { currentProject } = useProjectStore();
@@ -167,13 +104,13 @@ export function TerminalPanel() {
     }
   };
 
-  const handleWrite = async (terminalId: string, data: string) => {
+  const handleWrite = useCallback(async (terminalId: string, data: string) => {
     try {
       await window.terminalApi.write(terminalId, data);
     } catch (error) {
       console.error('Failed to write to terminal:', error);
     }
-  };
+  }, []);
 
   if (!isVisible) {
     return null;
@@ -182,9 +119,9 @@ export function TerminalPanel() {
   const activeSplits = getActiveSplits();
 
   return (
-    <div className="flex flex-col bg-gray-900 border-t border-gray-700" style={{ height }}>
+    <div className="flex flex-col bg-background border-t border-gray-800" style={{ height }}>
       {/* Tab Bar */}
-      <div className="flex items-center justify-between bg-gray-800 border-b border-gray-700 px-2 py-1">
+      <div className="flex items-center justify-between bg-muted/30 border-b px-2 py-1">
         <div className="flex items-center space-x-1">
           {tabs.map((tab) => (
             <div
@@ -192,8 +129,8 @@ export function TerminalPanel() {
               className={cn(
                 "group flex items-center px-3 py-1 rounded-t-md cursor-pointer text-sm",
                 tab.isActive 
-                  ? "bg-gray-900 text-white border-b-2 border-blue-500" 
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  ? "bg-background text-white border-b-2 border-emerald-500" 
+                  : "bg-muted/70 text-gray-300 hover:bg-[#3e3e42]"
               )}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -275,52 +212,60 @@ export function TerminalPanel() {
       </div>
 
       {/* Terminal Content */}
-      <div className="flex-1 relative">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={cn(
-              "absolute inset-0",
-              !tab.isActive && "hidden"
-            )}
-          >
-            {activeSplits.length === 0 ? (
-              <TerminalView
-                terminalId={tab.id}
-                isActive={tab.isActive}
-                onWrite={(data) => handleWrite(tab.id, data)}
-              />
-            ) : (
-              <div className="flex h-full">
-                <div className="flex-1">
-                  <TerminalView
-                    terminalId={tab.id}
-                    isActive={tab.isActive}
-                    onWrite={(data) => handleWrite(tab.id, data)}
-                  />
+      <div className="flex-1 relative overflow-hidden">
+        {tabs.map((tab) => {
+          const handleTabWrite = useCallback((data: string) => handleWrite(tab.id, data), [tab.id, handleWrite]);
+          
+          return (
+            <div
+              key={tab.id}
+              className={cn(
+                "absolute inset-0",
+                !tab.isActive && "hidden"
+              )}
+            >
+              {activeSplits.length === 0 ? (
+                <TerminalView
+                  terminalId={tab.id}
+                  isActive={tab.isActive}
+                  onWrite={handleTabWrite}
+                />
+              ) : (
+                <div className="flex h-full">
+                  <div className="flex-1">
+                    <TerminalView
+                      terminalId={tab.id}
+                      isActive={tab.isActive}
+                      onWrite={handleTabWrite}
+                    />
+                  </div>
+                  <div className="w-px bg-[#3e3e42]" />
+                  <div className="flex-1">
+                    {activeSplits.map((split) => {
+                      const handleSplitWrite = useCallback((data: string) => handleWrite(split.terminalId, data), [split.terminalId, handleWrite]);
+                      
+                      return (
+                        <div
+                          key={split.id}
+                          className={cn(
+                            "h-full",
+                            split.id !== activeSplitId && "hidden"
+                          )}
+                        >
+                          <TerminalView
+                            terminalId={split.terminalId}
+                            isActive={split.id === activeSplitId}
+                            onWrite={handleSplitWrite}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="w-px bg-gray-600" />
-                <div className="flex-1">
-                  {activeSplits.map((split) => (
-                    <div
-                      key={split.id}
-                      className={cn(
-                        "h-full",
-                        split.id !== activeSplitId && "hidden"
-                      )}
-                    >
-                      <TerminalView
-                        terminalId={split.terminalId}
-                        isActive={split.id === activeSplitId}
-                        onWrite={(data) => handleWrite(split.terminalId, data)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
         
         {tabs.length === 0 && (
           <div className="flex items-center justify-center h-full text-gray-500">
