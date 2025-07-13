@@ -1,9 +1,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, X, Loader2, Check } from 'lucide-react';
+import { Play, X, Loader2, Check, AlertTriangle, FileText, Folder, Search } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
-import { getToolsRequiringConfirmation } from './tools/frontend-utils';
+import { toolExecutionService } from './tools/tool-execution-service';
+import { getToolConfig } from './tools/tool-config';
 
 interface ToolCallHandlerProps {
   toolCallId: string;
@@ -24,8 +25,39 @@ export function ToolCallHandler({
   onApprove, 
   onCancel 
 }: ToolCallHandlerProps) {
-  const toolsRequiringConfirmation = getToolsRequiringConfirmation();
+  const toolsRequiringConfirmation = toolExecutionService.getToolsRequiringConfirmation();
   const requiresConfirmation = toolsRequiringConfirmation.includes(toolName as any);
+  const toolConfig = getToolConfig(toolName as any);
+  
+  const getToolIcon = () => {
+    if (!toolConfig) return <Play className="h-3 w-3" />;
+    
+    switch (toolConfig.category) {
+      case 'file':
+        return <FileText className="h-3 w-3" />;
+      case 'directory':
+        return <Folder className="h-3 w-3" />;
+      case 'search':
+        return <Search className="h-3 w-3" />;
+      default:
+        return <Play className="h-3 w-3" />;
+    }
+  };
+  
+  const getDangerLevelColor = () => {
+    if (!toolConfig) return 'text-amber-600';
+    
+    switch (toolConfig.dangerLevel) {
+      case 'safe':
+        return 'text-green-600';
+      case 'caution':
+        return 'text-amber-600';
+      case 'dangerous':
+        return 'text-red-600';
+      default:
+        return 'text-amber-600';
+    }
+  };
   
   // If the tool is executing (waiting for result)
   if (state === 'call' && !requiresConfirmation) {
@@ -42,7 +74,9 @@ export function ToolCallHandler({
     return (
       <div className="flex items-center gap-2 py-1 px-2 rounded opacity-60 text-xs">
         <Check className="h-3 w-3 text-green-600" />
-        <span className="text-green-700 dark:text-green-300">Executed {toolName}</span>
+        <span className="text-green-700 dark:text-green-300">
+          Executed {toolConfig?.displayName || toolName}
+        </span>
       </div>
     );
   }
@@ -52,8 +86,15 @@ export function ToolCallHandler({
     return (
       <div className="flex items-center gap-2 p-2 rounded bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-xs">
         <div className="flex items-center gap-1 flex-1">
-          <Play className="h-3 w-3 text-amber-600" />
-          <span className="text-amber-700 dark:text-amber-300">Execute {toolName}?</span>
+          <span className={getDangerLevelColor()}>
+            {getToolIcon()}
+          </span>
+          <span className="text-amber-700 dark:text-amber-300">
+            Execute {toolConfig?.displayName || toolName}?
+          </span>
+          {toolConfig?.dangerLevel === 'dangerous' && (
+            <AlertTriangle className="h-3 w-3 text-red-500" />
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button

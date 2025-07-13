@@ -2,6 +2,7 @@ import { formatDataStreamPart, Message } from '@ai-sdk/ui-utils';
 import { DataStreamWriter } from 'ai';
 import { tools, ToolName } from './index';
 import { frontendToolExecutors } from './executors';
+import { getToolsRequiringConfirmation as getToolsRequiringConfirmationFromConfig } from './tool-config';
 
 // Approval constants
 export const APPROVAL = {
@@ -83,8 +84,5 @@ export async function processFrontendToolCalls(
  * Get tools that require confirmation (tools without execute function)
  */
 export function getToolsRequiringConfirmation(): ToolName[] {
-  return Object.keys(tools).filter((toolName) => {
-    const tool = tools[toolName as ToolName];
-    return typeof tool.execute !== 'function';
-  }) as ToolName[];
+  return getToolsRequiringConfirmationFromConfig();
 }

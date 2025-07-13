@@ -65,7 +65,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">{t('welcome', 'Welcome to Grok IDE')}</h1>
+            <h1 className="text-4xl font-bold mb-2">{t('welcome', 'Welcome to vCode')}</h1>
             <p className="text-muted-foreground text-lg">
               {t('subtitle', 'Open a project to start coding')}
             </p>
@@ -91,7 +91,7 @@ export default function HomePage() {
                 disabled
               >
                 <Plus className="mr-2 h-5 w-5" />
-                {t('newProject', 'New Project')}
+                {t('newProject', 'New Project (Coming Soon)')}
               </Button>
             </div>
           </div>
@@ -187,7 +187,6 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <ToggleTheme />
-            <LangToggle />
           </div>
           <Footer />
         </div>

@@ -138,8 +138,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     const mentions = chatSerializationService.extractMentions(editorContent);
     const currentAttachments = await chatSerializationService.mentionsToAttachments(mentions);
 
-    // ...existing code...
-
     onSend(content, currentAttachments);
     editor.commands.clearContent();
     setAttachments([]);

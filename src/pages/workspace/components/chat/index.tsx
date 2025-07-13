@@ -8,20 +8,17 @@ import { chatFetch } from './chat-fetch';
 import { MessageComponent } from './chat-message';
 import { ChatAttachment } from './types';
 import { chatSerializationService } from './chat-serialization';
+import { toolExecutionService } from './tools/tool-execution-service';
 
 export function ChatPanel() {
     const { messages, append, setMessages, isLoading, addToolResult, stop } = useChat({
         api: '/api/chat', // This will be handled by our custom fetcher
         fetch: chatFetch,
         maxSteps: 5, // Enable multi-step functionality
-        onResponse: (response) => {
-            console.log("Received response:", response);
-        },
-        onFinish: (message) => {
-            console.log("Chat finished with message:", message);
-        },
+        onResponse: () => {},
+        onFinish: () => {},
         onError: (error) => {
-            console.error("Chat error:", error);
+            // Optionally handle error, but no console output
         },
     });
 
@@ -45,33 +42,24 @@ export function ChatPanel() {
     const handleEnhancedSend = useCallback((content: string, attachments: ChatAttachment[]) => {
         if (!content.trim()) return;
 
-        console.log('[handleEnhancedSend] Content:', content);
-        console.log('[handleEnhancedSend] Attachments:', attachments);
-
         // Convert ChatAttachment[] to the format expected by AI SDK
         const experimental_attachments = attachments.map(attachment => {
             const exp_attachment: any = {
                 name: attachment.name,
                 contentType: getContentType(attachment),
             };
-            
             // Add content for file attachments
             if (attachment.content) {
                 exp_attachment.content = attachment.content;
             }
-            
             // Add URL for URL attachments
             if (attachment.url) {
                 exp_attachment.url = attachment.url;
             } else if (attachment.path) {
                 exp_attachment.url = `file://${attachment.path}`;
             }
-            
-            console.log('[handleEnhancedSend] Created exp_attachment:', exp_attachment);
             return exp_attachment;
         });
-
-        console.log('[handleEnhancedSend] Final experimental_attachments:', experimental_attachments);
 
         // Use append with experimental_attachments in the options
         append(
@@ -137,49 +125,35 @@ export function ChatPanel() {
     }, [setMessages]);
 
     const handleToolApprove = useCallback(async (toolCallId: string) => {
-        // Find the message and tool call
-        const message = messages.find(msg => 
-            msg.parts?.some(part => 
-                part.type === 'tool-invocation' && 
-                part.toolInvocation.toolCallId === toolCallId
-            )
-        );
-        
-        if (!message) return;
-
-        const toolCall = message.parts?.find(
-            part => part.type === 'tool-invocation' &&
-                part.toolInvocation.toolCallId === toolCallId
-        );
-
-        if (toolCall && toolCall.type === 'tool-invocation') {
-            let result: string;
-
-            try {
-                // Execute the tool on the frontend
-                if (toolCall.toolInvocation.toolName === 'readFile') {
-                    const args = toolCall.toolInvocation.args as { filePath: string };
-                    const fileResult = await window.projectApi.openFile(args.filePath);
-                    result = fileResult.content;
-                } else {
-                    result = `Unknown tool: ${toolCall.toolInvocation.toolName}`;
-                }
-            } catch (error) {
-                result = `Error executing tool: ${error instanceof Error ? error.message : 'Unknown error'}`;
-            }
-
+        try {
+            const result = await toolExecutionService.executeApprovedTool(toolCallId, messages);
             addToolResult({
                 toolCallId,
                 result,
             });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            addToolResult({
+                toolCallId,
+                result: errorMessage,
+            });
         }
     }, [messages, addToolResult]);
 
-    const handleToolCancel = useCallback((toolCallId: string) => {
-        addToolResult({
-            toolCallId,
-            result: 'Tool execution cancelled by user',
-        });
+    const handleToolCancel = useCallback(async (toolCallId: string) => {
+        try {
+            const result = await toolExecutionService.cancelTool(toolCallId);
+            addToolResult({
+                toolCallId,
+                result,
+            });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Tool execution cancelled by user';
+            addToolResult({
+                toolCallId,
+                result: errorMessage,
+            });
+        }
     }, [addToolResult]);
 
     return (

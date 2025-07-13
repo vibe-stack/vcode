@@ -1,6 +1,6 @@
 import { createXai } from '@ai-sdk/xai';
 import { CoreMessage, streamText, createDataStreamResponse } from 'ai';
-import { tools } from '../../pages/workspace/components/chat/tools';
+import { toolRegistry } from '../../pages/workspace/components/chat/tools';
 import { settingsManager } from '../../helpers/ipc/settings/settings-listeners';
 
 export async function chatApi({ messages }: { messages: CoreMessage[] }) {
@@ -30,7 +30,7 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
       return message;
     }
   });
-  
+
   try {
     // Get XAI API key from secure settings
     const xaiApiKey = await settingsManager.getSecure('apiKeys.xai');
@@ -46,7 +46,7 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
           const result = streamText({
             model: model("grok-4-0709"),
             messages: processedMessages,
-            tools,
+            tools: toolRegistry.getTools(),
             maxSteps: 10,
             maxTokens: 10000,
           });
