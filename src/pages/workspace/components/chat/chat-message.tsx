@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bot, User, Copy, Trash2 } from 'lucide-react';
+import { Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
 import { ToolCallHandler } from './tool-call-handler';
 import { AttachmentDisplay } from './attachment-display';
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { markdownComponents } from './markdown-components';
+import './markdown-content.css';
 
 interface MessageProps {
     message: Message;
@@ -33,37 +35,19 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
         // If no parts, render the content directly (fallback)
         if (!message.parts || message.parts.length === 0) {
             return (
-                <div className="text-sm whitespace-pre-wrap break-words">
-                    <Markdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                            p: ({ children }) => <p className="break-words">{children}</p>,
-                            code: ({ children }) => <code className="break-all">{children}</code>,
-                            pre: ({ children }) => <pre className="overflow-x-auto">{children}</pre>
-                        }}
-                    >
-                        {message.content}
-                    </Markdown>
+                <div className="min-w-0">
+                    <MarkdownRenderer content={message.content} />
                 </div>
             );
         }
 
         return (
-            <>
+            <div className="space-y-3 min-w-0">
                 {message.parts.map((part, index) => {
                     if (part.type === 'text') {
                         return (
-                            <div key={index} className="text-sm whitespace-pre-wrap break-words">
-                                <Markdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                        p: ({ children }) => <p className="break-words">{children}</p>,
-                                        code: ({ children }) => <code className="break-all">{children}</code>,
-                                        pre: ({ children }) => <pre className="overflow-x-auto">{children}</pre>
-                                    }}
-                                >
-                                    {part.text}
-                                </Markdown>
+                            <div key={index} className="min-w-0">
+                                <MarkdownRenderer content={part.text} />
                             </div>
                         );
                     } else if (part.type === 'tool-invocation') {
@@ -82,21 +66,21 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                     }
                     return null;
                 })}
-            </>
+            </div>
         );
     };
 
     return (
         <div
             className={cn(
-                "flex gap-3 p-3 rounded-lg",
+                "flex gap-3 p-3 rounded-lg min-w-0",
                 message.role === 'user' && "bg-primary/10 ml-8"
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <div className="flex-1 overflow-hidden">
-                <div className="space-y-2">
+            <div className="flex-1 min-w-0">
+                <div className="space-y-2 min-w-0">
                     {renderMessageParts()}
                 </div>
 
@@ -139,6 +123,19 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+const MarkdownRenderer = ({ content }: { content?: string }) => {
+    return (
+        <div className="markdown-content max-w-full min-w-0 overflow-hidden">
+            <Markdown 
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+            >
+                {content}
+            </Markdown>
         </div>
     );
 }

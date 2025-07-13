@@ -1,13 +1,11 @@
 import React, { useCallback, useRef, useEffect, useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Send, Bot, Trash2, MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Plus } from 'lucide-react';
 import { ChatInput } from './chat-input';
 import { useChat } from '@ai-sdk/react';
 import { chatFetch } from './chat-fetch';
 import { MessageComponent } from './chat-message';
 import { ChatAttachment } from './types';
-import { chatSerializationService } from './chat-serialization';
 import { toolExecutionService } from './tools/tool-execution-service';
 import { chatPersistenceService } from './chat-persistence';
 import { ChatHistory } from './chat-history';
@@ -297,9 +295,9 @@ export function ChatPanel() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                    <div className="p-3 space-y-4">
+            <div className="flex-1 overflow-hidden w-full">
+                <div className="h-full w-full overflow-y-auto" >
+                    <div className="p-3 space-y-4 w-full">
                         {messages.map((message) => (
                             <MessageComponent
                                 key={message.id}
@@ -326,7 +324,7 @@ export function ChatPanel() {
 
                         <div ref={messagesEndRef} />
                     </div>
-                </ScrollArea>
+                </div>
             </div>
 
             {/* Input Area */}
