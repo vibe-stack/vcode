@@ -4,6 +4,8 @@ export const chatFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
     // Extract messages from the request body
     const body = JSON.parse(init?.body as string);
     
+    // ...existing code...
+    
     // Generate a unique request ID
     const requestId = crypto.randomUUID();
     
@@ -13,9 +15,6 @@ export const chatFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
         // Set up stream listeners
         const handleChunk = (data: { requestId: string, chunk: Uint8Array }) => {
           if (data.requestId === requestId) {
-            // Convert Uint8Array chunk to string for logging
-            const chunkStr = new TextDecoder().decode(data.chunk);
-            console.log('[chatFetch] Received chunk (string):', chunkStr);
             controller.enqueue(data.chunk);
           }
         };

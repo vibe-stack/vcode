@@ -45,23 +45,44 @@ export function ChatPanel() {
     const handleEnhancedSend = useCallback((content: string, attachments: ChatAttachment[]) => {
         if (!content.trim()) return;
 
-        // Create the message with attachments
-        const message: any = {
-            role: 'user',
-            content,
-        };
+        console.log('[handleEnhancedSend] Content:', content);
+        console.log('[handleEnhancedSend] Attachments:', attachments);
 
-        // Add attachments if present
-        if (attachments.length > 0) {
-            message.experimental_attachments = attachments.map(attachment => ({
+        // Convert ChatAttachment[] to the format expected by AI SDK
+        const experimental_attachments = attachments.map(attachment => {
+            const exp_attachment: any = {
                 name: attachment.name,
                 contentType: getContentType(attachment),
-                url: attachment.url || `file://${attachment.path}`,
-                ...(attachment.content && { content: attachment.content }),
-            }));
-        }
+            };
+            
+            // Add content for file attachments
+            if (attachment.content) {
+                exp_attachment.content = attachment.content;
+            }
+            
+            // Add URL for URL attachments
+            if (attachment.url) {
+                exp_attachment.url = attachment.url;
+            } else if (attachment.path) {
+                exp_attachment.url = `file://${attachment.path}`;
+            }
+            
+            console.log('[handleEnhancedSend] Created exp_attachment:', exp_attachment);
+            return exp_attachment;
+        });
 
-        append(message);
+        console.log('[handleEnhancedSend] Final experimental_attachments:', experimental_attachments);
+
+        // Use append with experimental_attachments in the options
+        append(
+            {
+                role: 'user',
+                content,
+            },
+            {
+                experimental_attachments: experimental_attachments.length > 0 ? experimental_attachments : undefined,
+            }
+        );
     }, [append]);
 
     const getContentType = (attachment: ChatAttachment): string => {

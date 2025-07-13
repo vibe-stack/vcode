@@ -4,7 +4,7 @@ import { chatApi } from '@/api/ai';
 
 export function addAIEventListeners() {
   ipcMain.handle(AI_SEND_MESSAGE_CHANNEL, async (event, { messages, requestId }) => {
-    try {
+    try { 
       const response = await chatApi({ messages });
       
       // Get the stream from the response body

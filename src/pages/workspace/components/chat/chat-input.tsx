@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { Text } from '@tiptap/extension-text';
@@ -11,6 +12,7 @@ import { mentionProvider } from './mention-provider';
 import { chatSerializationService } from './chat-serialization';
 import { ChatAttachment } from './types';
 import tippy from 'tippy.js';
+import { MentionSuggestionRenderer } from './mention-renderer';
 
 interface ChatInputProps {
   onSend: (content: string, attachments: ChatAttachment[]) => void;
@@ -24,10 +26,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   onStop,
   isLoading,
-  placeholder = "Ask me anything about your project...",
+  placeholder = "Ask me anything about your project... (Shift+Enter to send)",
   disabled = false,
 }) => {
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+
+  // Custom extension to intercept Shift+Enter
+  const ShiftEnterSend = Extension.create({
+    name: 'shiftEnterSend',
+    addKeyboardShortcuts() {
+      return {
+        'Shift-Enter': () => {
+          handleSend().catch(console.error);
+          return true;
+        },
+      };
+    },
+  });
 
   const editor = useEditor({
     extensions: [
@@ -39,11 +54,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           class: 'mention',
         },
         suggestion: {
+          char: '@',
           items: ({ query }) => {
-            if (query.length < 2) {
+            if (query.length < 1) {
               return [];
             }
-            return mentionProvider.searchMentions(query, 'file');
+            // Use synchronous search for Tiptap compatibility
+            const result = mentionProvider.searchMentionsSync(query, 'file');
+            return result;
           },
           render: () => {
             let component: any;
@@ -73,7 +91,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   popup[0].hide();
                   return true;
                 }
-                return component.onKeyDown(props);
+                // Only handle keys if there are actual suggestions
+                if (props.items && props.items.length > 0) {
+                  return component.onKeyDown(props);
+                }
+                return false;
               },
               onExit: () => {
                 popup[0].destroy();
@@ -83,12 +105,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           },
         },
       }),
+      ShiftEnterSend,
     ],
     content: '',
     editable: !disabled,
     onUpdate: ({ editor }) => {
       // Update attachments when mentions change
-      updateAttachmentsFromContent();
+      updateAttachmentsFromContent().catch(console.error);
     },
   });
 
@@ -96,28 +119,41 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (!editor) return;
 
     const content = editor.getJSON();
+
     const mentions = chatSerializationService.extractMentions(content);
+
     const newAttachments = await chatSerializationService.mentionsToAttachments(mentions);
+
     setAttachments(newAttachments);
   }, [editor]);
 
-  const handleSend = useCallback(() => {
+  const handleSend = async () => {
     if (!editor || isLoading) return;
 
     const content = chatSerializationService.tiptapToPlainText(editor.getJSON());
     if (!content.trim()) return;
 
-    onSend(content, attachments);
+    // Get fresh attachments from current editor content
+    const editorContent = editor.getJSON();
+    const mentions = chatSerializationService.extractMentions(editorContent);
+    const currentAttachments = await chatSerializationService.mentionsToAttachments(mentions);
+
+    // ...existing code...
+
+    onSend(content, currentAttachments);
     editor.commands.clearContent();
     setAttachments([]);
-  }, [editor, isLoading, attachments, onSend]);
+  }
 
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    // If mention suggestion handled the event, don't send
+    if (event.defaultPrevented) return;
+    // Shift+Enter sends the message, Enter alone creates new line
+    if (event.key === 'Enter' && event.shiftKey) {
       event.preventDefault();
-      handleSend();
+      handleSend().catch(console.error);
     }
-  }, [handleSend]);
+  }
 
   const isEmpty = !editor?.getText().trim();
 
@@ -126,6 +162,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       editor.commands.focus();
     }
   }, [editor, isLoading]);
+
+  // Preload file cache for mentions
+  useEffect(() => {
+    // Trigger initial cache load
+    mentionProvider.preloadCache().catch(console.error);
+  }, []);
 
   if (!editor) {
     return (
@@ -150,14 +192,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           )}
           onKeyDown={handleKeyDown}
         />
-        
+
         {/* Placeholder */}
         {isEmpty && !isLoading && (
           <div className="absolute top-3 left-3 text-muted-foreground text-xs pointer-events-none">
             {placeholder}
           </div>
         )}
-        
+
         {/* Attachments preview */}
         {attachments.length > 0 && (
           <div className="border-t p-2 bg-muted/50">
@@ -194,7 +236,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={handleSend}
+            onClick={() => handleSend().catch(console.error)}
             disabled={isEmpty || disabled}
             tabIndex={-1}
             aria-label="Send"
@@ -207,96 +249,3 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   );
 };
 
-// Helper class for mention suggestions
-class MentionSuggestionRenderer {
-  element: HTMLElement;
-  props: any;
-  selectedIndex: number = 0;
-
-  constructor(props: any) {
-    this.props = props;
-    this.element = document.createElement('div');
-    this.update();
-  }
-
-  update() {
-    const items = this.props.items || [];
-    
-    this.element.innerHTML = '';
-    this.element.className = 'mention-suggestions bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto';
-
-    if (items.length === 0) {
-      this.element.style.display = 'none';
-      return;
-    }
-
-    this.element.style.display = 'block';
-
-    items.forEach((item: any, index: number) => {
-      const button = document.createElement('button');
-      button.className = `w-full text-left p-2 hover:bg-accent hover:text-accent-foreground flex items-center gap-2 ${
-        index === this.selectedIndex ? 'bg-accent text-accent-foreground' : ''
-      }`;
-      
-      button.innerHTML = `
-        <div class="flex-1">
-          <div class="font-medium text-sm">${item.label}</div>
-          ${item.description ? `<div class="text-xs text-muted-foreground">${item.description}</div>` : ''}
-          ${item.path ? `<div class="text-xs text-muted-foreground truncate">${item.path}</div>` : ''}
-        </div>
-      `;
-      
-      button.addEventListener('click', () => {
-        this.selectItem(index);
-      });
-      
-      this.element.appendChild(button);
-    });
-  }
-
-  updateProps(props: any) {
-    this.props = props;
-    this.update();
-  }
-
-  onKeyDown({ event }: any) {
-    const items = this.props.items || [];
-    
-    if (event.key === 'ArrowUp') {
-      this.selectedIndex = (this.selectedIndex - 1 + items.length) % items.length;
-      this.update();
-      return true;
-    }
-
-    if (event.key === 'ArrowDown') {
-      this.selectedIndex = (this.selectedIndex + 1) % items.length;
-      this.update();
-      return true;
-    }
-
-    if (event.key === 'Enter') {
-      this.selectItem(this.selectedIndex);
-      return true;
-    }
-
-    return false;
-  }
-
-  selectItem(index: number) {
-    const items = this.props.items || [];
-    const item = items[index];
-    
-    if (item) {
-      this.props.command({
-        id: item.id,
-        label: item.label,
-        type: item.type,
-        path: item.path,
-      });
-    }
-  }
-
-  destroy() {
-    this.element.remove();
-  }
-}

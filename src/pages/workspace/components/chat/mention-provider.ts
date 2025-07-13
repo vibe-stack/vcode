@@ -15,10 +15,12 @@ export class MentionProvider {
   }
 
   async searchMentions(query: string, type: 'file' | 'all' = 'all'): Promise<MentionItem[]> {
+    console.log('searchMentions called with query:', query, 'type:', type);
     const results: MentionItem[] = [];
 
     if (type === 'file' || type === 'all') {
       const fileResults = await this.searchFiles(query);
+      console.log('File search results:', fileResults);
       results.push(...fileResults);
     }
 
@@ -35,7 +37,59 @@ export class MentionProvider {
       }
     }
 
+    console.log('Final mention search results:', results);
     return results;
+  }
+
+  // Synchronous search for Tiptap suggestions
+  searchMentionsSync(query: string, type: 'file' | 'all' = 'all'): MentionItem[] {
+    console.log('searchMentionsSync called with query:', query, 'type:', type);
+    const results: MentionItem[] = [];
+
+    if (type === 'file' || type === 'all') {
+      const fileResults = this.searchFilesSync(query);
+      console.log('File search results (sync):', fileResults);
+      results.push(...fileResults);
+    }
+
+    // Future: Add other mention types like URLs, references, etc.
+    if (type === 'all') {
+      // Add URL suggestions for common patterns
+      if (query.includes('http') || query.includes('www')) {
+        results.push({
+          id: `url-${query}`,
+          label: query,
+          type: 'url',
+          description: 'Web URL',
+        });
+      }
+    }
+
+    console.log('Final mention search results (sync):', results);
+    return results;
+  }
+
+  // Synchronous search for cached files
+  private searchFilesSync(query: string): MentionItem[] {
+    try {
+      // Use cached files only (no async update)
+      const matchingFiles = this.cachedFiles.filter(filePath => {
+        const fileName = filePath.split('/').pop() || '';
+        return fileName.toLowerCase().includes(query.toLowerCase());
+      });
+
+      // Convert to MentionItem format
+      return matchingFiles.slice(0, 10).map(filePath => ({
+        id: `file-${filePath}`,
+        label: filePath.split('/').pop() || filePath,
+        type: 'file' as const,
+        path: filePath,
+        description: this.getFileDescription(filePath),
+      }));
+    } catch (error) {
+      console.error('Error searching files (sync):', error);
+      return [];
+    }
   }
 
   private async searchFiles(query: string): Promise<MentionItem[]> {
@@ -65,14 +119,18 @@ export class MentionProvider {
 
   private async updateFileCache(): Promise<void> {
     const now = Date.now();
+    console.log('updateFileCache called, cache age:', now - this.lastCacheTime, 'ms');
     if (now - this.lastCacheTime < this.CACHE_DURATION) {
+      console.log('Cache is still fresh, skipping update');
       return; // Cache is still fresh
     }
 
     try {
       // Get current project and search for files
       const currentProject = await projectApi.getCurrentProject();
+      console.log('Current project:', currentProject);
       if (!currentProject) {
+        console.log('No current project, clearing cache');
         this.cachedFiles = [];
         return;
       }
@@ -81,6 +139,7 @@ export class MentionProvider {
       const files = await projectApi.searchFiles('', currentProject, {
         excludePatterns: ['node_modules', '.git', 'dist', 'build', '.next', '.vscode'],
       });
+      console.log('Found files:', files.length, 'files');
 
       this.cachedFiles = files;
       this.lastCacheTime = now;
@@ -123,6 +182,12 @@ export class MentionProvider {
   clearCache(): void {
     this.cachedFiles = [];
     this.lastCacheTime = 0;
+  }
+
+  // Preload cache for better performance
+  async preloadCache(): Promise<void> {
+    console.log('Preloading mention cache...');
+    await this.updateFileCache();
   }
 }
 
