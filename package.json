@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make",
+    "make": "NODE_ENV=production electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint .",
     "format": "prettier --check .",
@@ -17,7 +17,8 @@
     "test:watch": "vitest watch",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
-    "test:all": "vitest run && playwright test"
+    "test:all": "vitest run && playwright test",
+    "rebuild": "electron-rebuild"
   },
   "author": "Robot <alightinastorm@icloud.com>",
   "license": "MIT",
@@ -47,6 +48,7 @@
     "electron": "^37.2.1",
     "electron-devtools-installer": "^4.0.0",
     "electron-playwright-helpers": "^1.7.1",
+    "electron-rebuild": "^3.2.9",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-prettier": "^5.2.6",

@@ -17,7 +17,7 @@ vCode IDE (short for vibe-code IDE) is a modern, opinionated Integrated Developm
 ## Installation
 
 ### Prerequisites
-- [Bun](https://bun.sh/) (v1.0 or newer required)
+- npm
 
 ### Clone the Repository
 ```sh
@@ -26,9 +26,9 @@ cd vcode
 ```
 
 ### Install Dependencies
-Install dependencies using Bun:
+Install dependencies using npm:
 ```sh
-bun install
+npm install
 ```
 
 ## Building and Running
@@ -36,13 +36,13 @@ bun install
 ### Development Mode
 To start the IDE in development mode with hot reloading:
 ```sh
-bun run dev
+npm run dev
 ```
 
 ### Production Build
 To build the IDE for production:
 ```sh
-bun run build
+npm run make
 ```
 
 The production build will be output to the `dist/` directory.
