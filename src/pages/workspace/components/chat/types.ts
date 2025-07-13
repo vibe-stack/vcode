@@ -41,3 +41,12 @@ export interface SerializedChatData {
   messages: EnhancedChatMessage[];
   version: string;
 }
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: EnhancedChatMessage[];
+  projectPath: string;
+  createdAt: Date;
+  lastModified: Date;
+}
