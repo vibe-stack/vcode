@@ -45,11 +45,18 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
             <div className="space-y-3 min-w-0">
                 {message.parts.map((part, index) => {
                     if (part.type === 'text') {
-                        return (
-                            <div key={index} className="min-w-0">
-                                <MarkdownRenderer content={part.text} />
-                            </div>
-                        );
+                        // Filter out attachment XML tags from text content
+                        const cleanedText = part.text.replace(/<attached_files>[\s\S]*?<\/attached_files>/g, '').trim();
+                        
+                        // Only render if there's actual content after removing attachment tags
+                        if (cleanedText) {
+                            return (
+                                <div key={index} className="min-w-0">
+                                    <MarkdownRenderer content={cleanedText} />
+                                </div>
+                            );
+                        }
+                        return null;
                     } else if (part.type === 'tool-invocation') {
                         return (
                             <ToolCallHandler
@@ -61,6 +68,19 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                                 result={part.toolInvocation.state === 'result' ? (part.toolInvocation as any).result : undefined}
                                 onApprove={onToolApprove}
                                 onCancel={onToolCancel}
+                            />
+                        );
+                    } else if ((part as any).type === 'attachments') {
+                        return (
+                            <AttachmentDisplay
+                                key={`${message.id}-attachments-${index}`}
+                                attachments={(part as any).attachments.map((att: any, attIndex: number) => ({
+                                    id: `attachment-${message.id}-${attIndex}`,
+                                    type: att.type,
+                                    name: att.name || (att.path ? att.path.split('/').pop() : 'Unknown'),
+                                    url: att.url,
+                                    path: att.path,
+                                }))}
                             />
                         );
                     }
@@ -83,20 +103,6 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                 <div className="space-y-2 min-w-0">
                     {renderMessageParts()}
                 </div>
-
-                {/* Display attachments if present */}
-                {(message as any).experimental_attachments && (message as any).experimental_attachments.length > 0 && (
-                    <AttachmentDisplay
-                        attachments={(message as any).experimental_attachments.map((attachment: any) => ({
-                            id: `attachment-${attachment.name}`,
-                            type: attachment.url?.startsWith('file://') ? 'file' : 'url',
-                            name: attachment.name,
-                            url: attachment.url,
-                            path: attachment.url?.startsWith('file://') ? attachment.url.replace('file://', '') : undefined,
-                            content: attachment.content,
-                        }))}
-                    />
-                )}
 
                 <div className="flex items-end justify-between mt-2 gap-2">
                     <span className="text-xs text-muted-foreground flex-shrink-0">

@@ -28,10 +28,30 @@ export function ToolCallHandler({
   const toolsRequiringConfirmation = toolExecutionService.getToolsRequiringConfirmation();
   const requiresConfirmation = toolsRequiringConfirmation.includes(toolName as any);
   const toolConfig = getToolConfig(toolName as any);
-  
+
+  // Ref to ensure onApprove is called only once per toolCallId
+  const approveCalledRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (
+      state === 'call' &&
+      !requiresConfirmation &&
+      onApprove &&
+      approveCalledRef.current !== toolCallId
+    ) {
+      approveCalledRef.current = toolCallId;
+      onApprove(toolCallId);
+    }
+    // Only run when state, requiresConfirmation, toolCallId, or onApprove changes
+  }, [state, requiresConfirmation, toolCallId, onApprove]);
+
+  // Reset ref if toolCallId changes (e.g., new tool call)
+  React.useEffect(() => {
+    approveCalledRef.current = null;
+  }, [toolCallId]);
+
   const getToolIcon = () => {
     if (!toolConfig) return <Play className="h-3 w-3" />;
-    
     switch (toolConfig.category) {
       case 'file':
         return <FileText className="h-3 w-3" />;
@@ -43,10 +63,9 @@ export function ToolCallHandler({
         return <Play className="h-3 w-3" />;
     }
   };
-  
+
   const getDangerLevelColor = () => {
     if (!toolConfig) return 'text-amber-600';
-    
     switch (toolConfig.dangerLevel) {
       case 'safe':
         return 'text-green-600';
@@ -58,7 +77,7 @@ export function ToolCallHandler({
         return 'text-amber-600';
     }
   };
-  
+
   // If the tool is executing (waiting for result)
   if (state === 'call' && !requiresConfirmation) {
     return (

@@ -6,13 +6,15 @@ import { Paragraph } from '@tiptap/extension-paragraph';
 import { Text } from '@tiptap/extension-text';
 import { Mention } from '@tiptap/extension-mention';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, Square, Paperclip } from 'lucide-react';
+import { ArrowUp, Square, Paperclip, X } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { mentionProvider } from './mention-provider';
 import { chatSerializationService } from './chat-serialization';
 import { ChatAttachment } from './types';
 import tippy from 'tippy.js';
 import { MentionSuggestionRenderer } from './mention-renderer';
+import { useBufferStore } from '@/stores/buffers';
+import { useEditorSplitStore } from '@/stores/editor-splits';
 
 interface ChatInputProps {
   onSend: (content: string, attachments: ChatAttachment[]) => void;
@@ -20,6 +22,7 @@ interface ChatInputProps {
   isLoading: boolean;
   placeholder?: string;
   disabled?: boolean;
+  isNewChat?: boolean; // Flag to indicate if this is a new chat with no input yet
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -28,8 +31,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   placeholder = "Ask me anything about your project... (Shift+Enter to send)",
   disabled = false,
+  isNewChat = false,
 }) => {
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const attachmentsRef = React.useRef<ChatAttachment[]>([]);
+  // Always keep ref in sync
+  useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
+  const [hasUserInput, setHasUserInput] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const sendingRef = React.useRef(false); // Ref to track sending state
+
+  // Store references
+  const buffers = useBufferStore(state => state.buffers);
+  const tabOrder = useBufferStore(state => state.tabOrder);
+  const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
 
   // Custom extension to intercept Shift+Enter
   const ShiftEnterSend = Extension.create({
@@ -110,42 +127,111 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     content: '',
     editable: !disabled,
     onUpdate: ({ editor }) => {
-      // Update attachments when mentions change
+      // Update attachments when mentions change (but don't mark as user input yet)
       updateAttachmentsFromContent().catch(console.error);
     },
   });
 
-  const updateAttachmentsFromContent = useCallback(async () => {
-    if (!editor) return;
+  // Helper to compute buffer attachments from current buffers and panes
+  const computeAutoBufferAttachments = () => {
+    let bufferAttachmentMap = new Map();
+    const allPanes = getAllPanes();
+    for (const pane of allPanes) {
+      if (pane.activeBufferId) {
+        const buffer = buffers.get(pane.activeBufferId);
+        if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+          bufferAttachmentMap.set(buffer.filePath, {
+            id: `buffer-${buffer.id}`,
+            type: 'file',
+            name: buffer.name,
+            path: buffer.filePath,
+            content: buffer.content,
+            size: buffer.fileSize,
+            lastModified: buffer.lastModified,
+          });
+        }
+      } else if (pane.bufferIds.length > 0) {
+        const lastBufferId = pane.bufferIds[pane.bufferIds.length - 1];
+        const buffer = buffers.get(lastBufferId);
+        if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+          bufferAttachmentMap.set(buffer.filePath, {
+            id: `buffer-${buffer.id}`,
+            type: 'file',
+            name: buffer.name,
+            path: buffer.filePath,
+            content: buffer.content,
+            size: buffer.fileSize,
+            lastModified: buffer.lastModified,
+          });
+        }
+      }
+    }
+    // Add up to 2 recent buffers from tabOrder if not already present
+    if (bufferAttachmentMap.size < 2 && tabOrder.length > 0) {
+      for (const bufferId of tabOrder.slice(-2)) {
+        const buffer = buffers.get(bufferId);
+        if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+          if (!bufferAttachmentMap.has(buffer.filePath)) {
+            bufferAttachmentMap.set(buffer.filePath, {
+              id: `buffer-${buffer.id}`,
+              type: 'file',
+              name: buffer.name,
+              path: buffer.filePath,
+              content: buffer.content,
+              size: buffer.fileSize,
+              lastModified: buffer.lastModified,
+            });
+          }
+        }
+      }
+    }
+    return Array.from(bufferAttachmentMap.values());
+  };
 
+  const updateAttachmentsFromContent = async () => {
+    if (!editor || isSending || sendingRef.current) return;
     const content = editor.getJSON();
-
     const mentions = chatSerializationService.extractMentions(content);
+    const mentionAttachments = await chatSerializationService.mentionsToAttachments(mentions);
 
-    const newAttachments = await chatSerializationService.mentionsToAttachments(mentions);
+    // Always recompute buffer attachments for UI
+    const autoBufferAttachments = computeAutoBufferAttachments().filter(att =>
+      !mentionAttachments.some(ma => ma.id === att.id)
+    );
 
-    setAttachments(newAttachments);
-  }, [editor]);
+    setAttachments([...autoBufferAttachments, ...mentionAttachments]);
+  }
 
   const handleSend = async () => {
-    if (!editor || isLoading) return;
+    if (!editor || isLoading || isSending || sendingRef.current) return;
+    sendingRef.current = true; // Set sending state to prevent re-entrance
 
     const content = chatSerializationService.tiptapToPlainText(editor.getJSON());
     if (!content.trim()) return;
 
-    // Get fresh attachments from current editor content
-    const editorContent = editor.getJSON();
-    const mentions = chatSerializationService.extractMentions(editorContent);
-    const currentAttachments = await chatSerializationService.mentionsToAttachments(mentions);
+    setIsSending(true);
+
+    // Always use the latest attachments from ref
+    const currentAttachments = attachmentsRef.current;
+
+    editor.commands.clearContent();
+    setHasUserInput(true);
 
     onSend(content, currentAttachments);
-    editor.commands.clearContent();
-    setAttachments([]);
+
+    setIsSending(false);
+    sendingRef.current = false; // Reset sending state
   }
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     // If mention suggestion handled the event, don't send
     if (event.defaultPrevented) return;
+
+    // Mark user input on first real keystroke (not just focus)
+    if (!hasUserInput && event.key.length === 1) {
+      setHasUserInput(true);
+    }
+
     // Shift+Enter sends the message, Enter alone creates new line
     if (event.key === 'Enter' && event.shiftKey) {
       event.preventDefault();
@@ -167,6 +253,111 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     mentionProvider.preloadCache().catch(console.error);
   }, []);
 
+  // Auto-add active buffer as attachment for new chats
+  useEffect(() => {
+    if (!isNewChat) {
+      return;
+    }
+
+    const addActiveBuffersAsAttachments = async () => {
+      // Add a small delay to ensure panes are properly initialized
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const allPanes = getAllPanes();
+
+      const activeBuffers: ChatAttachment[] = [];
+
+      // Strategy 1: Get buffers from panes that have active buffers
+      for (const pane of allPanes) {
+        if (pane.activeBufferId) {
+          const buffer = buffers.get(pane.activeBufferId);
+          if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+            // Check if we already have this buffer to avoid duplicates
+            const existingAttachment = activeBuffers.find(att => att.path === buffer.filePath);
+            if (!existingAttachment) {
+              const attachment: ChatAttachment = {
+                id: `buffer-${buffer.id}`,
+                type: 'file',
+                name: buffer.name,
+                path: buffer.filePath,
+                content: buffer.content,
+                size: buffer.fileSize,
+                lastModified: buffer.lastModified,
+              };
+              activeBuffers.push(attachment);
+            }
+          }
+        } else {
+          // Strategy 2: If pane has no active buffer but has buffers, take the last one
+          if (pane.bufferIds.length > 0) {
+            const lastBufferId = pane.bufferIds[pane.bufferIds.length - 1];
+            const buffer = buffers.get(lastBufferId);
+            if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+              const existingAttachment = activeBuffers.find(att => att.path === buffer.filePath);
+              if (!existingAttachment) {
+                const attachment: ChatAttachment = {
+                  id: `buffer-${buffer.id}`,
+                  type: 'file',
+                  name: buffer.name,
+                  path: buffer.filePath,
+                  content: buffer.content,
+                  size: buffer.fileSize,
+                  lastModified: buffer.lastModified,
+                };
+                activeBuffers.push(attachment);
+              }
+            }
+          }
+        }
+      }
+
+      // Strategy 3: If we still don't have enough attachments, get recent buffers from global store
+      if (activeBuffers.length < 2 && tabOrder.length > 0) {
+        for (const bufferId of tabOrder.slice(-2)) { // Get last 2 buffers
+          const buffer = buffers.get(bufferId);
+          if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+            const existingAttachment = activeBuffers.find(att => att.path === buffer.filePath);
+            if (!existingAttachment) {
+              const attachment: ChatAttachment = {
+                id: `buffer-${buffer.id}`,
+                type: 'file',
+                name: buffer.name,
+                path: buffer.filePath,
+                content: buffer.content,
+                size: buffer.fileSize,
+                lastModified: buffer.lastModified,
+              };
+              activeBuffers.push(attachment);
+            }
+          }
+        }
+      }
+
+      if (activeBuffers.length > 0) {
+        setAttachments(prev => {
+          // Only add if we don't already have buffer attachments
+          const existingBufferAttachments = prev.filter(att => att.id.startsWith('buffer-'));
+          if (existingBufferAttachments.length === 0) {
+            return [...prev, ...activeBuffers];
+          }
+          return prev;
+        });
+      }
+    };
+
+    addActiveBuffersAsAttachments().catch(console.error);
+  }, [isNewChat, buffers, tabOrder, getAllPanes]);
+
+  // Function to remove an attachment
+  const removeAttachment = useCallback((attachmentId: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+
+    // If user removes an attachment, mark as having user input to prevent re-adding
+    if (!hasUserInput) {
+      setHasUserInput(true);
+    }
+  }, [hasUserInput]);
+
   if (!editor) {
     return (
       <div className="relative w-full">
@@ -179,6 +370,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="relative w-full">
+      {/* Attachments preview - moved to top */}
+      {attachments.length > 0 && (
+        <div className="mb-2 p-2 bg-muted/50 rounded-md border">
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className="flex items-center gap-1 px-2 py-1 bg-background rounded-md text-xs border group"
+              >
+                <Paperclip className="h-3 w-3" />
+                <span className="truncate max-w-[200px]">{attachment.name}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-3 w-3 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => removeAttachment(attachment.id)}
+                  title="Remove attachment"
+                >
+                  <X className="h-2 w-2" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="relative border rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
         <EditorContent
           editor={editor}
@@ -195,23 +412,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         {isEmpty && !isLoading && (
           <div className="absolute top-3 left-3 text-muted-foreground text-xs pointer-events-none">
             {placeholder}
-          </div>
-        )}
-
-        {/* Attachments preview */}
-        {attachments.length > 0 && (
-          <div className="border-t p-2 bg-muted/50">
-            <div className="flex flex-wrap gap-2">
-              {attachments.map((attachment) => (
-                <div
-                  key={attachment.id}
-                  className="flex items-center gap-1 px-2 py-1 bg-background rounded-md text-xs"
-                >
-                  <Paperclip className="h-3 w-3" />
-                  <span className="truncate max-w-[200px]">{attachment.name}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>

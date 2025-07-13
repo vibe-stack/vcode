@@ -2,6 +2,7 @@
 export const chatFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   try {
     const body = JSON.parse(init?.body as string);
+    console.log("chatFetch body:", body); // Debug log
     const requestId = crypto.randomUUID();
 
     const stream = new ReadableStream({
@@ -28,12 +29,19 @@ export const chatFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
         window.ai.onStreamEnd(handleEnd);
         window.ai.onStreamError(handleError);
         
-        // Start the AI request
-        window.ai.sendMessage({ messages: body.messages, requestId })
+        // Start the AI request with attachments if they exist
+        const requestData = { 
+          messages: body.messages, 
+          requestId,
+        };
+        
+        window.ai.sendMessage(requestData)
           .then(response => {
             // noop
+            console.log("AI request sent successfully", response);
           })
           .catch(error => {
+            console.error("AI request error:", error);
             controller.error(error);
           });
       },
