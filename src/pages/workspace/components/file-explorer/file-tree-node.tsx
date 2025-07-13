@@ -71,9 +71,9 @@ export function FileTreeNode({
                 <div className="flex items-center justify-center w-4 h-4">
                     {isDirectory ? (
                         isExpanded ? (
-                            <FolderOpen className="h-4 w-4 text-blue-500" />
+                            <FolderOpen className="h-4 w-4 text-emerald-500" />
                         ) : (
-                            <Folder className="h-4 w-4 text-blue-500" />
+                            <Folder className="h-4 w-4 text-emerald-500" />
                         )
                     ) : (
                         <File className="h-4 w-4 text-muted-foreground" />

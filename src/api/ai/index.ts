@@ -1,14 +1,23 @@
 import { createXai } from '@ai-sdk/xai';
 import { CoreMessage, streamText, createDataStreamResponse } from 'ai';
 import { tools } from '../../pages/workspace/components/chat/tools';
-
-const model = createXai({
-})
+import { settingsManager } from '../../helpers/ipc/settings/settings-listeners';
 
 export async function chatApi({ messages }: { messages: CoreMessage[] }) {
   console.log("received on api side, calling streamtext");
   
   try {
+    // Get XAI API key from secure settings
+    const xaiApiKey = await settingsManager.getSecure('apiKeys.xai');
+    
+    if (!xaiApiKey) {
+      throw new Error('XAI API key not found. Please configure your API key in Settings > AI & Agents.');
+    }
+
+    const model = createXai({
+      apiKey: xaiApiKey,
+    });
+
     return createDataStreamResponse({
       execute: async (dataStream) => {
         const result = streamText({

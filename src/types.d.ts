@@ -64,9 +64,26 @@ interface AI {
   removeAllListeners: () => void;
 }
 
+interface SettingsApi {
+  // Regular settings
+  get: <T = any>(key: string) => Promise<T | undefined>;
+  set: (key: string, value: any) => Promise<boolean>;
+  getAll: () => Promise<any>;
+  reset: () => Promise<boolean>;
+  export: () => Promise<string>;
+  import: (settingsJson: string) => Promise<boolean>;
+
+  // Secure settings (API keys, tokens, etc.)
+  getSecure: (key: string) => Promise<string | undefined>;
+  setSecure: (key: string, value: string) => Promise<boolean>;
+  deleteSecure: (key: string) => Promise<boolean>;
+  listSecureKeys: () => Promise<string[]>;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
   projectApi: ProjectApi;
   ai: AI;
+  settingsApi: SettingsApi;
 }

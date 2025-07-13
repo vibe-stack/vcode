@@ -9,8 +9,13 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
+import { Settings } from "lucide-react";
 
-export default function GlobalCommands() {
+interface GlobalCommandsProps {
+  onOpenSettings?: () => void;
+}
+
+export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) {
   const [focused, setFocused] = React.useState(false);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
@@ -35,7 +40,16 @@ export default function GlobalCommands() {
               <CommandGroup heading="Settings">
                 <CommandItem>Profile</CommandItem>
                 <CommandItem>Billing</CommandItem>
-                <CommandItem>Settings</CommandItem>
+                <CommandItem 
+                  onSelect={() => {
+                    onOpenSettings?.();
+                    setFocused(false);
+                  }}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                  <CommandShortcut>⌘,</CommandShortcut>
+                </CommandItem>
               </CommandGroup>
             </CommandList>
           </div>

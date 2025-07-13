@@ -1,14 +1,16 @@
 import React, { useCallback, useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Send, Bot, Trash2, MoreHorizontal } from 'lucide-react';
+import { EnhancedChatInput } from './enhanced-chat-input';
 import { useChat } from '@ai-sdk/react';
 import { chatFetch } from './chat-fetch';
 import { MessageComponent } from './chat-message';
+import { ChatAttachment } from './types';
+import { chatSerializationService } from './chat-serialization';
 
 export function ChatPanel() {
-    const { messages, input, handleInputChange, handleSubmit, setMessages, isLoading, addToolResult } = useChat({
+    const { messages, append, setMessages, isLoading, addToolResult, stop } = useChat({
         api: '/api/chat', // This will be handled by our custom fetcher
         fetch: chatFetch,
         maxSteps: 5, // Enable multi-step functionality
@@ -40,12 +42,66 @@ export function ChatPanel() {
         };
     }, []);
 
-    const handleKeyPress = useCallback((event: React.KeyboardEvent) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            handleSubmit();
+    const handleEnhancedSend = useCallback((content: string, attachments: ChatAttachment[]) => {
+        if (!content.trim()) return;
+
+        // Create the message with attachments
+        const message: any = {
+            role: 'user',
+            content,
+        };
+
+        // Add attachments if present
+        if (attachments.length > 0) {
+            message.experimental_attachments = attachments.map(attachment => ({
+                name: attachment.name,
+                contentType: getContentType(attachment),
+                url: attachment.url || `file://${attachment.path}`,
+                ...(attachment.content && { content: attachment.content }),
+            }));
         }
-    }, [handleSubmit]);
+
+        append(message);
+    }, [append]);
+
+    const getContentType = (attachment: ChatAttachment): string => {
+        if (attachment.type === 'url') {
+            return 'text/html';
+        }
+
+        if (attachment.path) {
+            const extension = attachment.path.split('.').pop()?.toLowerCase();
+            const contentTypes: Record<string, string> = {
+                'js': 'application/javascript',
+                'jsx': 'application/javascript',
+                'ts': 'application/typescript',
+                'tsx': 'application/typescript',
+                'css': 'text/css',
+                'html': 'text/html',
+                'json': 'application/json',
+                'md': 'text/markdown',
+                'txt': 'text/plain',
+                'py': 'text/x-python',
+                'java': 'text/x-java',
+                'cpp': 'text/x-c++',
+                'c': 'text/x-c',
+                'php': 'text/x-php',
+                'rb': 'text/x-ruby',
+                'go': 'text/x-go',
+                'rs': 'text/x-rust',
+                'swift': 'text/x-swift',
+                'kt': 'text/x-kotlin',
+            };
+
+            return contentTypes[extension || ''] || 'text/plain';
+        }
+
+        return 'text/plain';
+    };
+
+    const handleStop = useCallback(() => {
+        if (stop) stop();
+    }, [stop]);
 
     const handleCopyMessage = useCallback((content: string) => {
         navigator.clipboard.writeText(content);
@@ -106,9 +162,9 @@ export function ChatPanel() {
     }, [addToolResult]);
 
     return (
-        <div className="h-full flex flex-col border-l bg-background">
+        <div className="h-full flex flex-col border-l bg-background w-full min-w-0">
             {/* Header */}
-            <div className="border-b p-3">
+            <div className="border-b p-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-medium">AI Assistant</h2>
                     <div className="flex items-center gap-1">
@@ -128,9 +184,9 @@ export function ChatPanel() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                    <div className="p-3 space-y-4">
+            <div className="flex-1 overflow-hidden min-w-0">
+                <ScrollArea className="h-full w-full">
+                    <div className="p-3 space-y-4 min-w-0">
                         {messages.map((message) => (
                             <MessageComponent
                                 key={message.id}
@@ -145,7 +201,7 @@ export function ChatPanel() {
                         {isLoading && (
                             <div className="flex gap-3 p-3 rounded-lg bg-muted/50 mr-8">
                                 <Bot className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <div className="flex space-x-1">
                                             <div className="w-2 h-2 bg-current rounded-full animate-bounce" />
@@ -164,31 +220,13 @@ export function ChatPanel() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t p-3">
-                <div className="flex gap-2">
-                    <Textarea
-                        value={input}
-                        onChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Ask me anything about your project..."
-                        className="flex-1 resize-none min-h-0 h-20 text-sm"
-                        disabled={isLoading}
-                    />
-                    <Button
-                        onClick={() => {
-                            handleSubmit();
-                        }}
-                        disabled={!input.trim() || isLoading}
-                        size="sm"
-                        className="h-20"
-                    >
-                        <Send className="h-4 w-4" />
-                    </Button>
-                </div>
-
-                <div className="mt-2 text-xs text-muted-foreground">
-                    Press Enter to send, Shift+Enter for new line
-                </div>
+            <div className="border-t p-3 flex-shrink-0">
+                <EnhancedChatInput
+                    onSend={handleEnhancedSend}
+                    onStop={handleStop}
+                    isLoading={isLoading}
+                    placeholder="Ask me anything about your project..."
+                />
             </div>
         </div>
     );

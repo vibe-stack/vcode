@@ -47,8 +47,26 @@ export function FileExplorer() {
         });
     }, []);
 
+    // Helper to sort children: folders first (alphabetically), then files (alphabetically)
+    const sortChildren = (children: DirectoryNode[]): DirectoryNode[] => {
+        return [...children].sort((a, b) => {
+            if (a.type === b.type) {
+                return a.name.localeCompare(b.name);
+            }
+            return a.type === 'directory' ? -1 : 1;
+        });
+    };
+
     const filteredTree = useCallback((node: DirectoryNode): DirectoryNode | null => {
-        if (!searchQuery.trim()) return node;
+        if (!searchQuery.trim()) {
+            if (node.type === 'directory' && node.children) {
+                return {
+                    ...node,
+                    children: sortChildren(node.children).map(child => filteredTree(child)).filter(Boolean) as DirectoryNode[]
+                };
+            }
+            return node;
+        }
 
         const query = searchQuery.toLowerCase();
         const matchesSearch = node.name.toLowerCase().includes(query);
@@ -63,7 +81,7 @@ export function FileExplorer() {
         if (matchesSearch || filteredChildren.length > 0) {
             return {
                 ...node,
-                children: filteredChildren as DirectoryNode[]
+                children: sortChildren(filteredChildren as DirectoryNode[])
             };
         }
 

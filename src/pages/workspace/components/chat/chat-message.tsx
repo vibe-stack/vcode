@@ -1,10 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/c                    }
+                    return null;/ui/button';
 import { Bot, User, Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
 import { ToolCallHandler } from './tool-call-handler';
+import { AttachmentDisplay } from './attachment-display';
 import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface MessageProps {
     message: Message;
@@ -31,8 +34,15 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
         // If no parts, render the content directly (fallback)
         if (!message.parts || message.parts.length === 0) {
             return (
-                <div className="text-sm whitespace-pre-wrap break-words">
-                    <Markdown>
+                <div className="text-sm whitespace-pre-wrap break-words overflow-hidden w-full" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                    <Markdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                            p: ({ children }) => <p className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</p>,
+                            code: ({ children }) => <code className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</code>,
+                            pre: ({ children }) => <pre className="break-words overflow-hidden overflow-x-auto" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</pre>
+                        }}
+                    >
                         {message.content}
                     </Markdown>
                 </div>
@@ -44,8 +54,17 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                 {message.parts.map((part, index) => {
                     if (part.type === 'text') {
                         return (
-                            <div key={index} className="text-sm whitespace-pre-wrap break-words">
-                                {part.text}
+                            <div key={index} className="text-sm whitespace-pre-wrap break-words overflow-hidden w-full" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                <Markdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        p: ({ children }) => <p className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</p>,
+                                        code: ({ children }) => <code className="break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</code>,
+                                        pre: ({ children }) => <pre className="break-words overflow-hidden overflow-x-auto" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{children}</pre>
+                                    }}
+                                >
+                                    {part.text}
+                                </Markdown>
                             </div>
                         );
                     } else if (part.type === 'tool-invocation') {
@@ -61,6 +80,13 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                                 onCancel={onToolCancel}
                             />
                         );
+                    } else if (part.type === 'file') {
+                        return (
+                            <AttachmentDisplay
+                                key={`${message.id}-attachment-${index}`}
+                                attachments={[part.attachment]}
+                            />
+                        );
                     }
                     return null;
                 })}
@@ -71,22 +97,24 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
     return (
         <div
             className={cn(
-                "flex gap-3 p-3 rounded-lg",
+                "flex gap-3 p-3 rounded-lg min-w-0 w-full",
                 message.role === 'user' && "bg-primary/10 ml-8"
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            style={{ maxWidth: '100%' }}
         >
-            <div className="flex-1 min-w-0">
-                {renderMessageParts()}
+            <div className="flex-1 min-w-0 overflow-hidden w-full" style={{ maxWidth: '100%' }}>
+                <div className="min-w-0 w-full" style={{ maxWidth: '100%' }}>
+                    {renderMessageParts()}
+                </div>
 
-                <div className="flex items-end justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
+                <div className="flex items-end justify-between mt-2 gap-2">
+                    <span className="text-xs text-muted-foreground flex-shrink-0">
                         {message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : 'Just now'}
                     </span>
 
-
-                    <div className={cn("flex items-center gap-1 opacity-0", isHovered && "opacity-100")}>
+                    <div className={cn("flex items-center gap-1 opacity-0 flex-shrink-0", isHovered && "opacity-100")}>
                         <Button
                             variant="ghost"
                             size="sm"

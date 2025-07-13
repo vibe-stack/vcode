@@ -35,7 +35,7 @@ export default function WorkspacePage() {
         <ResizableHandle withHandle />
 
         {/* Right Panel - Chat */}
-        <ResizablePanel defaultSize={20}>
+        <ResizablePanel defaultSize={20} minSize={15}>
           <ChatPanel />
         </ResizablePanel>
       </ResizablePanelGroup>
