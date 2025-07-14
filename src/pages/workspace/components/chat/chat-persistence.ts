@@ -32,8 +32,9 @@ export class ChatPersistenceService {
     const firstUserMessage = messages.find(msg => msg.role === 'user');
     if (!firstUserMessage) return 'New Chat';
     
-    // Take first 50 characters and add ellipsis if needed
-    const content = firstUserMessage.content.trim();
+    // Ensure content is a string and handle undefined/null cases
+    const content = (firstUserMessage.content || '').toString().trim();
+    if (content.length === 0) return 'New Chat';
     if (content.length <= 50) return content;
     return content.substring(0, 50) + '...';
   }
@@ -83,7 +84,13 @@ export class ChatPersistenceService {
    */
   private async getCurrentProjectPath(): Promise<string | null> {
     try {
-      return await window.projectApi.getCurrentProject();
+      if (!window.projectApi) {
+        console.warn('projectApi not available');
+        return null;
+      }
+      const projectPath = await window.projectApi.getCurrentProject();
+      console.log('Current project path:', projectPath);
+      return projectPath;
     } catch (error) {
       console.error('Failed to get current project:', error);
       return null;
@@ -98,8 +105,25 @@ export class ChatPersistenceService {
 
     const projectPath = await this.getCurrentProjectPath();
     if (!projectPath) {
-      console.warn('No project path available, not saving chat');
-      return '';
+      console.warn('No project path available, using fallback path for chat storage');
+      // Use a fallback path when no project is available
+      const fallbackPath = 'default-project';
+      const storage = this.getStorageData();
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const session: ChatSession = {
+        id: sessionId,
+        title: this.generateChatTitle(messages),
+        messages,
+        projectPath: fallbackPath,
+        createdAt: new Date(),
+        lastModified: new Date(),
+      };
+
+      storage.sessions.push(session);
+      this.saveStorageData(storage);
+      
+      return sessionId;
     }
 
     const storage = this.getStorageData();
@@ -150,8 +174,10 @@ export class ChatPersistenceService {
    * Get chat sessions for current project
    */
   async getSessionsForCurrentProject(): Promise<ChatSession[]> {
-    const projectPath = await this.getCurrentProjectPath();
-    if (!projectPath) return [];
+    let projectPath = await this.getCurrentProjectPath();
+    if (!projectPath) {
+      projectPath = 'default-project'; // Use fallback path
+    }
 
     const storage = this.getStorageData();
     return storage.sessions
@@ -199,8 +225,10 @@ export class ChatPersistenceService {
    * Clear all sessions for current project
    */
   async clearCurrentProjectSessions(): Promise<void> {
-    const projectPath = await this.getCurrentProjectPath();
-    if (!projectPath) return;
+    let projectPath = await this.getCurrentProjectPath();
+    if (!projectPath) {
+      projectPath = 'default-project'; // Use fallback path
+    }
 
     const storage = this.getStorageData();
     storage.sessions = storage.sessions.filter(s => s.projectPath !== projectPath);

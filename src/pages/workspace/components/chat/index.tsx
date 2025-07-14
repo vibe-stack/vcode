@@ -42,13 +42,28 @@ export function ChatPanel() {
                 try {
                     const enhancedMessages = messages
                         .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-                        .map(msg => ({
-                            id: msg.id,
-                            content: msg.content,
-                            role: msg.role as 'user' | 'assistant',
-                            timestamp: msg.createdAt || new Date(),
-                            attachments: msg.parts?.find(part => (part as any).type === 'attachments')?.attachments || [],
-                        }));
+                        .map(msg => {
+                            // Extract content from message - handle both direct content and parts-based content
+                            let messageContent = msg.content || '';
+                            
+                            // If content is empty, try to extract from parts
+                            if (!messageContent && msg.parts) {
+                                const textPart = msg.parts.find(part => part.type === 'text');
+                                if (textPart && 'text' in textPart) {
+                                    messageContent = textPart.text;
+                                }
+                            }
+                            
+                            return {
+                                id: msg.id,
+                                content: messageContent || '',
+                                role: msg.role as 'user' | 'assistant',
+                                timestamp: msg.createdAt || new Date(),
+                                attachments: (msg.parts?.find(part => (part as any).type === 'attachments') as any)?.attachments || [],
+                            };
+                        });
+
+                    console.log('Saving enhanced messages:', enhancedMessages);
 
                     if (enhancedMessages.length === 0) return;
 
