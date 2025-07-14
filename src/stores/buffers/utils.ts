@@ -95,24 +95,62 @@ export function isTextBuffer(buffer: Uint8Array, sampleSize = 8000): boolean {
     // Only check up to sampleSize bytes
     const len = Math.min(buffer.length, sampleSize);
     let suspiciousBytes = 0;
-    for (let i = 0; i < len; i++) {
+    let i = 0;
+    while (i < len) {
         const byte = buffer[i];
-        // Allow: tab, line feed, carriage return, printable ASCII (32-126)
+        // Null bytes are almost never in text files
+        if (byte === 0) {
+            suspiciousBytes++;
+            i++;
+            continue;
+        }
+        // ASCII printable, whitespace, and control
         if (
             byte === 9 || byte === 10 || byte === 13 ||
             (byte >= 32 && byte <= 126)
         ) {
+            i++;
             continue;
         }
-        // Allow some UTF-8 multi-byte sequences (not perfect, but helps)
-        if (byte >= 194 && byte <= 250) {
-            continue;
+        // UTF-8 multi-byte validation
+        if (byte >= 0xC2 && byte <= 0xDF && i + 1 < len) {
+            // 2-byte sequence
+            const next = buffer[i + 1];
+            if (next >= 0x80 && next <= 0xBF) {
+                i += 2;
+                continue;
+            }
+        } else if (byte >= 0xE0 && byte <= 0xEF && i + 2 < len) {
+            // 3-byte sequence
+            const next1 = buffer[i + 1];
+            const next2 = buffer[i + 2];
+            if (
+                next1 >= 0x80 && next1 <= 0xBF &&
+                next2 >= 0x80 && next2 <= 0xBF
+            ) {
+                i += 3;
+                continue;
+            }
+        } else if (byte >= 0xF0 && byte <= 0xF4 && i + 3 < len) {
+            // 4-byte sequence
+            const next1 = buffer[i + 1];
+            const next2 = buffer[i + 2];
+            const next3 = buffer[i + 3];
+            if (
+                next1 >= 0x80 && next1 <= 0xBF &&
+                next2 >= 0x80 && next2 <= 0xBF &&
+                next3 >= 0x80 && next3 <= 0xBF
+            ) {
+                i += 4;
+                continue;
+            }
         }
+        // If not valid UTF-8, count as suspicious
         suspiciousBytes++;
-        // If more than 1.5% of bytes are suspicious, treat as binary
-        if (suspiciousBytes / len > 0.015) return false;
+        i++;
     }
-    return true;
+    // If more than 10% of bytes are suspicious, treat as binary
+    return suspiciousBytes / len <= 0.10;
 }
 
 // Smarter file type detection: use extension if known, else content

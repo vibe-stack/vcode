@@ -1,22 +1,22 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useBufferStore } from '@/stores/buffers';
 import { useEditorSplitStore } from '@/stores/editor-splits';
 import { cn } from '@/utils/tailwind';
 import { TabBar } from './tab-bar';
 import { Editor } from './editor';
 import { EditorPaneProps } from './types';
+import { UnsavedChangesDialog } from '@/components/unsaved-changes-dialog';
+import { bufferCloseService } from '@/services/buffer-close';
 
 export function EditorPane({ paneId, className }: EditorPaneProps) {
   // Use separate selectors to ensure re-renders when state changes
   const buffers = useBufferStore(state => state.buffers);
-  const closeBuffer = useBufferStore(state => state.closeBuffer);
   const updateBufferContent = useBufferStore(state => state.updateBufferContent);
   
   // Select the pane object directly so this component re-renders on state change
   const pane = useEditorSplitStore(state => state.getPane(paneId));
   const setActivePane = useEditorSplitStore(state => state.setActivePane);
   const setActivePaneBuffer = useEditorSplitStore(state => state.setActivePaneBuffer);
-  const closeBufferInPane = useEditorSplitStore(state => state.closeBufferInPane);
   const closePane = useEditorSplitStore(state => state.closePane);
   const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
   const moveBuffer = useEditorSplitStore(state => state.moveBuffer);
@@ -25,6 +25,40 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   const activePaneId = useEditorSplitStore(state => state.activePaneId);
   
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
+  const [unsavedChangesDialog, setUnsavedChangesDialog] = useState<{
+    open: boolean;
+    bufferId: string;
+    fileName: string;
+    onSave: () => Promise<void>;
+    onDiscard: () => void;
+    onCancel: () => void;
+  }>({
+    open: false,
+    bufferId: '',
+    fileName: '',
+    onSave: async () => {},
+    onDiscard: () => {},
+    onCancel: () => {},
+  });
+
+  // Set up the confirmation handler for the buffer close service
+  useEffect(() => {
+    bufferCloseService.setConfirmationHandler(paneId, (options) => {
+      setUnsavedChangesDialog({
+        open: true,
+        bufferId: options.bufferId,
+        fileName: options.fileName,
+        onSave: options.onSave,
+        onDiscard: options.onDiscard,
+        onCancel: options.onCancel,
+      });
+    });
+
+    // Cleanup when component unmounts
+    return () => {
+      bufferCloseService.removeConfirmationHandler(paneId);
+    };
+  }, [paneId]);
 
   // Use the selected pane object for bufferIds and activeBufferId
   const paneBuffers = pane?.bufferIds.map(id => buffers.get(id)!).filter(Boolean) || [];
@@ -39,11 +73,8 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   }, [paneId, setActivePane, setActivePaneBuffer]);
 
   const handleTabClose = useCallback(async (bufferId: string) => {
-    // First close the buffer globally
-    await closeBuffer(bufferId);
-    // Then remove from this pane
-    closeBufferInPane(paneId, bufferId);
-  }, [closeBuffer, closeBufferInPane, paneId]);
+    await bufferCloseService.closeBuffer({ bufferId, paneId });
+  }, [paneId]);
 
   const handleTabDragStart = useCallback((bufferId: string, event: React.DragEvent) => {
     setDraggedTabId(bufferId);
@@ -93,45 +124,57 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   }, [closePane, paneId, getAllPanes]);
 
   return (
-    <div 
-      className={cn("flex flex-col h-full bg-background", className)}
-      onClick={handlePaneClick}
-      data-pane-id={paneId}
-    >
-      {/* Tab Bar */}
-      <TabBar
-        paneId={paneId}
-        buffers={paneBuffers}
-        activeBufferId={activeBuffer?.id || null}
-        isActivePane={isActivePane}
-        onTabClick={handleTabClick}
-        onTabClose={handleTabClose}
-        onTabDragStart={handleTabDragStart}
-        onTabDragEnd={handleTabDragEnd}
-        onTabDrop={handleTabDrop}
-        draggedTabId={draggedTabId}
-        onClosePane={handleClosePane}
-        canClosePane={getAllPanes().length > 1}
-      />
+    <>
+      <div 
+        className={cn("flex flex-col h-full bg-background", className)}
+        onClick={handlePaneClick}
+        data-pane-id={paneId}
+      >
+        {/* Tab Bar */}
+        <TabBar
+          paneId={paneId}
+          buffers={paneBuffers}
+          activeBufferId={activeBuffer?.id || null}
+          isActivePane={isActivePane}
+          onTabClick={handleTabClick}
+          onTabClose={handleTabClose}
+          onTabDragStart={handleTabDragStart}
+          onTabDragEnd={handleTabDragEnd}
+          onTabDrop={handleTabDrop}
+          draggedTabId={draggedTabId}
+          onClosePane={handleClosePane}
+          canClosePane={getAllPanes().length > 1}
+        />
 
-      {/* Editor Content */}
-      <div className="flex-1 overflow-hidden">
-        {activeBuffer ? (
-          <Editor
-            buffer={activeBuffer}
-            onChange={handleContentChange}
-          />
-        ) : (
-          <div className="h-full flex items-center justify-center select-none">
-            <div className="text-center">
-              <p className="text-muted-foreground text-sm mb-2">No file selected</p>
-              <p className="text-xs text-muted-foreground">
-                Drag a file here or click on a file in the explorer
-              </p>
+        {/* Editor Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeBuffer ? (
+            <Editor
+              buffer={activeBuffer}
+              onChange={handleContentChange}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center select-none">
+              <div className="text-center">
+                <p className="text-muted-foreground text-sm mb-2">No file selected</p>
+                <p className="text-xs text-muted-foreground">
+                  Drag a file here or click on a file in the explorer
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={unsavedChangesDialog.open}
+        onOpenChange={(open) => setUnsavedChangesDialog(prev => ({ ...prev, open }))}
+        fileName={unsavedChangesDialog.fileName}
+        onSave={unsavedChangesDialog.onSave}
+        onDiscard={unsavedChangesDialog.onDiscard}
+        onCancel={unsavedChangesDialog.onCancel}
+      />
+    </>
   );
 }

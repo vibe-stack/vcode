@@ -2,6 +2,7 @@ import { useBufferStore } from '@/stores/buffers';
 import { useEditorSplitStore } from '@/stores/editor-splits';
 import { useTerminalStore } from '@/stores/terminal';
 import { useProjectStore } from '@/stores/project';
+import { bufferCloseService } from '@/services/buffer-close';
 import { KeyCommand } from './types';
 
 /**
@@ -74,25 +75,7 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
   
   commands.set('file.close', {
     execute: async () => {
-      const bufferStore = useBufferStore.getState();
-      const editorSplitStore = useEditorSplitStore.getState();
-      
-      // Try to get the active buffer from the global buffer store first
-      let activeBuffer = bufferStore.activeBufferId;
-      
-      // If no global active buffer, try to get from the active pane
-      if (!activeBuffer && editorSplitStore.activePaneId) {
-        const activePane = editorSplitStore.getPane(editorSplitStore.activePaneId);
-        activeBuffer = activePane?.activeBufferId || null;
-      }
-      
-      if (activeBuffer) {
-        await bufferStore.closeBuffer(activeBuffer);
-        console.log('Closed editor tab:', activeBuffer);
-      } else {
-        // No active buffer to close - this prevents accidental app closure
-        console.log('No active tab to close - Cmd+W intercepted to prevent browser closure');
-      }
+      await bufferCloseService.closeActiveBuffer();
     },
     canExecute: () => {
       // Always allow execution to prevent browser default behavior

@@ -51,7 +51,7 @@ export interface EditorSplitState {
   /** Open a file in the active pane or create a new one */
   openFile: (filePath: string, paneId?: string) => Promise<void>;
   /** Create a new split (horizontal or vertical) */
-  createSplit: (paneId: string, direction: SplitDirection, newPaneId?: string) => void;
+  createSplit: (paneId: string, direction: SplitDirection, newPaneId?: string) => string;
   /** Close a pane and merge its parent if needed */
   closePane: (paneId: string) => void;
   /** Set the active pane */
@@ -70,6 +70,8 @@ export interface EditorSplitState {
   findSplitContainingPane: (paneId: string) => EditorSplit | null;
   /** Update pane buffers */
   updatePaneBuffers: (paneId: string, bufferIds: string[]) => void;
+  /** Check if a buffer is open in any pane other than the specified one */
+  isBufferOpenInOtherPanes: (bufferId: string, excludePaneId?: string) => boolean;
   
   // Drag & Drop
   /** Start dragging a file or tab */
@@ -191,6 +193,8 @@ export const useEditorSplitStore = create<EditorSplitState>()(
         rootSplit: newRootSplit,
         activePaneId: newPaneIdActual,
       });
+      
+      return newPaneIdActual;
     },
 
     // Close a pane
@@ -342,6 +346,15 @@ export const useEditorSplitStore = create<EditorSplitState>()(
           });
         }
       }
+
+      // Auto-close pane if it has no buffers left and there are other panes
+      if (newBuffers.length === 0) {
+        const allPanes = state.getAllPanes();
+        if (allPanes.length > 1) {
+          // Close the pane since it's empty and not the only pane
+          state.closePane(paneId);
+        }
+      }
     },
 
     // Get pane by ID
@@ -419,14 +432,25 @@ export const useEditorSplitStore = create<EditorSplitState>()(
       });
     },
 
-    // Update drop zones
+    // Update drop zones (only if different)
     updateDropZones: (zones: DropZone[]) => {
-      set({ dropZones: zones });
+      const currentZones = get().dropZones;
+      // Simple check to avoid unnecessary updates
+      if (currentZones.length !== zones.length) {
+        set({ dropZones: zones });
+      }
     },
 
-    // Set active drop zone
+    // Set active drop zone (only if different)
     setActiveDropZone: (zone: DropZone | null) => {
-      set({ activeDropZone: zone });
+      const currentZone = get().activeDropZone;
+      // Compare zone IDs to avoid unnecessary updates
+      const currentZoneId = currentZone ? `${currentZone.paneId}-${currentZone.position}` : null;
+      const newZoneId = zone ? `${zone.paneId}-${zone.position}` : null;
+      
+      if (currentZoneId !== newZoneId) {
+        set({ activeDropZone: zone });
+      }
     },
 
     // Handle drop operation
@@ -439,33 +463,35 @@ export const useEditorSplitStore = create<EditorSplitState>()(
       try {
         if (draggedItem.type === 'file') {
           // Handle file drop
-          if (zone.position === 'center') {
+          if (zone.paneId === 'editor-root') {
+            // Dropping into empty editor - initialize layout first
+            state.initializeLayout();
+            const newState = get();
+            await newState.openFile(draggedItem.data, newState.activePaneId!);
+          } else if (zone.position === 'center') {
             // Drop in existing pane
             await state.openFile(draggedItem.data, zone.paneId);
           } else {
             // Create new split
             const direction = zone.position === 'top' || zone.position === 'bottom' ? 'vertical' : 'horizontal';
-            state.createSplit(zone.paneId, direction);
-            const newPanes = state.getAllPanes();
-            const newPane = newPanes.find(p => p.id !== zone.paneId);
-            if (newPane) {
-              await state.openFile(draggedItem.data, newPane.id);
-            }
+            const newPaneId = state.createSplit(zone.paneId, direction);
+            await state.openFile(draggedItem.data, newPaneId);
           }
         } else if (draggedItem.type === 'tab' && draggedItem.sourcePaneId) {
           // Handle tab drop
-          if (zone.position === 'center') {
+          if (zone.paneId === 'editor-root') {
+            // This shouldn't happen for tabs, but handle it gracefully
+            state.initializeLayout();
+            const newState = get();
+            newState.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, newState.activePaneId!);
+          } else if (zone.position === 'center') {
             // Move to existing pane
             state.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, zone.paneId);
           } else {
             // Create new split and move buffer
             const direction = zone.position === 'top' || zone.position === 'bottom' ? 'vertical' : 'horizontal';
-            state.createSplit(zone.paneId, direction);
-            const newPanes = state.getAllPanes();
-            const newPane = newPanes.find(p => p.id !== zone.paneId);
-            if (newPane) {
-              state.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, newPane.id);
-            }
+            const newPaneId = state.createSplit(zone.paneId, direction);
+            state.moveBuffer(draggedItem.data, draggedItem.sourcePaneId, newPaneId);
           }
         }
       } finally {
@@ -501,6 +527,24 @@ export const useEditorSplitStore = create<EditorSplitState>()(
           rootSplit: updatePaneInSplit(state.rootSplit),
         };
       });
+    },
+
+    // Check if a buffer is open in any pane other than the specified one
+    isBufferOpenInOtherPanes: (bufferId: string, excludePaneId?: string) => {
+      const state = get();
+      const allPanes = state.getAllPanes();
+      
+      for (const pane of allPanes) {
+        if (excludePaneId && pane.id === excludePaneId) {
+          continue; // Skip the excluded pane
+        }
+        
+        if (pane.bufferIds.includes(bufferId)) {
+          return true;
+        }
+      }
+      
+      return false;
     },
   }))
 );
