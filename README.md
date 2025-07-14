@@ -2,6 +2,10 @@
 > 
 > **vCode IDE is currently in alpha and is not ready for production use.** This is an early access version intended for testing and feedback. Expect frequent updates and potential breaking changes.
 
+# ⚠️ **Important Note**
+> 
+> **This project was built in just 72 hours, so expect some rough edges.** There is currently a known issue with `node-pty` in production builds. For the best experience, please run the IDE locally by cloning the repository and using `npm run start`.
+
 # vCode IDE
 
 ![vCode Logo](src/assets/imgs/vcode_long.svg)
@@ -36,7 +40,7 @@ npm install
 ### Development Mode
 To start the IDE in development mode with hot reloading:
 ```sh
-npm run dev
+npm run start
 ```
 
 ### Production Build
