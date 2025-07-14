@@ -6,6 +6,7 @@ import * as monaco from 'monaco-editor';
 import { monacoIntegration } from '@/config/monaco-integration';
 import { performanceMonitor } from '@/config/monaco-performance';
 import { defaultEditorConfig, getMonacoEditorOptions } from '@/config/monaco-config';
+import { useSettingsStore } from '@/stores/settings';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
@@ -50,6 +51,12 @@ export function Editor({ buffer, onChange }: EditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const saveBuffer = useBufferStore((s) => s.saveBuffer);
     const [performanceData, setPerformanceData] = useState<any>(null);
+    
+    // Get font settings from store
+    const { settings } = useSettingsStore();
+    const codeFontFamily = settings.editor?.font?.family || 'sf-mono';
+    const codeFontSize = settings.editor?.font?.size || 13;
+    const codeFontBold = settings.editor?.font?.bold || false;
 
     // Setup Monaco Environment for web workers on mount
     useEffect(() => {
@@ -93,34 +100,79 @@ export function Editor({ buffer, onChange }: EditorProps) {
     };
 
     const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor, monaco: any) => {
-        editorRef.current = editor;
-        
-        // Focus the editor
-        editor.focus();
+        try {
+            editorRef.current = editor;
+            
+            // Check if editor and model are valid
+            if (!editor || editor.isDisposed()) {
+                console.error('Editor is disposed or invalid');
+                return;
+            }
+            
+            const model = editor.getModel();
+            if (!model) {
+                console.error('Editor model is null');
+                return;
+            }
+            
+            // Update font settings
+            const fontMap: Record<string, string> = {
+                'sf-mono': '"SF Mono", Monaco, Menlo, "Courier New", monospace',
+                'jetbrains-mono': '"JetBrains Mono", "Fira Code", Monaco, Menlo, monospace',
+                'fira-code': '"Fira Code", "JetBrains Mono", Monaco, Menlo, monospace',
+                'menlo': 'Menlo, Monaco, "Courier New", monospace',
+                'consolas': 'Consolas, Monaco, "Courier New", monospace',
+                'monaco': 'Monaco, Menlo, "Courier New", monospace',
+                'cascadia-code': '"Cascadia Code", "Fira Code", Monaco, monospace',
+                'source-code-pro': '"Source Code Pro", Monaco, Menlo, monospace',
+                'tektur': 'Tektur, "SF Mono", Monaco, Menlo, monospace'
+            };
+            
+            editor.updateOptions({
+                fontFamily: fontMap[codeFontFamily] || fontMap['sf-mono'],
+                fontSize: codeFontSize,
+                fontWeight: codeFontBold ? '600' : 'normal'
+            });
+            
+            // Focus the editor
+            editor.focus();
+        } catch (error) {
+            console.error('Error in handleEditorDidMount:', error);
+        }
         
         // Register editor with Monaco integration for enhanced features
-        monacoIntegration.registerEditor(editorId, editor);
-        
-        // Add enhanced keybindings
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-            console.log('Save triggered');
-            saveBuffer(buffer.id);
-        });
-        
-        // Format document keybinding
-        editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => {
-            editor.getAction('editor.action.formatDocument')?.run();
-        });
-        
-        // AI completion keybinding
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Space, () => {
-            editor.getAction('editor.action.triggerSuggest')?.run();
-        });
-        
-        // Quick fix keybinding
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, () => {
-            editor.getAction('editor.action.quickFix')?.run();
-        });
+        try {
+            monacoIntegration.registerEditor(editorId, editor);
+            
+            // Add enhanced keybindings
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                console.log('Save triggered');
+                saveBuffer(buffer.id);
+            });
+            
+            // Format document keybinding
+            editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => {
+                if (!editor.isDisposed() && editor.getModel()) {
+                    editor.getAction('editor.action.formatDocument')?.run();
+                }
+            });
+            
+            // AI completion keybinding
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Space, () => {
+                if (!editor.isDisposed() && editor.getModel()) {
+                    editor.getAction('editor.action.triggerSuggest')?.run();
+                }
+            });
+            
+            // Quick fix keybinding
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, () => {
+                if (!editor.isDisposed() && editor.getModel()) {
+                    editor.getAction('editor.action.quickFix')?.run();
+                }
+            });
+        } catch (error) {
+            console.error('Error registering editor commands:', error);
+        }
     };
     
     // Cleanup on unmount
@@ -176,8 +228,12 @@ export function Editor({ buffer, onChange }: EditorProps) {
                 value={value}
                 options={getMonacoEditorOptions(editorConfig)}
                 onChange={(value) => {
-                    if (value !== undefined) {
-                        onChange(value);
+                    try {
+                        if (value !== undefined && editorRef.current && !editorRef.current.isDisposed()) {
+                            onChange(value);
+                        }
+                    } catch (error) {
+                        console.error('Error in onChange:', error);
                     }
                 }}
                 onMount={handleEditorDidMount}

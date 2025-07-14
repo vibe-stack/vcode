@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
@@ -6,7 +6,7 @@ import { Paragraph } from '@tiptap/extension-paragraph';
 import { Text } from '@tiptap/extension-text';
 import { Mention } from '@tiptap/extension-mention';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, Square, Paperclip, X } from 'lucide-react';
+import { ArrowUp, Square, Paperclip, X, Hash, AtSign, Image, Slash } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { mentionProvider } from './mention-provider';
 import { chatSerializationService } from './chat-serialization';
@@ -29,7 +29,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   onStop,
   isLoading,
-  placeholder = "Ask me anything about your project... (Shift+Enter to send)",
+  placeholder = "Ask me anything about your project...",
   disabled = false,
   isNewChat = false,
 }) => {
@@ -48,12 +48,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const tabOrder = useBufferStore(state => state.tabOrder);
   const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
 
-  // Custom extension to intercept Shift+Enter
-  const ShiftEnterSend = Extension.create({
-    name: 'shiftEnterSend',
+  // Custom extension to intercept Enter for send
+  const EnterSend = Extension.create({
+    name: 'enterSend',
     addKeyboardShortcuts() {
       return {
-        'Shift-Enter': () => {
+        'Enter': ({ editor }) => {
+          // Check if shift is pressed - if so, let default behavior happen (new line)
+          const event = editor.view.dom.ownerDocument.defaultView?.event;
+          if (event && 'shiftKey' in event && event.shiftKey) {
+            return false; // Let default behavior happen
+          }
           handleSend().catch(console.error);
           return true;
         },
@@ -122,7 +127,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           },
         },
       }),
-      ShiftEnterSend,
+      EnterSend,
     ],
     content: '',
     editable: !disabled,
@@ -232,8 +237,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       setHasUserInput(true);
     }
 
-    // Shift+Enter sends the message, Enter alone creates new line
-    if (event.key === 'Enter' && event.shiftKey) {
+    // Enter sends the message, Shift+Enter creates new line
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSend().catch(console.error);
     }

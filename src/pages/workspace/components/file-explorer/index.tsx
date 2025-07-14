@@ -120,28 +120,28 @@ export function FileExplorer() {
     return (
         <div className="h-full flex flex-col border-r">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'files' | 'git')} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-2 border-b rounded-none h-10">
-                    <TabsTrigger value="files" className="flex items-center gap-2">
-                        <Files className="h-3 w-3" />
-                        Files
+                <TabsList className="grid w-full grid-cols-2 border-b rounded-none h-11 px-2 py-1">
+                    <TabsTrigger value="files" className="flex items-center gap-1.5 rounded-md data-[state=active]:shadow-sm">
+                        <Files className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Files</span>
                     </TabsTrigger>
-                    <TabsTrigger value="git" className="flex items-center gap-2" disabled={!isGitRepo}>
-                        <GitBranch className="h-3 w-3" />
-                        Git
+                    <TabsTrigger value="git" className="flex items-center gap-1.5 rounded-md data-[state=active]:shadow-sm" disabled={!isGitRepo}>
+                        <GitBranch className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Git</span>
                     </TabsTrigger>
                 </TabsList>
 
                 {/* Files Tab */}
                 <TabsContent value="files" className="flex-1 flex flex-col m-0 p-0 overflow-y-auto">
                     {/* Search Header */}
-                    <div className="border-b p-3 flex flex-row gap-2">
+                    <div className="border-b px-3 py-2.5 flex flex-row gap-2 bg-gradient-to-b from-background to-background/80">
                         <div className="relative grow">
-                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                             <Input
                                 placeholder="Search files..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-7 h-7 text-xs"
+                                className="pl-8 h-8 text-xs rounded-lg"
                             />
                         </div>
                         <div className="flex items-center gap-1">
@@ -149,8 +149,8 @@ export function FileExplorer() {
                                 basePath={currentProject || ''}
                                 defaultType="file"
                                 trigger={
-                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Create file">
-                                        <FileText className="h-3 w-3" />
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" title="Create file">
+                                        <FileText className="h-4 w-4" />
                                     </Button>
                                 }
                             />
@@ -158,13 +158,13 @@ export function FileExplorer() {
                                 basePath={currentProject || ''}
                                 defaultType="folder"
                                 trigger={
-                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Create folder">
-                                        <FolderPlus className="h-3 w-3" />
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" title="Create folder">
+                                        <FolderPlus className="h-4 w-4" />
                                     </Button>
                                 }
                             />
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <MoreHorizontal className="h-3 w-3" />
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg">
+                                <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>

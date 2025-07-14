@@ -203,14 +203,22 @@ export class MonacoIntegration {
         editor.onDidChangeModelContent(() => {
             clearTimeout(diagnosticsTimer);
             diagnosticsTimer = setTimeout(async () => {
-                const model = editor.getModel();
-                if (model && this.aiProvider) {
-                    try {
-                        const diagnostics = await this.aiProvider.provideDiagnostics(model, monaco.CancellationToken.None);
-                        monaco.editor.setModelMarkers(model, 'ai-diagnostics', diagnostics);
-                    } catch (error) {
-                        console.error('AI diagnostics error:', error);
+                try {
+                    const model = editor.getModel();
+                    if (!model) {
+                        console.warn('Editor model is null, skipping diagnostics');
+                        return;
                     }
+                    
+                    if (this.aiProvider) {
+                        const diagnostics = await this.aiProvider.provideDiagnostics(model, monaco.CancellationToken.None);
+                        // Double-check model still exists before setting markers
+                        if (editor.getModel() === model) {
+                            monaco.editor.setModelMarkers(model, 'ai-diagnostics', diagnostics);
+                        }
+                    }
+                } catch (error) {
+                    console.error('AI diagnostics error:', error);
                 }
             }, diagnosticsDelay);
         });
@@ -322,11 +330,17 @@ export class MonacoIntegration {
 
     // Dispose of an editor instance
     disposeEditor(editorId: string): void {
-        const editor = this.editorInstances.get(editorId);
-        if (editor) {
-            editor.dispose();
+        try {
+            const editor = this.editorInstances.get(editorId);
+            if (editor && !editor.isDisposed()) {
+                editor.dispose();
+            }
             this.editorInstances.delete(editorId);
             performanceMonitor.clearEditorData(editorId);
+        } catch (error) {
+            console.error(`Error disposing editor ${editorId}:`, error);
+            // Still try to clean up
+            this.editorInstances.delete(editorId);
         }
     }
 
@@ -347,7 +361,22 @@ export class MonacoIntegration {
 
     // Public method to register editor instance
     registerEditor(editorId: string, editor: monaco.editor.IStandaloneCodeEditor): void {
-        this.editorInstances.set(editorId, editor);
+        try {
+            if (!editor || editor.isDisposed()) {
+                console.warn(`Cannot register disposed editor: ${editorId}`);
+                return;
+            }
+            
+            const model = editor.getModel();
+            if (!model) {
+                console.warn(`Cannot register editor without model: ${editorId}`);
+                return;
+            }
+            
+            this.editorInstances.set(editorId, editor);
+        } catch (error) {
+            console.error(`Error registering editor ${editorId}:`, error);
+        }
     }
 
     // Dispose of all resources

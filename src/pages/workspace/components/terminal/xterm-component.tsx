@@ -3,6 +3,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Unicode11Addon } from '@xterm/addon-unicode11';
+import { useSettingsStore } from '@/stores/settings';
 import 'xterm/css/xterm.css';
 
 interface XTerminalProps {
@@ -17,11 +18,33 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Get font settings from store
+  const { settings } = useSettingsStore();
+  const terminalFontFamily = settings.terminal?.font?.family || 'sf-mono';
+  const terminalFontSize = settings.terminal?.font?.size || 13;
+  const terminalFontBold = settings.terminal?.font?.bold || false;
 
   // Initialize terminal only once per terminalId
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
 
+    // Font mapping function
+    const getFontFamily = (fontKey: string): string => {
+      const fontMap: Record<string, string> = {
+        'sf-mono': '"SF Mono", Monaco, Menlo, "Courier New", monospace',
+        'jetbrains-mono': '"JetBrains Mono", "Fira Code", Monaco, Menlo, monospace',
+        'fira-code': '"Fira Code", "JetBrains Mono", Monaco, Menlo, monospace',
+        'menlo': 'Menlo, Monaco, "Courier New", monospace',
+        'consolas': 'Consolas, Monaco, "Courier New", monospace',
+        'monaco': 'Monaco, Menlo, "Courier New", monospace',
+        'cascadia-code': '"Cascadia Code", "Fira Code", Monaco, monospace',
+        'source-code-pro': '"Source Code Pro", Monaco, Menlo, monospace',
+        'tektur': 'Tektur, "SF Mono", Monaco, Menlo, monospace'
+      };
+      return fontMap[fontKey] || fontMap['sf-mono'];
+    };
+    
     // Create terminal instance with VSCode-like theme
     const terminal = new Terminal({
       theme: {
@@ -47,8 +70,9 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
         brightCyan: '#29b8db',
         brightWhite: '#e5e5e5'
       },
-      fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-      fontSize: 14,
+      fontFamily: getFontFamily(terminalFontFamily),
+      fontSize: terminalFontSize,
+      fontWeight: terminalFontBold ? '600' : 'normal',
       lineHeight: 1.2,
       letterSpacing: 0,
       cursorBlink: true,

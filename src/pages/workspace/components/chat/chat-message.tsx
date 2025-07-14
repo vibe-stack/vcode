@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Trash2 } from 'lucide-react';
+import { Copy, Trash2, Bot, User } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
 import { ToolCallHandler } from './tool-call-handler';
@@ -93,12 +93,29 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
     return (
         <div
             className={cn(
-                "flex gap-3 p-3 rounded-lg min-w-0",
-                message.role === 'user' && "bg-primary/10 ml-8"
+                "flex gap-3 p-4 rounded-lg min-w-0",
+                message.role === 'user' ? "bg-primary/10" : ""
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            data-role="message"
         >
+            {/* Avatar Icon */}
+            <div className="flex-shrink-0">
+                <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                    message.role === 'user' 
+                        ? "bg-primary/20 text-primary" 
+                        : "bg-secondary text-secondary-foreground"
+                )}>
+                    {message.role === 'user' ? (
+                        <User className="h-4 w-4" />
+                    ) : (
+                        <Bot className="h-4 w-4" />
+                    )}
+                </div>
+            </div>
+            
             <div className="flex-1 min-w-0">
                 <div className="space-y-2 min-w-0">
                     {renderMessageParts()}

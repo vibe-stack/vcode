@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Plus, Bot, Code2 } from 'lucide-react';
 import { ChatInput } from './chat-input';
 import { useChat } from '@ai-sdk/react';
 import { chatFetch } from './chat-fetch';
@@ -10,8 +10,14 @@ import { toolExecutionService } from './tools/tool-execution-service';
 import { chatPersistenceService } from './chat-persistence';
 import { ChatHistory } from './chat-history';
 import DotMatrix from '@/components/ui/animated-dot-matrix';
+import { cn } from '@/utils/tailwind';
 
-export function ChatPanel() {
+interface ChatPanelProps {
+    isAgentMode?: boolean;
+    onToggleAgentMode?: () => void;
+}
+
+export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelProps) {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
     const { messages, append, setMessages, isLoading, addToolResult, stop } = useChat({
@@ -245,28 +251,55 @@ export function ChatPanel() {
     }, [addToolResult]);
 
     return (
-        <div className="h-full flex flex-col border-l bg-background w-full max-w-full min-w-0">
+        <div className={cn(
+            "h-full flex flex-col bg-sidebar w-full max-w-full min-w-0",
+            !isAgentMode && "border-l"
+        )}>
             {/* Header */}
-            <div className="border-b p-3 flex-shrink-0">
+            <div className="border-b px-4 py-3 flex-shrink-0 bg-gradient-to-b from-background to-background/80">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-medium">AI Assistant</h2>
+                    <h2 className="text-sm font-semibold tracking-tight">AI Assistant</h2>
                     <div className="flex items-center gap-1">
+                        {onToggleAgentMode && (
+                            <div className="flex items-center gap-0.5 mr-2 bg-muted rounded-md p-0.5">
+                                <Button 
+                                    variant={isAgentMode ? "default" : "ghost"} 
+                                    size="sm" 
+                                    className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
+                                    onClick={onToggleAgentMode}
+                                    title="Agent Mode - Full screen chat"
+                                >
+                                    <Bot className="h-3.5 w-3.5" />
+                                    Agent
+                                </Button>
+                                <Button 
+                                    variant={!isAgentMode ? "default" : "ghost"} 
+                                    size="sm" 
+                                    className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
+                                    onClick={onToggleAgentMode}
+                                    title="Code Mode - Show code editor and files"
+                                >
+                                    <Code2 className="h-3.5 w-3.5" />
+                                    Code
+                                </Button>
+                            </div>
+                        )}
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0"
+                            className="h-8 w-8 p-0 rounded-lg"
                             onClick={handleNewChat}
                             title="New Chat"
                         >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-4 w-4" />
                         </Button>
                         <ChatHistory
                             onLoadSession={handleLoadSession}
                             onClearHistory={handleClearHistory}
                             currentSessionId={currentSessionId || undefined}
                         />
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                            <MoreHorizontal className="h-3 w-3" />
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg">
+                            <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
@@ -275,7 +308,10 @@ export function ChatPanel() {
             {/* Messages */}
             <div className="flex-1 overflow-hidden w-full">
                 <div className="h-full w-full overflow-y-auto" >
-                    <div className="p-3 space-y-4 w-full">
+                    <div className={cn(
+                        "space-y-4 w-full",
+                        isAgentMode ? "max-w-4xl mx-auto p-8" : "p-4"
+                    )}>
                         {messages.map((message) => (
                             <MessageComponent
                                 key={message.id}
@@ -306,14 +342,18 @@ export function ChatPanel() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t p-3 flex-shrink-0">
-                <ChatInput
-                    onSend={handleEnhancedSend}
-                    onStop={handleStop}
-                    isLoading={isLoading}
-                    placeholder="Ask me anything about your project..."
-                    isNewChat={messages.length === 0 && !hasUserInteracted}
-                />
+            <div className="border-t flex-shrink-0 bg-gradient-to-t from-background to-background/80">
+                <div className={cn(
+                    isAgentMode ? "max-w-4xl mx-auto p-6" : "p-4"
+                )}>
+                    <ChatInput
+                        onSend={handleEnhancedSend}
+                        onStop={handleStop}
+                        isLoading={isLoading}
+                        placeholder="Ask me anything about your project..."
+                        isNewChat={messages.length === 0 && !hasUserInteracted}
+                    />
+                </div>
             </div>
         </div>
     );
