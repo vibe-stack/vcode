@@ -5,6 +5,8 @@ import { Play, X, Loader2, Check, AlertTriangle, FileText, Folder, Search } from
 import { cn } from '@/utils/tailwind';
 import { toolExecutionService } from './tools/tool-execution-service';
 import { getToolConfig } from './tools/tool-config';
+import { ToolDisplay } from './tool-displays';
+import { ToolName } from './tools';
 
 interface ToolCallHandlerProps {
   toolCallId: string;
@@ -28,6 +30,9 @@ export function ToolCallHandler({
   const toolsRequiringConfirmation = toolExecutionService.getToolsRequiringConfirmation();
   const requiresConfirmation = toolsRequiringConfirmation.includes(toolName as any);
   const toolConfig = getToolConfig(toolName as any);
+  
+  // State for expanded tool details - use toolCallId as key for uniqueness
+  const [expanded, setExpanded] = React.useState(false);
 
   // Ref to ensure onApprove is called only once per toolCallId
   const approveCalledRef = React.useRef<string | null>(null);
@@ -49,6 +54,34 @@ export function ToolCallHandler({
   React.useEffect(() => {
     approveCalledRef.current = null;
   }, [toolCallId]);
+
+  // Helper to get filename from path
+  const getFileName = (filePath: string): string => {
+    if (!filePath) return '';
+    return filePath.split('/').pop() || filePath;
+  };
+
+  // Get meaningful tool label based on tool type and args
+  const getToolLabel = () => {
+    switch (toolName) {
+      case 'readFile':
+        return `Read ${getFileName(args?.filePath || '')}`;
+      case 'writeFile':
+        return `Write ${getFileName(args?.filePath || '')}`;
+      case 'listDirectory':
+        return `List ${getFileName(args?.dirPath || '')}`;
+      case 'createDirectory':
+        return `Create ${getFileName(args?.dirPath || '')}`;
+      case 'deleteFile':
+        return `Delete ${getFileName(args?.filePath || '')}`;
+      case 'searchFiles':
+        return `Search "${args?.query || ''}"`;
+      case 'getProjectInfo':
+        return 'Get project info';
+      default:
+        return toolConfig?.displayName || toolName;
+    }
+  };
 
   const getToolIcon = () => {
     if (!toolConfig) return <Play className="h-3 w-3" />;
@@ -83,7 +116,7 @@ export function ToolCallHandler({
     return (
       <div className="flex items-center gap-2 py-1 px-2 rounded bg-muted/50 text-xs">
         <Loader2 className="h-3 w-3 animate-spin" />
-        <span className="text-muted-foreground">Executing {toolName}...</span>
+        <span className="text-muted-foreground">Executing {getToolLabel()}...</span>
       </div>
     );
   }
@@ -91,11 +124,29 @@ export function ToolCallHandler({
   // If the tool has completed execution
   if (state === 'result' && !requiresConfirmation) {
     return (
-      <div className="flex items-center gap-2 py-1 px-2 rounded opacity-60 text-xs">
-        <Check className="h-3 w-3 text-green-600" />
-        <span className="text-green-700 dark:text-green-300">
-          Executed {toolConfig?.displayName || toolName}
-        </span>
+      <div className="space-y-2">
+        <div 
+          className="flex items-center gap-2 py-1 px-2 rounded opacity-70 text-xs cursor-pointer hover:opacity-90 hover:bg-muted/30 transition-all"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <Check className="h-3 w-3 text-green-600" />
+          <span className="text-green-700 dark:text-green-300">
+            {getToolLabel()}
+          </span>
+          <span className="text-muted-foreground text-xs ml-auto">
+            {expanded ? 'Click to collapse' : 'Click for details'}
+          </span>
+        </div>
+        {expanded && (
+          <div className="ml-6">
+            <ToolDisplay
+              toolName={toolName as ToolName}
+              args={args}
+              result={result}
+              state={state}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -109,7 +160,7 @@ export function ToolCallHandler({
             {getToolIcon()}
           </span>
           <span className="text-amber-700 dark:text-amber-300">
-            Execute {toolConfig?.displayName || toolName}?
+            Execute {getToolLabel()}?
           </span>
           {toolConfig?.dangerLevel === 'dangerous' && (
             <AlertTriangle className="h-3 w-3 text-red-500" />

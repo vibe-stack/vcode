@@ -32,8 +32,10 @@ export class ChatPersistenceService {
     const firstUserMessage = messages.find(msg => msg.role === 'user');
     if (!firstUserMessage) return 'New Chat';
     
-    // Ensure content is a string and handle undefined/null cases
-    const content = (firstUserMessage.content || '').toString().trim();
+    // Extract text from parts array
+    const textPart = firstUserMessage.parts?.find(part => part.type === 'text');
+    const content = textPart?.text || '';
+    
     if (content.length === 0) return 'New Chat';
     if (content.length <= 50) return content;
     return content.substring(0, 50) + '...';
@@ -58,6 +60,7 @@ export class ChatPersistenceService {
         messages: session.messages.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp),
+          createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
         })),
       }));
       

@@ -42,26 +42,14 @@ export function ChatPanel() {
                 try {
                     const enhancedMessages = messages
                         .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-                        .map(msg => {
-                            // Extract content from message - handle both direct content and parts-based content
-                            let messageContent = msg.content || '';
-                            
-                            // If content is empty, try to extract from parts
-                            if (!messageContent && msg.parts) {
-                                const textPart = msg.parts.find(part => part.type === 'text');
-                                if (textPart && 'text' in textPart) {
-                                    messageContent = textPart.text;
-                                }
-                            }
-                            
-                            return {
-                                id: msg.id,
-                                content: messageContent || '',
-                                role: msg.role as 'user' | 'assistant',
-                                timestamp: msg.createdAt || new Date(),
-                                attachments: (msg.parts?.find(part => (part as any).type === 'attachments') as any)?.attachments || [],
-                            };
-                        });
+                        .map(msg => ({
+                            id: msg.id,
+                            role: msg.role as 'user' | 'assistant',
+                            parts: msg.parts || [],
+                            timestamp: msg.createdAt || new Date(),
+                            createdAt: msg.createdAt,
+                            ...msg
+                        }));
 
                     console.log('Saving enhanced messages:', enhancedMessages);
 
@@ -94,19 +82,19 @@ export function ChatPanel() {
                 if (recentSessions.length > 0) {
                     const latestSession = recentSessions[0];
                     // Convert enhanced messages back to AI SDK format
-                    const aiSdkMessages = latestSession.messages.map(msg => ({
-                        id: msg.id,
-                        role: msg.role,
-                        content: msg.content,
-                        createdAt: msg.timestamp,
-                        parts: [
-                            { type: 'text' as const, text: msg.content },
-                            ...(msg.attachments && msg.attachments.length > 0 ? [{
-                                type: 'attachments' as any,
-                                attachments: msg.attachments
-                            }] : [])
-                        ],
-                    }));
+                    const aiSdkMessages = latestSession.messages.map(msg => {
+                        // Extract content from parts for backward compatibility
+                        const textPart = msg.parts?.find((part: any) => part.type === 'text');
+                        const content = textPart?.text || '';
+                        
+                        return {
+                            id: msg.id,
+                            role: msg.role,
+                            content,
+                            parts: msg.parts || [],
+                            createdAt: msg.timestamp,
+                        };
+                    });
                     setMessages(aiSdkMessages);
                     setCurrentSessionId(latestSession.id);
                     setHasUserInteracted(true); // Loading existing session means user has interacted
@@ -192,19 +180,19 @@ export function ChatPanel() {
         try {
             const sessionMessages = await chatPersistenceService.loadSession(sessionId);
             // Convert enhanced messages back to AI SDK format
-            const aiSdkMessages = sessionMessages.map(msg => ({
-                id: msg.id,
-                role: msg.role,
-                content: msg.content,
-                createdAt: msg.timestamp,
-                parts: [
-                    { type: 'text' as const, text: msg.content },
-                    ...(msg.attachments && msg.attachments.length > 0 ? [{
-                        type: 'attachments' as any,
-                        attachments: msg.attachments
-                    }] : [])
-                ],
-            }));
+            const aiSdkMessages = sessionMessages.map(msg => {
+                // Extract content from parts for backward compatibility
+                const textPart = msg.parts?.find((part: any) => part.type === 'text');
+                const content = textPart?.text || '';
+                
+                return {
+                    id: msg.id,
+                    role: msg.role,
+                    content,
+                    parts: msg.parts || [],
+                    createdAt: msg.timestamp,
+                };
+            });
             setMessages(aiSdkMessages);
             setCurrentSessionId(sessionId);
             setHasUserInteracted(true); // Loading a session means user has interacted

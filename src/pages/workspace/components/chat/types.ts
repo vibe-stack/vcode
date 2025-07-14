@@ -22,12 +22,10 @@ export interface ChatAttachment {
 
 export interface EnhancedChatMessage {
   id: string;
-  content: string;
   role: 'user' | 'assistant';
-  attachments?: ChatAttachment[];
-  // Tiptap editor content for editing
-  editorContent?: any;
+  parts: any[]; // Keep it flexible to accommodate AI SDK's various part types
   timestamp: Date;
+  createdAt?: Date;
 }
 
 export interface TiptapContent {
