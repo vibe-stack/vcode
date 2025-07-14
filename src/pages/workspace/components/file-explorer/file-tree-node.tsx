@@ -41,7 +41,7 @@ interface FileTreeNodeProps {
     onNodeDeleted?: (path: string) => void;
 }
 
-export const FileTreeNode = React.memo<FileTreeNodeProps>(({
+export const FileTreeNode = (({
     node,
     level,
     onFileClick,
@@ -50,7 +50,7 @@ export const FileTreeNode = React.memo<FileTreeNodeProps>(({
     onToggleFolder,
     onNodeRenamed,
     onNodeDeleted
-}) => {
+}: FileTreeNodeProps) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isRenaming, setIsRenaming] = useState(false);
     const [renamingValue, setRenamingValue] = useState('');
@@ -340,21 +340,22 @@ export const FileTreeNode = React.memo<FileTreeNodeProps>(({
             )}
         </div>
     );
-}, (prevProps, nextProps) => {
-    // Custom comparison function to prevent unnecessary re-renders
-    // Only re-render if the node itself or its dependencies have changed
-    return (
-        prevProps.node.path === nextProps.node.path &&
-        prevProps.node.name === nextProps.node.name &&
-        prevProps.node.type === nextProps.node.type &&
-        prevProps.level === nextProps.level &&
-        prevProps.expandedFolders === nextProps.expandedFolders &&
-        prevProps.onFileClick === nextProps.onFileClick &&
-        prevProps.onFileDragStart === nextProps.onFileDragStart &&
-        prevProps.onToggleFolder === nextProps.onToggleFolder &&
-        prevProps.onNodeRenamed === nextProps.onNodeRenamed &&
-        prevProps.onNodeDeleted === nextProps.onNodeDeleted
-    );
 });
+// , (prevProps, nextProps) => {
+//     // Custom comparison function to prevent unnecessary re-renders
+//     // Only re-render if the node itself or its dependencies have changed
+//     return (
+//         prevProps.node.path === nextProps.node.path &&
+//         prevProps.node.name === nextProps.node.name &&
+//         prevProps.node.type === nextProps.node.type &&
+//         prevProps.level === nextProps.level &&
+//         prevProps.expandedFolders === nextProps.expandedFolders &&
+//         prevProps.onFileClick === nextProps.onFileClick &&
+//         prevProps.onFileDragStart === nextProps.onFileDragStart &&
+//         prevProps.onToggleFolder === nextProps.onToggleFolder &&
+//         prevProps.onNodeRenamed === nextProps.onNodeRenamed &&
+//         prevProps.onNodeDeleted === nextProps.onNodeDeleted
+//     );
+// });
 
-FileTreeNode.displayName = 'FileTreeNode';
+// FileTreeNode.displayName = 'FileTreeNode';
