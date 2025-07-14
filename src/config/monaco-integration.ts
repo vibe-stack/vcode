@@ -340,6 +340,16 @@ export class MonacoIntegration {
         return performanceMonitor.getOverallPerformanceSummary();
     }
 
+    // Public method to detect language (wrapper around private method)
+    public detectLanguageFromFile(language?: string, filename?: string): string {
+        return this.detectLanguage(language, filename);
+    }
+
+    // Public method to register editor instance
+    registerEditor(editorId: string, editor: monaco.editor.IStandaloneCodeEditor): void {
+        this.editorInstances.set(editorId, editor);
+    }
+
     // Dispose of all resources
     dispose(): void {
         // Dispose all language providers

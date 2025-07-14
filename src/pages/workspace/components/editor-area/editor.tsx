@@ -5,7 +5,7 @@ import { Editor as MonacoEditor, loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { monacoIntegration } from '@/config/monaco-integration';
 import { performanceMonitor } from '@/config/monaco-performance';
-import { defaultEditorConfig } from '@/config/monaco-config';
+import { defaultEditorConfig, getMonacoEditorOptions } from '@/config/monaco-config';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
@@ -99,7 +99,7 @@ export function Editor({ buffer, onChange }: EditorProps) {
         editor.focus();
         
         // Register editor with Monaco integration for enhanced features
-        monacoIntegration.editorInstances?.set(editorId, editor);
+        monacoIntegration.registerEditor(editorId, editor);
         
         // Add enhanced keybindings
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
@@ -172,9 +172,9 @@ export function Editor({ buffer, onChange }: EditorProps) {
             {/* Monaco Editor */}
             <MonacoEditor
                 theme="dark-matrix"
-                language={buffer.extension ? monacoIntegration.detectLanguage(undefined, buffer.name) : 'plaintext'}
+                language={buffer.extension ? getLanguageFromExtension(buffer.extension) : 'plaintext'}
                 value={value}
-                options={monacoIntegration.getMonacoEditorOptions(editorConfig)}
+                options={getMonacoEditorOptions(editorConfig)}
                 onChange={(value) => {
                     if (value !== undefined) {
                         onChange(value);
