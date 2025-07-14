@@ -13,10 +13,13 @@ import {
     Plus,
     MoreHorizontal,
     Files,
-    GitBranch
+    GitBranch,
+    FileText,
+    FolderPlus
 } from 'lucide-react';
 import { FileTreeNode } from './file-tree-node';
 import { GitPanel } from './git-panel';
+import { CreateFilePopover } from './create-file-popover';
 
 export function FileExplorer() {
     const { fileTree, projectName, currentProject } = useProjectStore();
@@ -37,10 +40,19 @@ export function FileExplorer() {
 
     const handleFileDragStart = useCallback((filePath: string, event: React.DragEvent) => {
         startDrag('file', filePath);
-        event.dataTransfer.setData('text/plain', filePath);
-        event.dataTransfer.setData('application/x-file-path', filePath);
-        event.dataTransfer.effectAllowed = 'move';
     }, [startDrag]);
+
+    const handleNodeRenamed = useCallback((oldPath: string, newPath: string) => {
+        // Handle file/folder rename in the store
+        // This might need to refresh the file tree
+        console.log('Node renamed:', oldPath, '->', newPath);
+    }, []);
+
+    const handleNodeDeleted = useCallback((path: string) => {
+        // Handle file/folder deletion in the store
+        // This might need to refresh the file tree
+        console.log('Node deleted:', path);
+    }, []);
 
     const handleToggleFolder = useCallback((path: string) => {
         setExpandedFolders(prev => {
@@ -133,9 +145,24 @@ export function FileExplorer() {
                             />
                         </div>
                         <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <Plus className="h-3 w-3" />
-                            </Button>
+                            <CreateFilePopover
+                                basePath={currentProject || ''}
+                                defaultType="file"
+                                trigger={
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Create file">
+                                        <FileText className="h-3 w-3" />
+                                    </Button>
+                                }
+                            />
+                            <CreateFilePopover
+                                basePath={currentProject || ''}
+                                defaultType="folder"
+                                trigger={
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Create folder">
+                                        <FolderPlus className="h-3 w-3" />
+                                    </Button>
+                                }
+                            />
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                                 <MoreHorizontal className="h-3 w-3" />
                             </Button>
@@ -153,6 +180,8 @@ export function FileExplorer() {
                                     onFileDragStart={handleFileDragStart}
                                     expandedFolders={expandedFolders}
                                     onToggleFolder={handleToggleFolder}
+                                    onNodeRenamed={handleNodeRenamed}
+                                    onNodeDeleted={handleNodeDeleted}
                                 />
                             ) : (
                                 <div className="text-center py-8">

@@ -1,7 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron';
-const nodePty = require('node-pty');
-const spawn = nodePty.spawn;
-type IPty = typeof nodePty.spawn extends (...args: any[]) => infer R ? R : never;
+import * as nodePty from 'node-pty';
 import * as os from 'os';
 import * as path from 'path';
 import {
@@ -15,6 +13,9 @@ import {
   TERMINAL_EXIT_EVENT,
   TERMINAL_ERROR_EVENT
 } from './terminal-channels';
+
+const spawn = nodePty.spawn;
+type IPty = typeof nodePty.spawn extends (...args: any[]) => infer R ? R : never;
 
 interface TerminalInstance {
   id: string;

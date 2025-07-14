@@ -5,6 +5,7 @@ import { exposeAIContext } from "./ai/ai-context";
 import { exposeSettingsContext } from "./settings/settings-context";
 import { exposeGitContext } from "./git/git-context";
 import { exposeTerminalContext } from "./terminal/terminal-context";
+import { exposeShellContext } from "./shell/shell-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -14,4 +15,5 @@ export default function exposeContexts() {
   exposeSettingsContext();
   exposeGitContext();
   exposeTerminalContext();
+  exposeShellContext();
 }

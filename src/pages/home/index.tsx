@@ -150,7 +150,7 @@ export default function HomePage() {
                               {project.name}
                             </CardTitle>
                             <CardDescription className="text-sm truncate" title={project.path}>
-                              {project.path}
+                              {/* {project.path} */}
                             </CardDescription>
                           </div>
                           <Button

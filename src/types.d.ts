@@ -95,6 +95,11 @@ interface TerminalApi {
   removeAllListeners: () => void;
 }
 
+interface ShellApi {
+  showItemInFolder: (filePath: string) => Promise<void>;
+  openExternal: (url: string) => Promise<void>;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
@@ -102,4 +107,5 @@ declare interface Window {
   ai: AI;
   settingsApi: SettingsApi;
   terminalApi: TerminalApi;
+  shellApi: ShellApi;
 }

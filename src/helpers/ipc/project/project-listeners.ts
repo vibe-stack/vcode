@@ -372,6 +372,10 @@ export function addProjectEventListeners(window: BrowserWindow): void {
       await fs.mkdir(dirPath, { recursive: true });
       
       await fs.writeFile(filePath, content, 'utf8');
+      
+      // Emit file created event
+      mainWindow?.webContents.send(PROJECT_FILE_CREATED_EVENT, filePath);
+      
       return true;
     } catch (error) {
       throw new Error(`Failed to create file: ${(error as Error).message}`);
@@ -381,6 +385,10 @@ export function addProjectEventListeners(window: BrowserWindow): void {
   ipcMain.handle(PROJECT_CREATE_FOLDER_CHANNEL, async (_, folderPath: string) => {
     try {
       await fs.mkdir(folderPath, { recursive: true });
+      
+      // Emit file created event for folder
+      mainWindow?.webContents.send(PROJECT_FILE_CREATED_EVENT, folderPath);
+      
       return true;
     } catch (error) {
       throw new Error(`Failed to create folder: ${(error as Error).message}`);
