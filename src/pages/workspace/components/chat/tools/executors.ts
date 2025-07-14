@@ -29,7 +29,50 @@ export const frontendToolExecutors = {
           filePath = `${currentProject}/${filePath}`;
         }
       }
-      await window.projectApi.saveFile(filePath, args.content);
+      
+      // Process the content to handle escaped characters (like \n)
+      const processedContent = args.content
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\r/g, '\r')
+        .replace(/\\"/g, '"')
+        .replace(/\\'/g, "'")
+        .replace(/\\\\/g, '\\');
+      
+      // Check if file exists, if not create it
+      try {
+        await window.projectApi.getFileStats(filePath);
+      } catch (error) {
+        // File doesn't exist, create it with empty content
+        await window.projectApi.createFile(filePath, '');
+      }
+      
+      // Import the stores dynamically to avoid circular imports
+      const { useEditorSplitStore } = await import('@/stores/editor-splits');
+      const { useBufferStore } = await import('@/stores/buffers');
+      
+      // Open the file in a buffer (this will create or reuse existing buffer)
+      const editorStore = useEditorSplitStore.getState();
+      await editorStore.openFile(filePath);
+      
+      // Get the buffer for this file
+      const bufferStore = useBufferStore.getState();
+      const buffer = bufferStore.getBufferByPath(filePath);
+      
+      if (!buffer) {
+        throw new Error(`Failed to create buffer for ${filePath}`);
+      }
+      
+      // Update the buffer content
+      bufferStore.updateBufferContent(buffer.id, processedContent);
+      
+      // Save the buffer
+      const saveSuccess = await bufferStore.saveBuffer(buffer.id);
+      
+      if (!saveSuccess) {
+        throw new Error(`Failed to save buffer for ${filePath}`);
+      }
+      
       return `Successfully wrote to ${filePath}`;
     } catch (error) {
       console.error('[writeFile tool] Error:', error);
