@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor';
+import type { MonacoAIProvider } from './monaco-ai-provider';
 
 export interface MonacoEditorConfig {
     // Basic options
@@ -28,6 +29,32 @@ export interface MonacoEditorConfig {
     };
     renderWhitespace: 'none' | 'boundary' | 'selection' | 'trailing' | 'all';
     renderControlCharacters: boolean;
+    
+    // Performance settings
+    performance: {
+        enableLazyLoading: boolean;
+        maxFileSize: number; // in bytes
+        memoryThreshold: number; // in MB
+        workerStrategy: 'auto' | 'disabled' | 'web-worker';
+    };
+    
+    // AI Integration
+    ai: {
+        enabled: boolean;
+        provider?: MonacoAIProvider;
+        codeActions: boolean;
+        completions: boolean;
+        hover: boolean;
+        diagnostics: boolean;
+    };
+    
+    // User preferences
+    preferences: {
+        persistSettings: boolean;
+        autoSave: boolean;
+        formatOnSave: boolean;
+        formatOnType: boolean;
+    };
 }
 
 export const defaultEditorConfig: MonacoEditorConfig = {
@@ -54,6 +81,31 @@ export const defaultEditorConfig: MonacoEditorConfig = {
     },
     renderWhitespace: 'selection',
     renderControlCharacters: false,
+    
+    // Performance settings
+    performance: {
+        enableLazyLoading: true,
+        maxFileSize: 5 * 1024 * 1024, // 5MB
+        memoryThreshold: 100, // 100MB
+        workerStrategy: 'auto',
+    },
+    
+    // AI Integration
+    ai: {
+        enabled: true,
+        codeActions: true,
+        completions: true,
+        hover: true,
+        diagnostics: true,
+    },
+    
+    // User preferences
+    preferences: {
+        persistSettings: true,
+        autoSave: true,
+        formatOnSave: true,
+        formatOnType: false,
+    },
 };
 
 export const getMonacoEditorOptions = (config: Partial<MonacoEditorConfig> = {}): monaco.editor.IStandaloneEditorConstructionOptions => {
@@ -164,8 +216,17 @@ export const getMonacoEditorOptions = (config: Partial<MonacoEditorConfig> = {})
             horizontalScrollbarSize: 14,
         },
         
-        // Performance
-        stopRenderingLineAfter: 10000,
+        // Performance - Enhanced settings
+        stopRenderingLineAfter: finalConfig.performance.maxFileSize > 1024 * 1024 ? 1000 : 10000,
+        
+        // Large file optimizations
+        ...(finalConfig.performance.maxFileSize > 1024 * 1024 && {
+            renderValidationDecorations: 'off',
+            renderWhitespace: 'none',
+            minimap: { enabled: false },
+            folding: false,
+            wordWrap: 'off',
+        }),
         
         // Accessibility
         accessibilitySupport: 'auto',
