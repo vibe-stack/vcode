@@ -96,6 +96,7 @@ export function isTextBuffer(buffer: Uint8Array, sampleSize = 8000): boolean {
     const len = Math.min(buffer.length, sampleSize);
     let suspiciousBytes = 0;
     let i = 0;
+    if (len === 0) return true; // Empty buffer is considered text
     while (i < len) {
         const byte = buffer[i];
         // Null bytes are almost never in text files
