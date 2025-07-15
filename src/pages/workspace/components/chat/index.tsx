@@ -9,11 +9,17 @@ import { ChatAttachment, EnhancedChatMessage } from './types';
 import { toolExecutionService } from './tools/tool-execution-service';
 import { chatPersistenceService } from './chat-persistence';
 import { ChatHistory } from './chat-history';
+import { GlobalFileChanges } from './global-file-changes';
+import { useChatSnapshotStore } from '@/stores/chat-snapshots';
+import { useSnapshotCleanup } from './hooks/use-snapshot-cleanup';
 import DotMatrix from '@/components/ui/animated-dot-matrix';
 
 export function ChatPanel() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
+    
+    // Initialize snapshot cleanup
+    useSnapshotCleanup();
     const { messages, append, setMessages, isLoading, addToolResult, stop } = useChat({
         api: '/api/chat', // This will be handled by our custom fetcher
         fetch: chatFetch,
@@ -166,10 +172,16 @@ export function ChatPanel() {
     }, [setMessages]);
 
     const handleNewChat = useCallback(() => {
+        // Clear snapshots for current session
+        if (currentSessionId) {
+            const snapshotStore = useChatSnapshotStore.getState();
+            snapshotStore.clearSessionSnapshots(currentSessionId);
+        }
+        
         setMessages([]);
         setCurrentSessionId(null);
         setHasUserInteracted(false);
-    }, [setMessages]);
+    }, [setMessages, currentSessionId]);
 
     const handleLoadSession = useCallback(async (sessionId: string) => {
         try {
@@ -199,17 +211,24 @@ export function ChatPanel() {
     const handleClearHistory = useCallback(async () => {
         try {
             await chatPersistenceService.clearCurrentProjectSessions();
+            
+            // Also clear snapshots for this session
+            if (currentSessionId) {
+                const snapshotStore = useChatSnapshotStore.getState();
+                snapshotStore.clearSessionSnapshots(currentSessionId);
+            }
+            
             setMessages([]);
             setCurrentSessionId(null);
             setHasUserInteracted(false);
         } catch (error) {
             console.error('Failed to clear history:', error);
         }
-    }, [setMessages]);
+    }, [setMessages, currentSessionId]);
 
     const handleToolApprove = useCallback(async (toolCallId: string) => {
         try {
-            const result = await toolExecutionService.executeApprovedTool(toolCallId, messages);
+            const result = await toolExecutionService.executeApprovedTool(toolCallId, messages, currentSessionId || '');
             addToolResult({
                 toolCallId,
                 result,
@@ -221,7 +240,7 @@ export function ChatPanel() {
                 result: errorMessage,
             });
         }
-    }, [messages, addToolResult]);
+    }, [messages, addToolResult, currentSessionId]);
 
     const handleToolCancel = useCallback(async (toolCallId: string) => {
         try {
@@ -238,6 +257,42 @@ export function ChatPanel() {
             });
         }
     }, [addToolResult]);
+
+    const handleAcceptFileChanges = useCallback(async (messageId: string) => {
+        if (!currentSessionId) return;
+        
+        const snapshotStore = useChatSnapshotStore.getState();
+        snapshotStore.acceptAllSnapshots(currentSessionId, messageId);
+    }, [currentSessionId]);
+
+    const handleRejectFileChanges = useCallback(async (messageId: string) => {
+        if (!currentSessionId) return;
+        
+        const snapshotStore = useChatSnapshotStore.getState();
+        try {
+            await snapshotStore.revertAllSnapshots(currentSessionId, messageId);
+        } catch (error) {
+            console.error('Failed to revert file changes:', error);
+        }
+    }, [currentSessionId]);
+
+    const handleAcceptAllFileChanges = useCallback(async () => {
+        if (!currentSessionId) return;
+        
+        const snapshotStore = useChatSnapshotStore.getState();
+        snapshotStore.acceptAllPendingSnapshots(currentSessionId);
+    }, [currentSessionId]);
+
+    const handleRejectAllFileChanges = useCallback(async () => {
+        if (!currentSessionId) return;
+        
+        const snapshotStore = useChatSnapshotStore.getState();
+        try {
+            await snapshotStore.revertAllPendingSnapshots(currentSessionId);
+        } catch (error) {
+            console.error('Failed to revert all file changes:', error);
+        }
+    }, [currentSessionId]);
 
     return (
         <div className="h-full flex flex-col border-l bg-background w-full max-w-full min-w-0">
@@ -271,7 +326,7 @@ export function ChatPanel() {
             <div className="flex-1 overflow-hidden w-full">
                 <div className="h-full w-full overflow-y-auto" >
                     <div className="p-3 space-y-4 w-full">
-                        {messages.map((message) => (
+                        {messages.map((message, index) => (
                             <MessageComponent
                                 key={message.id}
                                 message={message}
@@ -301,14 +356,25 @@ export function ChatPanel() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t p-3 flex-shrink-0">
-                <ChatInput
-                    onSend={handleEnhancedSend}
-                    onStop={handleStop}
-                    isLoading={isLoading}
-                    placeholder="Ask me anything about your project..."
-                    isNewChat={messages.length === 0 && !hasUserInteracted}
-                />
+            <div className="border-t flex-shrink-0">
+                {currentSessionId && (
+                    <div className="p-3 pb-1">
+                        <GlobalFileChanges
+                            sessionId={currentSessionId}
+                            onAcceptAll={handleAcceptAllFileChanges}
+                            onRejectAll={handleRejectAllFileChanges}
+                        />
+                    </div>
+                )}
+                <div className="px-3 pb-3">
+                    <ChatInput
+                        onSend={handleEnhancedSend}
+                        onStop={handleStop}
+                        isLoading={isLoading}
+                        placeholder="Ask me anything about your project..."
+                        isNewChat={messages.length === 0 && !hasUserInteracted}
+                    />
+                </div>
             </div>
         </div>
     );
