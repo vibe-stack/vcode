@@ -103,7 +103,7 @@ export function FileChanges({ sessionId, messageId, onAcceptAll, onRejectAll }: 
   };
 
   return (
-    <Card className="mb-3 p-3 bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800">
+    <Card className="mb-3 p-3 bg-background/80 dark:bg-background/80 shadow-none border-none">
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -111,16 +111,16 @@ export function FileChanges({ sessionId, messageId, onAcceptAll, onRejectAll }: 
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-auto p-0 hover:bg-transparent"
+                className="h-auto p-0 hover:bg-accent/40"
               >
                 <div className="flex items-center gap-2">
                   {isExpanded ? (
-                    <ChevronDown className="h-3 w-3 text-amber-600" />
+                    <ChevronDown className="h-3 w-3 text-accent" />
                   ) : (
-                    <ChevronRight className="h-3 w-3 text-amber-600" />
+                    <ChevronRight className="h-3 w-3 text-accent" />
                   )}
-                  <FileText className="h-4 w-4 text-amber-600" />
-                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  <FileText className="h-4 w-4 text-accent" />
+                  <span className="text-xs font-medium text-foreground">
                     File Changes ({pendingSnapshots.length})
                   </span>
                 </div>
@@ -128,33 +128,32 @@ export function FileChanges({ sessionId, messageId, onAcceptAll, onRejectAll }: 
             </CollapsibleTrigger>
             <div className="flex items-center gap-1">
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
                 onClick={handleAcceptAll}
                 disabled={isProcessing}
-                className="h-6 px-2 text-xs border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/20 disabled:opacity-50"
+                className="h-6 px-2 text-xs bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 border-none shadow-none"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 {isProcessing ? 'Processing...' : 'Accept All'}
               </Button>
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
                 onClick={handleRejectAll}
                 disabled={isProcessing}
-                className="h-6 px-2 text-xs border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50"
+                className="h-6 px-2 text-xs bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 border-none shadow-none"
               >
                 <XCircle className="h-3 w-3 mr-1" />
                 {isProcessing ? 'Processing...' : 'Reject All'}
               </Button>
             </div>
           </div>
-          
           <CollapsibleContent className="space-y-1">
             {pendingSnapshots.map((snapshot, index) => (
               <div
                 key={`${snapshot.filePath}-${index}`}
-                className="flex items-center justify-between p-2 bg-white/50 dark:bg-gray-800/50 rounded border border-gray-200 dark:border-gray-700"
+                className="flex items-center justify-between p-2 bg-accent/30 dark:bg-accent/20 rounded"
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {getOperationIcon(snapshot.operation)}

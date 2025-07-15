@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { CheckCircle, XCircle, FileText, FilePlus, FileX, ChevronDown, ChevronRight, AlertTriangle, History, ChevronLeft, ChevronRight as ChevronRightIcon, Undo, Redo } from 'lucide-react';
+import { Check, X, FileText, FilePlus, FileX, ChevronDown, ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon, ArrowLeft, ArrowRight, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useChatSnapshotStore, FileSnapshot } from '@/stores/chat-snapshots';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useEditorSplitStore } from '@/stores/editor-splits';
+import * as motion from "motion/react-client";
 
 interface GlobalFileChangesProps {
   sessionId: string;
@@ -12,9 +14,10 @@ interface GlobalFileChangesProps {
 }
 
 export function GlobalFileChanges({ sessionId, onAcceptAll, onRejectAll }: GlobalFileChangesProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+  const openFile = useEditorSplitStore(s => s.openFile);
+
   const snapshots = useChatSnapshotStore(state => state.snapshots);
   
   const sessionData = useMemo(() => {
@@ -107,39 +110,33 @@ export function GlobalFileChanges({ sessionId, onAcceptAll, onRejectAll }: Globa
   const getOperationText = (operation: FileSnapshot['operation']) => {
     switch (operation) {
       case 'create':
-        return 'Created';
+        return 'A'; // Added
       case 'update':
-        return 'Modified';
+        return 'M'; // Modified
       case 'delete':
-        return 'Deleted';
+        return 'D'; // Deleted
       default:
-        return 'Changed';
+        return '?';
     }
   };
 
-  const getOperationColor = (operation: FileSnapshot['operation']) => {
-    switch (operation) {
-      case 'create':
-        return 'text-green-700 dark:text-green-300';
-      case 'update':
-        return 'text-blue-700 dark:text-blue-300';
-      case 'delete':
-        return 'text-red-700 dark:text-red-300';
-      default:
-        return 'text-gray-700 dark:text-gray-300';
-    }
+  // Helper to get filename and relative path
+  const getFileDisplay = (filePath: string) => {
+    // Try to get relative path from project root
+    const projectRoot = '/Users/fairhat/Repositories/grok-ide/';
+    let relPath = filePath.startsWith(projectRoot) ? filePath.slice(projectRoot.length) : '';
+    const parts = filePath.split('/');
+    const filename = parts[parts.length - 1];
+    return { filename, relPath };
   };
 
   const getStatusIcon = (status: FileSnapshot['status']) => {
     switch (status) {
-      case 'pending':
-        return <AlertTriangle className="h-3 w-3 text-amber-600" />;
       case 'accepted':
-        return <CheckCircle className="h-3 w-3 text-green-600" />;
+        return <Check className="h-3 w-3 text-green-600" />;
       case 'reverted':
-        return <XCircle className="h-3 w-3 text-red-600" />;
       case 'failed':
-        return <XCircle className="h-3 w-3 text-red-600" />;
+        return <X className="h-3 w-3 text-red-600" />;
       default:
         return null;
     }
@@ -147,207 +144,184 @@ export function GlobalFileChanges({ sessionId, onAcceptAll, onRejectAll }: Globa
 
   const currentGroup = sessionData.snapshotGroups[currentSnapshotIndex];
 
+  const showPending = sessionData.pendingSnapshots.length > 0;
   return (
-    <Card className="mb-3 bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800">
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <div className="p-3">
-          <div className="flex items-center justify-between mb-2">
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto p-0 hover:bg-transparent"
-              >
-                <div className="flex items-center gap-2">
-                  {isExpanded ? (
-                    <ChevronDown className="h-3 w-3 text-amber-600" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3 text-amber-600" />
-                  )}
-                  <FileText className="h-4 w-4 text-amber-600" />
-                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                    File Changes ({sessionData.pendingSnapshots.length} pending)
-                  </span>
-                </div>
-              </Button>
-            </CollapsibleTrigger>
-            
-            {sessionData.pendingSnapshots.length > 0 && (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAcceptAll}
-                  disabled={isProcessing}
-                  className="h-6 px-2 text-xs border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/20 disabled:opacity-50"
-                >
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Accept All
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRejectAll}
-                  disabled={isProcessing}
-                  className="h-6 px-2 text-xs border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50"
-                >
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Reject All
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <CollapsibleContent>
-            {/* Timeline Navigation */}
-            {sessionData.snapshotGroups.length > 0 && (
-              <div className="mb-3 p-2 bg-white/50 dark:bg-gray-800/50 rounded border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <History className="h-3 w-3 text-gray-600" />
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Snapshot Timeline
-                    </span>
-                  </div>
-                  {sessionData.snapshotGroups.length > 1 && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGoToSnapshot(Math.max(0, currentSnapshotIndex - 1))}
-                        disabled={currentSnapshotIndex === 0}
-                        className="h-5 w-5 p-0 text-xs"
-                      >
-                        <ChevronLeft className="h-3 w-3" />
-                      </Button>
-                      <span className="text-xs text-muted-foreground px-2">
-                        {currentSnapshotIndex + 1} / {sessionData.snapshotGroups.length}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGoToSnapshot(Math.min(sessionData.snapshotGroups.length - 1, currentSnapshotIndex + 1))}
-                        disabled={currentSnapshotIndex === sessionData.snapshotGroups.length - 1}
-                        className="h-5 w-5 p-0 text-xs"
-                      >
-                        <ChevronRightIcon className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                
-                {currentGroup && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(currentGroup.timestamp).toLocaleString()}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {currentGroup.snapshots.length} file{currentGroup.snapshots.length !== 1 ? 's' : ''} changed
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRestoreToState(currentGroup.messageId, 'before')}
-                          disabled={isProcessing}
-                          className="h-5 px-2 text-xs border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-300 dark:hover:bg-orange-900/20 disabled:opacity-50"
-                        >
-                          <Undo className="h-3 w-3 mr-1" />
-                          Before
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRestoreToState(currentGroup.messageId, 'after')}
-                          disabled={isProcessing}
-                          className="h-5 px-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/20 disabled:opacity-50"
-                        >
-                          <Redo className="h-3 w-3 mr-1" />
-                          After
-                        </Button>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Restore files to state before or after this change
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Help Text */}
-            <div className="text-xs text-muted-foreground mb-3 p-2 bg-gray-50 dark:bg-gray-900/50 rounded border border-gray-200 dark:border-gray-700">
-              <div className="font-medium mb-1">How restore works:</div>
-              <div className="space-y-1">
-                <div>• <span className="font-medium text-orange-600">Before:</span> Restore files to their state before this change was made</div>
-                <div>• <span className="font-medium text-blue-600">After:</span> Restore files to their state after this change was applied</div>
-                <div>• Status shows whether changes were accepted, reverted, or are still pending</div>
-              </div>
+    <Card className="mb-0.5 py-0 bg-background/80 gap-2 dark:bg-background/80 shadow-none border-none">
+      {/* Tiny bar always visible */}
+      <div
+        className="flex items-center gap-2 cursor-default px-2 py-1 min-h-[28px] bg-accent/40 dark:bg-accent/30 rounded-t select-none"
+        style={{ userSelect: 'none' }}
+        onClick={() => setIsExpanded((v) => !v)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+      >
+        {isExpanded ? (
+          <ChevronDown className="h-3 w-3 text-accent" />
+        ) : (
+          <ChevronRight className="h-3 w-3 text-accent" />
+        )}
+        <FileText className="h-4 w-4 text-accent" />
+        <span className="text-xs font-medium text-foreground">File Changes</span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5 p-0 text-muted-foreground hover:bg-accent/40">
+              <Info className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-3 text-xs text-muted-foreground bg-background border-none shadow-lg">
+            <div className="space-y-1">
+              <div>• <span className="font-medium text-accent">Revert:</span> Restore files to their state before this change was made</div>
+              <div>• <span className="font-medium text-accent">Restore:</span> Restore files to their state after this change was applied</div>
+              <div>• Status shows whether changes were accepted, reverted, or are still pending</div>
             </div>
-
-            {/* Current Pending Files */}
-            {sessionData.pendingSnapshots.length > 0 && (
-              <div className="space-y-1 mb-3">
-                <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Pending Changes:
-                </div>
-                {sessionData.pendingSnapshots.map((snapshot, index) => (
-                  <div
-                    key={`${snapshot.filePath}-${index}`}
-                    className="flex items-center justify-between p-2 bg-white/50 dark:bg-gray-800/50 rounded border border-gray-200 dark:border-gray-700"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {getOperationIcon(snapshot.operation)}
-                      <span className={`text-xs font-medium ${getOperationColor(snapshot.operation)}`}>
-                        {getOperationText(snapshot.operation)}
-                      </span>
-                      <span className="text-xs font-mono text-muted-foreground truncate">
-                        {snapshot.filePath}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {getStatusIcon(snapshot.status)}
-                      <span>{new Date(snapshot.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* All Files in Current Snapshot */}
+          </PopoverContent>
+        </Popover>
+        <div className="flex-1" />
+        {sessionData.snapshotGroups.length > 1 && (
+          <div onClick={(e) => {
+            e.stopPropagation();
+          }} className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={e => { e.stopPropagation(); handleGoToSnapshot(Math.max(0, currentSnapshotIndex - 1)); }}
+              disabled={currentSnapshotIndex === 0}
+              className="h-5 w-5 p-0 text-xs"
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+            <span className="text-xs text-muted-foreground px-2">
+              {currentSnapshotIndex + 1} <span className="text-muted-foreground/50">/ {sessionData.snapshotGroups.length}</span>
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={e => { e.stopPropagation(); handleGoToSnapshot(Math.min(sessionData.snapshotGroups.length - 1, currentSnapshotIndex + 1)); }}
+              disabled={currentSnapshotIndex === sessionData.snapshotGroups.length - 1}
+              className="h-5 w-5 p-0 text-xs"
+            >
+              <ChevronRightIcon className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </div>
+      {/* Collapsible content with smooth height animation */}
+      <motion.div
+        initial={false}
+        animate={{ height: isExpanded ? 'auto' : 0, opacity: isExpanded ? 1 : 0 }}
+        transition={{ height: { type: 'spring', duration: 0.35 }, opacity: { duration: 0.2 } }}
+        style={{ overflow: 'hidden', display: 'block' }}
+        aria-hidden={!isExpanded}
+      >
+        {isExpanded && (
+          <div className="p-3">
+            {/* Timestamp */}
             {currentGroup && (
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Files in Current Snapshot:
-                </div>
-                {currentGroup.snapshots.map((snapshot: FileSnapshot, index: number) => (
-                  <div
-                    key={`${snapshot.filePath}-${index}`}
-                    className="flex items-center justify-between p-2 bg-white/50 dark:bg-gray-800/50 rounded border border-gray-200 dark:border-gray-700"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {getOperationIcon(snapshot.operation)}
-                      <span className={`text-xs font-medium ${getOperationColor(snapshot.operation)}`}>
-                        {getOperationText(snapshot.operation)}
-                      </span>
-                      <span className="text-xs font-mono text-muted-foreground truncate">
-                        {snapshot.filePath}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {getStatusIcon(snapshot.status)}
-                      <span className="capitalize">{snapshot.status}</span>
-                    </div>
-                  </div>
-                ))}
+              <div className="mb-2 text-xs text-muted-foreground">
+                {new Date(currentGroup.timestamp).toLocaleString()}
               </div>
             )}
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
+            {/* Pending Files */}
+            {showPending && sessionData.pendingSnapshots.length > 0 && (
+              <div className="space-y-1">
+                {sessionData.pendingSnapshots.map((snapshot, index) => {
+                  const { filename, relPath } = getFileDisplay(snapshot.filePath);
+                  return (
+                    <div
+                      key={`${snapshot.filePath}-${index}`}
+                      className="flex items-center justify-between p-2 bg-accent/30 dark:bg-accent/20 rounded"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-xs font-bold text-white dark:text-white/90">{filename}</span>
+                        {relPath && (
+                          <span className="text-xs font-mono text-muted-foreground truncate">{relPath}</span>
+                        )}
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{getOperationText(snapshot.operation)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{new Date(snapshot.timestamp).toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {/* Files in Current Snapshot */}
+            {!showPending && currentGroup && (
+              <div className="flex flex-col gap-0.5 max-h-[150px] overflow-y-auto mb-3">
+                {currentGroup.snapshots.map((snapshot: FileSnapshot, index: number) => {
+                  const { filename, relPath } = getFileDisplay(snapshot.filePath);
+                  return (
+                    <div
+                      key={`${snapshot.filePath}-${index}`}
+                      onClick={() => openFile(snapshot.filePath)}
+                      className="flex items-center justify-between p-2 bg-accent/30 hover:bg-accent/40 dark:bg-accent/20 rounded"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{getOperationText(snapshot.operation)}</span>
+                        <span className="text-xs font-regular text-white dark:text-white/90">{filename}</span>
+                        {relPath && (
+                          <span className="text-xs font-mono text-muted-foreground truncate">{relPath}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {getStatusIcon(snapshot.status)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {/* Action Buttons at Bottom */}
+            <div className="flex items-center justify-self-end gap-2 mt-4">
+              {showPending ? (
+                <>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleAcceptAll}
+                    disabled={isProcessing}
+                    className="h-6 px-2 text-xs bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 border-none shadow-none"
+                  >
+                    Accept All
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleRejectAll}
+                    disabled={isProcessing}
+                    className="h-6 px-2 text-xs bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 border-none shadow-none"
+                  >
+                    Reject All
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRestoreToState(currentGroup.messageId, 'before')}
+                    disabled={isProcessing}
+                    className="h-6 px-2 text-xs text-muted-foreground"
+                  >
+                    Revert
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleRestoreToState(currentGroup.messageId, 'after')}
+                    disabled={isProcessing}
+                    className="h-6 px-2 text-xs bg-muted text-foreground hover:bg-accent/60 dark:bg-muted dark:hover:bg-accent/40 border-none shadow-none"
+                  >
+                    Restore
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </motion.div>
     </Card>
   );
 }

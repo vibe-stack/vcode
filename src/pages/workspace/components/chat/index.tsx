@@ -17,7 +17,7 @@ import DotMatrix from '@/components/ui/animated-dot-matrix';
 export function ChatPanel() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
-    
+
     // Initialize snapshot cleanup
     useSnapshotCleanup();
     const { messages, append, setMessages, isLoading, addToolResult, stop } = useChat({
@@ -87,7 +87,7 @@ export function ChatPanel() {
                         // Extract content from parts for backward compatibility
                         const textPart = msg.parts?.find((part: any) => part.type === 'text');
                         const content = textPart?.text || '';
-                        
+
                         return {
                             id: msg.id,
                             role: msg.role,
@@ -126,7 +126,7 @@ export function ChatPanel() {
 
         // Build message content with XML-like tags for attachments
         let messageContent = content;
-        
+
         if (attachments.length > 0) {
             const attachmentXml = [
                 `<attached_files>`,
@@ -137,7 +137,7 @@ export function ChatPanel() {
                 }),
                 `</attached_files>`
             ].join('\n');
-            
+
             messageContent = `${content}\n\n${attachmentXml}`;
         }
 
@@ -177,7 +177,7 @@ export function ChatPanel() {
             const snapshotStore = useChatSnapshotStore.getState();
             snapshotStore.clearSessionSnapshots(currentSessionId);
         }
-        
+
         setMessages([]);
         setCurrentSessionId(null);
         setHasUserInteracted(false);
@@ -191,7 +191,7 @@ export function ChatPanel() {
                 // Extract content from parts for backward compatibility
                 const textPart = msg.parts?.find((part: any) => part.type === 'text');
                 const content = textPart?.text || '';
-                
+
                 return {
                     id: msg.id,
                     role: msg.role,
@@ -211,13 +211,13 @@ export function ChatPanel() {
     const handleClearHistory = useCallback(async () => {
         try {
             await chatPersistenceService.clearCurrentProjectSessions();
-            
+
             // Also clear snapshots for this session
             if (currentSessionId) {
                 const snapshotStore = useChatSnapshotStore.getState();
                 snapshotStore.clearSessionSnapshots(currentSessionId);
             }
-            
+
             setMessages([]);
             setCurrentSessionId(null);
             setHasUserInteracted(false);
@@ -260,14 +260,14 @@ export function ChatPanel() {
 
     const handleAcceptFileChanges = useCallback(async (messageId: string) => {
         if (!currentSessionId) return;
-        
+
         const snapshotStore = useChatSnapshotStore.getState();
         snapshotStore.acceptAllSnapshots(currentSessionId, messageId);
     }, [currentSessionId]);
 
     const handleRejectFileChanges = useCallback(async (messageId: string) => {
         if (!currentSessionId) return;
-        
+
         const snapshotStore = useChatSnapshotStore.getState();
         try {
             await snapshotStore.revertAllSnapshots(currentSessionId, messageId);
@@ -278,14 +278,14 @@ export function ChatPanel() {
 
     const handleAcceptAllFileChanges = useCallback(async () => {
         if (!currentSessionId) return;
-        
+
         const snapshotStore = useChatSnapshotStore.getState();
         snapshotStore.acceptAllPendingSnapshots(currentSessionId);
     }, [currentSessionId]);
 
     const handleRejectAllFileChanges = useCallback(async () => {
         if (!currentSessionId) return;
-        
+
         const snapshotStore = useChatSnapshotStore.getState();
         try {
             await snapshotStore.revertAllPendingSnapshots(currentSessionId);
@@ -358,13 +358,11 @@ export function ChatPanel() {
             {/* Input Area */}
             <div className="border-t flex-shrink-0">
                 {currentSessionId && (
-                    <div className="p-3 pb-1">
-                        <GlobalFileChanges
-                            sessionId={currentSessionId}
-                            onAcceptAll={handleAcceptAllFileChanges}
-                            onRejectAll={handleRejectAllFileChanges}
-                        />
-                    </div>
+                    <GlobalFileChanges
+                        sessionId={currentSessionId}
+                        onAcceptAll={handleAcceptAllFileChanges}
+                        onRejectAll={handleRejectAllFileChanges}
+                    />
                 )}
                 <div className="px-3 pb-3">
                     <ChatInput
