@@ -1,6 +1,6 @@
 // Types for the kanban board
 
-export type TaskStatus = 'ideas' | 'todo' | 'doing' | 'review' | 'done' | 'rejected';
+export type TaskStatus = 'ideas' | 'todo' | 'doing' | 'review' | 'done' | 'rejected' | 'need_clarification';
 
 export type WorkStatus = 'not-started' | 'in-progress' | 'paused' | 'blocked' | 'testing' | 'finalizing';
 

@@ -45,11 +45,13 @@ export default function WorkspacePage() {
         <ResizableHandle />
 
         {/* Right Panel - Chat */}
-        <ResizablePanel defaultSize={rightPanelSize} onResize={onResizeRightPanel} minSize={15}>
-          <div className="h-full w-full">
-            <ChatPanel />
-          </div>
-        </ResizablePanel>
+        { view !== "agents" && (
+          <ResizablePanel defaultSize={rightPanelSize} onResize={onResizeRightPanel} minSize={15}>
+            <div className="h-full w-full">
+              <ChatPanel />
+            </div>
+          </ResizablePanel>
+        )}
       </ResizablePanelGroup>
       <WorkspaceFooter />
     </div>

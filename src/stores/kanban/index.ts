@@ -25,6 +25,12 @@ const createEmptyBoard = (): KanbanBoard => ({
       canCreateTasks: false
     },
     {
+      id: 'need_clarification',
+      title: 'Need Clarification',
+      tasks: [],
+      canCreateTasks: false
+    },
+    {
       id: 'review',
       title: 'Review',
       tasks: [],
