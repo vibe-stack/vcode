@@ -29,10 +29,6 @@ const WORK_STATUS_OPTIONS: { value: WorkStatus; label: string }[] = [
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: 'ideas', label: 'Ideas' },
   { value: 'todo', label: 'To Do' },
-  { value: 'doing', label: 'Doing' },
-  { value: 'review', label: 'Review' },
-  { value: 'done', label: 'Done' },
-  { value: 'rejected', label: 'Rejected' },
 ];
 
 export const TaskModal: React.FC<TaskModalProps> = ({
@@ -113,8 +109,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="right" className="md:max-w-6xl w-full bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 p-12 overflow-y-auto">
+    <Sheet modal open={open} onOpenChange={handleClose}>
+      <SheetContent side="right" className="md:max-w-6xl w-full bg-gradient-to-br from-neutral-900/60 via-neutral-950/60 to-neutral-900/60 p-12 overflow-y-auto backdrop-blur-lg">
         <SheetHeader className="mb-8">
           <SheetTitle className="text-3xl font-bold text-neutral-900 dark:text-white text-center">
             {task ? 'Edit Task' : 'Create New Task'}
@@ -122,7 +118,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         </SheetHeader>
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-8 relative pb-28 md:pb-0">
           {/* Main content column */}
-          <div className="flex-1 bg-white/80 dark:bg-neutral-900 rounded-lg shadow p-8 space-y-8">
+          <div className="flex-1 bg-white/80 dark:bg-neutral-900/80 rounded-lg shadow p-8 space-y-8">
             <div>
               <Label htmlFor="title" className="text-lg font-medium">Title *</Label>
               <Input
@@ -155,7 +151,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
           {/* Sidebar metafields */}
-          <div className="w-full md:w-80 flex-shrink-0 bg-neutral-100 dark:bg-neutral-950 rounded-lg shadow p-6 flex flex-col gap-6 h-fit">
+          <div className="w-full md:w-80 flex-shrink-0 bg-neutral-100/80 dark:bg-neutral-950/80 rounded-lg shadow p-6 flex flex-col gap-6 h-fit">
             <div>
               <Label htmlFor="status" className="text-base font-medium">Status</Label>
               <Select
@@ -176,24 +172,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
             </div>
             <div>
-              <Label htmlFor="workStatus" className="text-base font-medium">Work Status</Label>
-              <Select
-                value={formData.workStatus}
-                onValueChange={(value: WorkStatus) => setFormData({ ...formData, workStatus: value })}
-              >
-                <SelectTrigger className="mt-2 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {WORK_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label htmlFor="assignedAgent" className="text-base font-medium">Assigned Agent</Label>
               <Input
                 id="assignedAgent"
@@ -206,7 +184,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
           {/* Sticky footer for actions */}
-          <div className="fixed bottom-0 left-0 w-full md:w-auto md:left-auto md:bottom-8 md:right-8 z-50 flex justify-end gap-2 bg-gradient-to-t from-neutral-950/90 via-neutral-950/60 to-transparent p-4 md:p-0 pointer-events-none">
+          <div className="fixed bottom-0 left-0 w-full md:w-auto md:left-auto md:bottom-8 md:right-8 z-50 flex justify-end gap-2 bg-gradient-to-t from-neutral-950/70 via-neutral-950/60 to-transparent p-4 md:p-0 pointer-events-none">
             <div className="flex gap-2 pointer-events-auto">
               <Button type="button" variant="outline" onClick={handleClose} className="flex-1 min-w-[120px]">
                 Cancel

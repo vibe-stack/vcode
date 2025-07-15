@@ -20,6 +20,10 @@ export default function WorkspacePage() {
     }
   }, [currentProject]);
 
+  if (leftPanelSize === undefined || rightPanelSize === undefined) {
+    return null
+  }
+
   return (
     <div className="w-full bg-background h-full max-h-full relative flex flex-col">
       <ResizablePanelGroup direction="horizontal">

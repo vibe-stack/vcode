@@ -4,8 +4,7 @@ import { toolRegistry } from '../../pages/workspace/components/chat/tools';
 import { settingsManager } from '../../helpers/ipc/settings/settings-listeners';
 import { systemPrompt } from './system-prompt';
 
-export async function chatApi({ messages }: { messages: CoreMessage[] }) {
-
+export async function agentsApi({ messages }: { messages: CoreMessage[] }) {
   try {
     // Get XAI API key from secure settings
     const xaiApiKey = await settingsManager.getSecure('apiKeys.xai');
@@ -23,8 +22,7 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
             system: systemPrompt,
             messages: messages,
             tools: toolRegistry.getTools(),
-            maxSteps: 50,
-            // maxSteps: 10,
+            maxSteps: 100,
             // maxTokens: 10000,
           });
 
