@@ -5,7 +5,7 @@ import { ChatInput } from './chat-input';
 import { useChat } from '@ai-sdk/react';
 import { chatFetch } from './chat-fetch';
 import { MessageComponent } from './chat-message';
-import { ChatAttachment } from './types';
+import { ChatAttachment, EnhancedChatMessage } from './types';
 import { toolExecutionService } from './tools/tool-execution-service';
 import { chatPersistenceService } from './chat-persistence';
 import { ChatHistory } from './chat-history';
@@ -43,15 +43,10 @@ export function ChatPanel() {
                     const enhancedMessages = messages
                         .filter(msg => msg.role === 'user' || msg.role === 'assistant')
                         .map(msg => ({
-                            id: msg.id,
-                            role: msg.role as 'user' | 'assistant',
-                            parts: msg.parts || [],
                             timestamp: msg.createdAt || new Date(),
                             createdAt: msg.createdAt,
                             ...msg
-                        }));
-
-                    console.log('Saving enhanced messages:', enhancedMessages);
+                        }) as EnhancedChatMessage);
 
                     if (enhancedMessages.length === 0) return;
 

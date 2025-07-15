@@ -62,15 +62,14 @@ export const useChatEditor = ({
     if (event.defaultPrevented) return;
 
     // Mark user input on first real keystroke (not just focus)
+    // Note: This does not track deletions, backspace, etc.
+    // It's a simple way to detect when the user has started typing.
     if (event.key.length === 1) {
       onUserInput();
     }
 
-    // Shift+Enter sends the message, Enter alone creates new line
-    if (event.key === 'Enter' && event.shiftKey) {
-      event.preventDefault();
-      onSend().catch(console.error);
-    }
+    // Shift+Enter is handled by the `ShiftEnterSend` extension now.
+    // The Tiptap extension has better priority handling for events.
   };
 
   const isEmpty = !editor?.getText().trim();

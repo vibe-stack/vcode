@@ -1,118 +1,102 @@
-import { computePosition, flip, shift } from '@floating-ui/dom'
 import { ReactRenderer } from '@tiptap/react'
+import tippy from 'tippy.js'
 import { MentionList } from './mention-list'
 import { mentionProvider } from './mention-provider'
 
-const updatePosition = (editor: any, element: HTMLElement) => {
-  const selection = editor.state.selection
-  const virtualElement = {
-    getBoundingClientRect: () => {
-      const { from, to } = selection
-      const start = editor.view.coordsAtPos(from)
-      const end = editor.view.coordsAtPos(to)
-      
-      return {
-        x: start.left,
-        y: start.top,
-        width: end.left - start.left,
-        height: end.bottom - start.top,
-        top: start.top,
-        right: end.left,
-        bottom: end.bottom,
-        left: start.left,
-      }
-    },
-  }
-
-  computePosition(virtualElement, element, {
-    placement: 'bottom-start',
-    strategy: 'absolute',
-    middleware: [shift(), flip()],
-  }).then(({ x, y, strategy }) => {
-    element.style.width = 'max-content'
-    element.style.position = strategy
-    element.style.left = `${x}px`
-    element.style.top = `${y}px`
-  })
-}
-
+// Tiptap suggestion utility configuration
+// See: https://tiptap.dev/api/utilities/suggestion
 export const mentionSuggestion = {
+  // The character that triggers the suggestion
   char: '@',
-  items: ({ query }: { query: string }) => {
-    // Show suggestions as soon as @ is typed (even with empty query)
-    const result = mentionProvider.searchMentionsSync(query || '', 'file')
-    return result
+
+  // The items to display in the suggestion list
+  // `query` is the text after the trigger character
+  items: async ({ query }: { query: string }) => {
+    return mentionProvider.searchFiles(query)
   },
+
+  // How the suggestion list is rendered
   render: () => {
-    let reactRenderer: ReactRenderer | null = null
-    let element: HTMLElement | null = null
+    let component: ReactRenderer<any>
+    let popup: any
 
     return {
+      // On start, create the popup and render the MentionList component
       onStart: (props: any) => {
+        component = new ReactRenderer(MentionList, {
+          props,
+          editor: props.editor,
+        })
+
         if (!props.clientRect) {
           return
         }
 
-        reactRenderer = new ReactRenderer(MentionList, {
-          props: {
-            ...props,
-            query: props.query || '', // Pass the query to the component
-          },
-          editor: props.editor,
+        popup = tippy('body', {
+          getReferenceClientRect: props.clientRect,
+          appendTo: () => document.body,
+          content: component.element,
+          showOnCreate: true,
+          interactive: true,
+          trigger: 'manual',
+          placement: 'top-start', // Show above the input
         })
-
-        element = reactRenderer.element as HTMLElement
-        element.style.position = 'absolute'
-        element.style.zIndex = '1000'
-
-        document.body.appendChild(element)
-
-        updatePosition(props.editor, element)
       },
 
+      // On update, refresh the popup and component props
       onUpdate(props: any) {
-        if (!reactRenderer) return
+        component.updateProps(props)
 
-        reactRenderer.updateProps({
-          ...props,
-          query: props.query || '', // Update the query prop
-        })
-
-        if (!props.clientRect || !element) {
+        if (!props.clientRect) {
           return
         }
 
-        updatePosition(props.editor, element)
+        popup[0].setProps({
+          getReferenceClientRect: props.clientRect,
+        })
       },
 
-      onKeyDown(props: any) {
+      // On keydown, forward events to the MentionList component
+      // This is the magic that allows the list to handle up/down/enter
+      // while the editor remains focused
+      onKeyDown(props: { event: KeyboardEvent }) {
         if (props.event.key === 'Escape') {
-          if (reactRenderer) {
-            reactRenderer.destroy()
-          }
-          if (element) {
-            element.remove()
-          }
+          popup[0].hide()
           return true
         }
 
-        // Only handle keys if there are actual suggestions
-        if (props.items && props.items.length > 0 && reactRenderer) {
-          const ref = reactRenderer.ref as any
-          return ref?.onKeyDown?.(props)
-        }
-
-        return false
+        // Forward key events to the MentionList's imperative handle
+        return component.ref?.onKeyDown(props)
       },
 
+      // On exit, destroy the popup and component
       onExit() {
-        if (reactRenderer) {
-          reactRenderer.destroy()
+        if (popup && popup[0]) {
+          popup[0].destroy()
         }
-        if (element) {
-          element.remove()
+        if (component) {
+          component.destroy()
         }
       },
     }
+  },
+
+  // What happens when an item is selected
+  command: ({ editor, range, props }: any) => {
+    // Insert the mention into the editor
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(range, [
+        {
+          type: 'mention',
+          attrs: { id: props.id, label: props.label, path: props.path },
+        },
+        {
+          type: 'text',
+          text: ' ', // Add a space after the mention
+        },
+      ])
+      .run()
   },
 }
