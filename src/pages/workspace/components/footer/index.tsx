@@ -5,6 +5,7 @@ import { detectLineEnding, detectIndentation, detectEncoding, getLanguageFromExt
 import { Button } from "@/components/ui/button";
 import { Terminal } from "lucide-react";
 import React from "react";
+import { GitBranchSwitcher } from "./git-branch-switcher";
 
 export function WorkspaceFooter() {
     const { } = useProjectStore();
@@ -42,15 +43,15 @@ export function WorkspaceFooter() {
         <footer className="workspace-footer w-full h-8 bg-background border-t text-white flex items-center justify-between px-4 text-xs">
             <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
                 <div className="flex items-center gap-4">
-                    <div className="">main</div>
+                    <GitBranchSwitcher />
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleToggleTerminal}
-                        className="h-6 px-2 hover:bg-gray-700"
+                        className="h-5 px-2 hover:bg-gray-700"
                     >
                         <Terminal className="h-3 w-3 mr-1" />
-                        Terminal
+                        <span className="hidden sm:inline text-xs">Terminal</span>
                     </Button>
                 </div>
 

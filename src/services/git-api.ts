@@ -40,6 +40,7 @@ declare global {
       
       // Branch operations
       getCurrentBranch: (projectPath: string) => Promise<string>;
+      createBranch: (branchName: string) => Promise<GitResult>;
       getBranches: (projectPath: string) => Promise<GitBranch[]>;
       checkout: (projectPath: string, branch: string) => Promise<GitResult>;
       
