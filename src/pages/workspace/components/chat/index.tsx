@@ -299,7 +299,7 @@ export function ChatPanel() {
             {/* Header */}
             <div className="border-b p-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-medium">AI Assistant</h2>
+                    <h2 className="text-sm font-medium">Grok Assistant</h2>
                     <div className="flex items-center gap-1">
                         <Button
                             variant="ghost"

@@ -77,7 +77,7 @@ export function ToolManager({ onClose }: ToolManagerProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Tool Manager</h2>
-          <p className="text-muted-foreground">Configure which tools are available to the AI assistant</p>
+          <p className="text-muted-foreground">Configure which tools are available to Grok</p>
         </div>
         {onClose && (
           <Button variant="outline" onClick={onClose}>

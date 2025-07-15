@@ -4,9 +4,12 @@ import { FileExplorer, EditorWithTerminal, ChatPanel } from './components';
 import { useProjectStore } from '@/stores/project';
 import { useEffect } from 'react';
 import { WorkspaceFooter } from './components/footer';
+import { useEditorContentStore } from '@/stores/editor-content';
+import { AgentsView } from './components/agents-view';
 
 export default function WorkspacePage() {
   const { currentProject, fileTree } = useProjectStore();
+  const { view, leftPanelSize, rightPanelSize, onResizeLeftPanel, onResizeRightPanel } = useEditorContentStore();
 
   useEffect(() => {
     // Ensure we have a project loaded
@@ -21,7 +24,7 @@ export default function WorkspacePage() {
     <div className="w-full bg-background h-full max-h-full relative flex flex-col">
       <ResizablePanelGroup direction="horizontal">
         {/* Left Panel - File Explorer */}
-        <ResizablePanel defaultSize={20}>
+        <ResizablePanel defaultSize={leftPanelSize} onResize={onResizeLeftPanel}>
           <div className="h-full w-full">
             <FileExplorer />
           </div>
@@ -31,13 +34,14 @@ export default function WorkspacePage() {
 
         {/* Center Panel - Editor Area */}
         <ResizablePanel defaultSize={60} minSize={30}>
-          <EditorWithTerminal />
+          { view === "code" && <EditorWithTerminal /> }
+          { view === "agents" && <AgentsView />}
         </ResizablePanel>
 
         <ResizableHandle />
 
         {/* Right Panel - Chat */}
-        <ResizablePanel defaultSize={20} minSize={15}>
+        <ResizablePanel defaultSize={rightPanelSize} onResize={onResizeRightPanel} minSize={15}>
           <div className="h-full w-full">
             <ChatPanel />
           </div>

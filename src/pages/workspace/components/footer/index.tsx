@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Terminal } from "lucide-react";
 import React from "react";
 import { GitBranchSwitcher } from "./git-branch-switcher";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useEditorContentStore } from "@/stores/editor-content";
+
 
 export function WorkspaceFooter() {
     const { } = useProjectStore();
     const { buffers, activeBufferId } = useBufferStore();
+    const { view, setView } = useEditorContentStore();
     const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } = useTerminalStore();
 
     const handleToggleTerminal = () => {
@@ -53,6 +57,13 @@ export function WorkspaceFooter() {
                         <Terminal className="h-3 w-3 mr-1" />
                         <span className="hidden sm:inline text-xs">Terminal</span>
                     </Button>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <ToggleGroup type="single" size="sm" className="py-0.5 px-0.5" value={view} onValueChange={setView}>
+                        <ToggleGroupItem value="code" className="text-xs">Code</ToggleGroupItem>
+                        <ToggleGroupItem value="agents" className="text-xs">Agents</ToggleGroupItem>
+                    </ToggleGroup>
                 </div>
 
                 <div className="flex items-center gap-4">

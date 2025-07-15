@@ -183,9 +183,9 @@ const HorizontalRule = ({ ...props }: any) => (
 );
 
 const Paragraph = ({ children, ...props }: any) => (
-    <p className="text-sm leading-relaxed my-2 break-words" {...props}>
+    <div className="block text-sm leading-relaxed my-2 break-words" {...props}>
         {children}
-    </p>
+    </div>
 );
 
 const Strong = ({ children, ...props }: any) => (
