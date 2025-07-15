@@ -423,3 +423,23 @@ body {
 *::-webkit-scrollbar-corner {
   background: #181a1b;
 }
+
+/* Custom scrollbar styles for mention suggestions */
+.mention-suggestions::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.mention-suggestions::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.15);
+  border-radius: 8px;
+}
+
+.mention-suggestions::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Mention styles */
+.mention {
+  @apply bg-primary text-primary-foreground rounded px-1 py-0.5 font-medium;
+}

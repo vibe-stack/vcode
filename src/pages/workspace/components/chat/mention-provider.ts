@@ -75,6 +75,10 @@ export class MentionProvider {
       // Use cached files only (no async update)
       const matchingFiles = this.cachedFiles.filter(filePath => {
         const fileName = filePath.split('/').pop() || '';
+        // If query is empty, show all files (limited)
+        if (query.trim() === '') {
+          return true;
+        }
         return fileName.toLowerCase().includes(query.toLowerCase());
       });
 
