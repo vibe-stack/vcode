@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KanbanTask, TaskStatus, WorkStatus, TaskAttachment } from '@/stores/kanban/types';
 import { FileAttachmentEditor } from './file-attachment-editor';
-import { AgentChat } from './agent-chat';
+import { AgentComments } from './agent-comments';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface TaskModalProps {
@@ -50,6 +50,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     attachments: [] as TaskAttachment[],
   });
 
+  const isTaskStarted = task?.status === 'doing' || task?.status === 'done' || task?.status === 'rejected';
+  const canEditTask = !isTaskStarted;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -112,113 +114,133 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   return (
     <Sheet modal open={open} onOpenChange={handleClose}>
-      <SheetContent side="right" className="md:max-w-[95vw] w-full bg-gradient-to-br from-neutral-900/60 via-neutral-950/60 to-neutral-900/60 p-12 overflow-y-auto backdrop-blur-lg">
-        <SheetHeader className="mb-8">
-          <SheetTitle className="text-3xl font-bold text-neutral-900 dark:text-white text-center">
-            {task ? 'Edit Task' : 'Create New Task'}
+      <SheetContent side="right" className="md:max-w-4xl w-full bg-gradient-to-br from-neutral-900/60 via-neutral-950/60 to-neutral-900/60 p-8 overflow-y-auto backdrop-blur-lg">
+        <SheetHeader className="mb-6">
+          <SheetTitle className="text-2xl font-bold text-neutral-900 dark:text-white">
+            {task ? 'Task Details' : 'Create New Task'}
           </SheetTitle>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-8 relative pb-28 lg:pb-0">
-          {/* Main content column */}
-          <div className="flex-1 bg-white/80 dark:bg-neutral-900/80 rounded-lg shadow p-8 space-y-8">
-            <div>
-              <Label htmlFor="title" className="text-lg font-medium">Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter task title..."
-                className={`mt-2 text-2xl font-semibold ${errors.title ? 'border-red-500' : ''}`}
-              />
-              {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
-            </div>
-            <div>
-              <Label htmlFor="description" className="text-lg font-medium">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter task description..."
-                rows={8}
-                className="mt-2 min-h-[180px] resize-vertical"
-              />
-            </div>
-            <div>
-              <Label className="text-lg font-medium">Attached Files</Label>
-              <FileAttachmentEditor
-                value={formData.attachments}
-                onChange={(attachments) => setFormData({ ...formData, attachments })}
-                placeholder="Type @ to mention files from your codebase..."
-              />
-            </div>
-          </div>
-          
-          {/* Sidebar metafields */}
-          <div className="w-full lg:w-80 flex-shrink-0 bg-neutral-100/80 dark:bg-neutral-950/80 rounded-lg shadow p-6 flex flex-col gap-6 h-fit">
-            <div>
-              <Label htmlFor="status" className="text-base font-medium">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: TaskStatus) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger className={`mt-2 w-full ${errors.status ? 'border-red-500' : ''}`} >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
-            </div>
-            <div>
-              <Label htmlFor="assignedAgent" className="text-base font-medium">Assigned Agent</Label>
-              <Input
-                id="assignedAgent"
-                disabled
-                value={formData.assignedAgent}
-                onChange={(e) => setFormData({ ...formData, assignedAgent: e.target.value })}
-                placeholder="Enter agent name..."
-                className="mt-2 w-full"
-              />
-            </div>
-          </div>
-          
-          {/* Agent Chat Column */}
-          {task && (
-            <div className="w-full lg:w-96 flex-shrink-0 bg-white/80 dark:bg-neutral-900/80 rounded-lg shadow overflow-hidden">
-              <Tabs defaultValue="chat" className="h-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="chat">Chat</TabsTrigger>
-                  <TabsTrigger value="history">History</TabsTrigger>
-                </TabsList>
-                <TabsContent value="chat" className="h-[calc(100%-48px)] mt-0">
-                  <AgentChat taskId={task.id} className="h-full" />
-                </TabsContent>
-                <TabsContent value="history" className="h-[calc(100%-48px)] mt-0 p-4">
-                  <div className="text-sm text-gray-500">
-                    Task history and execution logs will appear here...
+        
+        <div className="space-y-6">
+          {/* Task Form */}
+          <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-neutral-900/80 rounded-lg shadow p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Main content */}
+              <div className="md:col-span-2 space-y-4">
+                <div>
+                  <Label htmlFor="title" className="text-base font-medium">Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Enter task title..."
+                    disabled={!canEditTask}
+                    className={`mt-2 ${errors.title ? 'border-red-500' : ''}`}
+                  />
+                  {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
+                </div>
+                
+                <div>
+                  <Label htmlFor="description" className="text-base font-medium">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Enter task description..."
+                    rows={4}
+                    disabled={!canEditTask}
+                    className="mt-2 resize-vertical"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-base font-medium">Attached Files</Label>
+                  <FileAttachmentEditor
+                    value={formData.attachments}
+                    onChange={(attachments) => setFormData({ ...formData, attachments })}
+                    placeholder="Type @ to mention files from your codebase..."
+                    disabled={!canEditTask}
+                  />
+                </div>
+              </div>
+              
+              {/* Sidebar */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="status" className="text-base font-medium">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value: TaskStatus) => setFormData({ ...formData, status: value })}
+                    disabled={!canEditTask}
+                  >
+                    <SelectTrigger className={`mt-2 ${errors.status ? 'border-red-500' : ''}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
+                </div>
+                
+                <div>
+                  <Label htmlFor="assignedAgent" className="text-base font-medium">Assigned Agent</Label>
+                  <Input
+                    id="assignedAgent"
+                    disabled
+                    value={formData.assignedAgent}
+                    className="mt-2"
+                  />
+                </div>
+                
+                {task && (
+                  <div className="pt-4 border-t">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div>Created: {new Date(task.createdAt).toLocaleDateString()}</div>
+                      <div>Updated: {new Date(task.updatedAt).toLocaleDateString()}</div>
+                    </div>
                   </div>
-                </TabsContent>
-              </Tabs>
+                )}
+              </div>
             </div>
-          )}
-          
-          {/* Sticky footer for actions */}
-          <div className="fixed bottom-0 left-0 w-full lg:w-auto lg:left-auto lg:bottom-8 lg:right-8 z-50 flex justify-end gap-2 bg-gradient-to-t from-neutral-950/70 via-neutral-950/60 to-transparent p-4 lg:p-0 pointer-events-none">
-            <div className="flex gap-2 pointer-events-auto">
-              <Button type="button" variant="outline" onClick={handleClose} className="flex-1 min-w-[120px]">
+            
+            {/* Form Actions */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1 min-w-[120px]">
-                {task ? 'Update Task' : 'Create Task'}
-              </Button>
+              {canEditTask && (
+                <Button type="submit">
+                  {task ? 'Update Task' : 'Create Task'}
+                </Button>
+              )}
             </div>
-          </div>
-        </form>
+          </form>
+          
+          {/* Agent Comments Section */}
+          {task && (
+            <div className="bg-white/80 dark:bg-neutral-900/80 rounded-lg shadow overflow-hidden">
+              <div className="p-4 border-b">
+                <h3 className="font-medium text-lg">Agent Communication</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {isTaskStarted 
+                    ? "Agent execution logs and user comments"
+                    : "Prepare messages for the agent. Use 'Run' in the kanban board to execute."
+                  }
+                </p>
+              </div>
+              <AgentComments 
+                taskId={task.id} 
+                canAddMessages={!isTaskStarted}
+                className="h-96"
+              />
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );

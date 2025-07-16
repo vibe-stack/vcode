@@ -1,16 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import { Document } from '@tiptap/extension-document';
-import { Paragraph } from '@tiptap/extension-paragraph';
-import { Text } from '@tiptap/extension-text';
-import { Mention } from '@tiptap/extension-mention';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/utils/tailwind';
 import { FileAttachmentItem, convertFileToAttachment } from './file-attachment';
 import { TaskAttachment } from '@/stores/kanban/types';
-import { FileMentionSuggestion } from './file-mention-suggestion';
 import { mentionProvider } from '@/pages/workspace/components/chat/mention-provider';
 import { MentionItem } from '@/pages/workspace/components/chat/types';
-import tippy from 'tippy.js';
+import { Search, X, File } from 'lucide-react';
 
 interface FileAttachmentEditorProps {
   value: TaskAttachment[];
@@ -19,216 +15,135 @@ interface FileAttachmentEditorProps {
   disabled?: boolean;
 }
 
-class FileMentionSuggestionRenderer {
-  public element: HTMLDivElement;
-  private component: FileMentionSuggestion;
-
-  constructor(props: any) {
-    this.element = document.createElement('div');
-    this.component = new FileMentionSuggestion(props);
-    this.element.appendChild(this.component.element);
-  }
-
-  updateProps(props: any) {
-    this.component.updateProps(props);
-  }
-
-  onKeyDown(props: any) {
-    return this.component.onKeyDown(props);
-  }
-
-  destroy() {
-    this.component.destroy();
-    this.element.remove();
-  }
-}
-
 export const FileAttachmentEditor: React.FC<FileAttachmentEditorProps> = ({
   value,
   onChange,
-  placeholder = "Type @ to mention files...",
+  placeholder = "Search files to attach...",
   disabled = false,
 }) => {
   const [attachments, setAttachments] = useState<TaskAttachment[]>(value || []);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<MentionItem[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  const editor = useEditor({
-    extensions: [
-      Document,
-      Paragraph,
-      Text,
-      Mention.configure({
-        HTMLAttributes: {
-          class: 'mention bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs',
-        },          suggestion: {
-            items: ({ query }: { query: string }) => {
-              if (query.length < 2) {
-                return [];
-              }
-              return mentionProvider.searchMentionsSync(query, 'file');
-            },            render: () => {
-              let component: FileMentionSuggestionRenderer;
-              let popup: any;
+  // Update local state when value changes
+  useEffect(() => {
+    setAttachments(value || []);
+  }, [value]);
 
-              return {
-                onStart: (props: any) => {
-                  component = new FileMentionSuggestionRenderer(props);
-                  popup = tippy('body', {
-                    getReferenceClientRect: props.clientRect,
-                    appendTo: () => document.body,
-                    content: component.element,
-                    showOnCreate: true,
-                    interactive: true,
-                    trigger: 'manual',
-                    placement: 'bottom-start',
-                    zIndex: 9999,
-                  });
-                },
-                onUpdate: (props: any) => {
-                  component.updateProps(props);
-                  popup[0].setProps({
-                    getReferenceClientRect: props.clientRect,
-                  });
-                },
-                onKeyDown: (props: any) => {
-                  if (props.event.key === 'Escape') {
-                    popup[0].hide();
-                    return true;
-                  }
-                  return component.onKeyDown(props);
-                },
-                onExit: () => {
-                  popup[0].destroy();
-                  component.destroy();
-                },
-              };
-            },
-        },
-      }),
-    ],
-    content: '',
-    editable: !disabled,
-    onUpdate: ({ editor }) => {
-      updateAttachmentsFromContent();
-    },
-  });
+  // Search for files when query changes
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      const results = mentionProvider.searchMentionsSync(searchQuery, 'file');
+      setSearchResults(results);
+      setShowDropdown(true);
+    } else {
+      setSearchResults([]);
+      setShowDropdown(false);
+    }
+  }, [searchQuery]);
 
-  const updateAttachmentsFromContent = useCallback(async () => {
-    if (!editor) return;
+  const handleAddFile = useCallback(async (mentionItem: MentionItem) => {
+    if (!mentionItem.id || !mentionItem.label) return;
 
-    const content = editor.getJSON();
-    const mentions = extractMentions(content);
-    const newAttachments = await mentionsToAttachments(mentions);
+    // Check if file is already attached
+    const isAlreadyAttached = attachments.some(att => att.id === mentionItem.id);
+    if (isAlreadyAttached) return;
+
+    const fileItem: FileAttachmentItem = {
+      id: mentionItem.id,
+      label: mentionItem.label,
+      type: 'file',
+      path: mentionItem.path || mentionItem.id,
+      description: mentionItem.description,
+    };
+
+    const newAttachment = convertFileToAttachment(fileItem);
+    const newAttachments = [...attachments, newAttachment];
+    
     setAttachments(newAttachments);
     onChange(newAttachments);
-  }, [editor, onChange]);
+    setSearchQuery('');
+    setShowDropdown(false);
+  }, [attachments, onChange]);
 
-  const extractMentions = (content: any): MentionItem[] => {
-    const mentions: MentionItem[] = [];
-    
-    const traverse = (node: any) => {
-      if (node.type === 'mention') {
-        mentions.push(node.attrs);
-      }
-      if (node.content) {
-        node.content.forEach(traverse);
-      }
-    };
-    
-    if (content && content.content) {
-      content.content.forEach(traverse);
+  const handleRemoveFile = useCallback((attachmentId: string) => {
+    const newAttachments = attachments.filter(att => att.id !== attachmentId);
+    setAttachments(newAttachments);
+    onChange(newAttachments);
+  }, [attachments, onChange]);
+
+  const handleSearchFocus = useCallback(() => {
+    if (searchQuery.length >= 2) {
+      setShowDropdown(true);
     }
-    
-    return mentions;
-  };
+  }, [searchQuery]);
 
-  const mentionsToAttachments = async (mentions: MentionItem[]): Promise<TaskAttachment[]> => {
-    const attachments: TaskAttachment[] = [];
-    
-    for (const mention of mentions) {
-      if (mention.id && mention.label) {
-        const fileItem: FileAttachmentItem = {
-          id: mention.id,
-          label: mention.label,
-          type: 'file',
-          path: mention.path || mention.id,
-          description: mention.description,
-        };
-        
-        attachments.push(convertFileToAttachment(fileItem));
-      }
-    }
-    
-    return attachments;
-  };
-
-  useEffect(() => {
-    if (editor && !disabled) {
-      editor.commands.focus();
-    }
-  }, [editor, disabled]);
-
-  // Update editor content when value changes externally
-  useEffect(() => {
-    if (editor && value !== attachments) {
-      setAttachments(value || []);
-      // Optionally update editor content based on attachments
-    }
-  }, [value, editor, attachments]);
-
-  if (!editor) {
-    return (
-      <div className="relative w-full">
-        <div className="flex-1 resize-none min-h-0 h-16 border rounded-md p-2 bg-muted animate-pulse">
-          <div className="text-muted-foreground text-xs">Loading editor...</div>
-        </div>
-      </div>
-    );
-  }
+  const handleSearchBlur = useCallback(() => {
+    // Delay hiding dropdown to allow click events
+    setTimeout(() => setShowDropdown(false), 200);
+  }, []);
 
   return (
     <div className="relative w-full">
-      <div className="relative border rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-        <EditorContent
-          editor={editor}
-          className={cn(
-            "min-h-[60px] max-h-[120px] overflow-y-auto p-2 text-sm",
-            disabled && "opacity-50 cursor-not-allowed"
-          )}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              editor.commands.insertContent('<br>');
-            }
-          }}
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onFocus={handleSearchFocus}
+          onBlur={handleSearchBlur}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="pl-10"
         />
-        {!editor.getText().trim() && (
-          <div className="absolute top-2 left-2 text-muted-foreground text-sm pointer-events-none">
-            {placeholder}
+        
+        {/* Search Results Dropdown */}
+        {showDropdown && searchResults.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border rounded-md shadow-lg max-h-48 overflow-y-auto">
+            {searchResults.map((result) => (
+              <button
+                key={result.id}
+                onClick={() => handleAddFile(result)}
+                className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              >
+                <File className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{result.label}</div>
+                  {result.description && (
+                    <div className="text-xs text-muted-foreground">{result.description}</div>
+                  )}
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>
-      
+
+      {/* Attached Files Pills */}
       {attachments.length > 0 && (
-        <div className="mt-2 space-y-1">
+        <div className="mt-3 flex flex-wrap gap-2">
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-2 p-2 bg-muted rounded-md text-sm"
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent/30 rounded-full text-sm"
             >
-              <div className="flex-1">
-                <div className="font-medium">{attachment.name}</div>
-                <div className="text-xs text-muted-foreground">{attachment.path}</div>
-              </div>
-              <button
-                onClick={() => {
-                  const newAttachments = attachments.filter(a => a.id !== attachment.id);
-                  setAttachments(newAttachments);
-                  onChange(newAttachments);
-                }}
-                className="text-red-500 hover:text-red-700"
-              >
-                ×
-              </button>
+              <File className="h-3 w-3" />
+              <span className="font-medium">{attachment.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {attachment.path.split('/').pop()}
+              </span>
+              {!disabled && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleRemoveFile(attachment.id)}
+                  className="h-4 w-4 p-0 hover:bg-red-500/20"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           ))}
         </div>
