@@ -2,7 +2,7 @@
 
 export type TaskStatus = 'ideas' | 'todo' | 'doing' | 'review' | 'done' | 'rejected' | 'need_clarification';
 
-export type WorkStatus = 'not-started' | 'in-progress' | 'paused' | 'blocked' | 'testing' | 'finalizing';
+export type WorkStatus = 'not-started' | 'in-progress' | 'paused' | 'blocked' | 'testing' | 'finalizing' | 'done';
 
 export type AgentStatus = 'idle' | 'running' | 'paused' | 'stopped' | 'error';
 

@@ -36,37 +36,46 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
     onEdit(task);
   };
 
-  const getWorkStatusColor = (workStatus: string) => {
-    switch (workStatus) {
-      case 'not-started':
-        return 'bg-gray-100 text-gray-800';
-      case 'in-progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'paused':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'blocked':
-        return 'bg-red-100 text-red-800';
-      case 'testing':
-        return 'bg-purple-100 text-purple-800';
-      case 'finalizing':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  // Helper for relative time
+  const getRelativeTime = (date: string | number | Date) => {
+    const now = new Date();
+    const updated = new Date(date);
+    const diffMs = now.getTime() - updated.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    const diffWk = Math.floor(diffDay / 7);
+    return `${diffWk}w ago`;
   };
 
-  const getAgentStatusColor = (status: string) => {
+  // Agent status dot style
+  const getAgentStatusDot = (status: string) => {
     switch (status) {
       case 'running':
-        return 'bg-green-100 text-green-800';
+        return (
+          <span className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse mr-1" />
+        );
       case 'paused':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'stopped':
-        return 'bg-gray-100 text-gray-800';
+        return (
+          <span className="inline-block h-2 w-2 rounded-full bg-yellow-400 mr-1" />
+        );
       case 'error':
-        return 'bg-red-100 text-red-800';
+        return (
+          <span className="inline-block h-2 w-2 rounded-full bg-red-500 mr-1" />
+        );
+      case 'stopped':
+        return (
+          <span className="inline-block h-2 w-2 rounded-full bg-gray-400 mr-1" />
+        );
       default:
-        return 'bg-gray-100 text-gray-800';
+        return (
+          <span className="inline-block h-2 w-2 rounded-full bg-gray-300 mr-1" />
+        );
     }
   };
 
@@ -107,6 +116,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
   const handleAccept = (e: React.MouseEvent) => {
     e.stopPropagation();
     // TODO: Implement accept action
+    if (currentProject) {
+
+    }
   };
 
   const handleReject = (e: React.MouseEvent) => {
@@ -127,80 +139,90 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          className="bg-accent/10 hover:bg-accent/20 border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-default group"
+          className="bg-white dark:bg-accent/10 hover:bg-accent/20 border border-gray-200 dark:border-accent/30 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer group w-full max-w-md"
           onClick={handleCardClick}
         >
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-medium text-sm flex-1 overflow-hidden text-ellipsis">{task.title}</h3>
+          {/* Header: Title & Edit */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-base truncate text-gray-900 dark:text-gray-100 flex-1">
+              {task.title}
+            </h3>
             <Button
               variant="ghost"
-              size="sm"
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
               onClick={handleEditClick}
+              aria-label="Edit task"
             >
-              <Edit2 className="h-3 w-3" />
+              <Edit2 className="h-4 w-4 text-gray-500" />
             </Button>
           </div>
+
+          {/* Description */}
           {task.description && (
-            <p className="text-xs text-gray-600 mb-3 overflow-hidden text-ellipsis">
+            <p className="text-xs text-gray-500 mb-3 line-clamp-2">
               {task.description}
             </p>
           )}
-          <div className="space-y-2">
-            {/* Agent Status */}
-            {agentExecution && (
+
+          {/* Agent Status & Step & Error */}
+          {agentExecution && (
+            <div className="flex flex-col gap-1 mb-2">
               <div className="flex items-center gap-2">
                 <Bot className="h-3 w-3 text-gray-500" />
-                <Badge variant="secondary" className={`text-xs ${getAgentStatusColor(agentStatus)}`}>
-                  {agentStatus}
-                </Badge>
-                {agentExecution.progress !== undefined && (
-                  <div className="text-xs text-gray-500">
-                    {Math.round(agentExecution.progress)}%
-                  </div>
+                {getAgentStatusDot(agentStatus)}
+                <span className="text-xs text-gray-700 font-medium">
+                  {agentStatus.charAt(0).toUpperCase() + agentStatus.slice(1)}
+                </span>
+                {agentExecution?.currentStep && (
+                  <span className="ml-3 text-xs text-gray-500 italic">
+                    {agentExecution.currentStep}
+                  </span>
                 )}
               </div>
-            )}
-            
-            {/* Current Step */}
-            {agentExecution?.currentStep && (
-              <div className="text-xs text-gray-600 italic">
-                {agentExecution.currentStep}
-              </div>
-            )}
-
-            {/* Error Display */}
-            {agentExecution?.error && (
-              <div className="flex items-center gap-1 text-red-600">
-                <AlertCircle className="h-3 w-3" />
-                <span className="text-xs">{agentExecution.error}</span>
-              </div>
-            )}
-
-            {/* Work Status */}
-            {task.status === 'doing' && (
-              <div className="flex items-center gap-1">
-                <Badge variant="secondary" className={`text-xs ${getWorkStatusColor(task.workStatus)}`}>
-                  {task.workStatus.replace('-', ' ')}
-                </Badge>
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <User className="h-3 w-3 text-gray-500" />
-                <span className="text-xs text-gray-600">{task.assignedAgent}</span>
-              </div>
-              {task.attachments.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <Paperclip className="h-3 w-3 text-gray-500" />
-                  <span className="text-xs text-gray-600">{task.attachments.length}</span>
+              {agentExecution?.error && (
+                <div className="flex items-center gap-1 text-red-600 mt-1">
+                  <AlertCircle className="h-3 w-3" />
+                  <span className="text-xs">{agentExecution.error}</span>
                 </div>
               )}
             </div>
+          )}
+
+          {/* Work Status */}
+          {task.status === 'doing' && (
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs text-blue-700 font-medium">
+                {task.workStatus.replace('-', ' ')}
+              </span>
+              {task.workStatus === 'in-progress' && (
+                <span className="ml-2 animate-spin inline-block h-3 w-3 border-2 border-blue-400 border-t-transparent rounded-full" />
+              )}
+            </div>
+          )}
+
+          {/* Agent & Attachments */}
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              <User className="h-3 w-3 text-gray-400" />
+              <span className="text-xs text-gray-700 font-medium">{task.assignedAgent}</span>
+            </div>
+            {task.attachments.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-3 w-3 text-gray-400" />
+                <span className="text-xs text-gray-700 font-medium">{task.attachments.length}</span>
+              </div>
+            )}
           </div>
-          <div className="mt-2 pt-2 border-t text-xs text-gray-500">
-            {new Date(task.updatedAt).toLocaleDateString()}
+
+          {/* Footer: Time & Status Badge */}
+          <div className="mt-4 pt-2 border-t border-gray-100 dark:border-accent/20 flex items-center justify-between text-xs text-gray-400">
+            <span>{getRelativeTime(task.updatedAt)}</span>
+            {task.status && (
+              <Badge variant="secondary" className="ml-2 px-2 py-0 text-xs font-normal rounded">
+                {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+              </Badge>
+            )}
           </div>
         </div>
       </ContextMenuTrigger>

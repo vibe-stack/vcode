@@ -26,7 +26,7 @@ export class AgentManager extends EventEmitter {
         status: 'running',
         workStatus: 'not-started',
         progress: 0,
-        currentStep: 'Initializing...',
+        currentStep: 'Starting',
         startTime: new Date(),
         lastUpdateTime: new Date()
       };
