@@ -18,6 +18,7 @@ const config: ForgeConfig = {
   rebuildConfig: {
     extraModules: [
       "node-pty",
+      "better-sqlite3",
     ],
   },
   makers: [

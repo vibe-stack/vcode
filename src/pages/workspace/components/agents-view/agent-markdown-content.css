@@ -1,0 +1,57 @@
+/* Agent markdown content styles */
+.agent-markdown-content {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.agent-markdown-content pre {
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.agent-markdown-content code:not(pre code) {
+  background-color: var(--muted);
+  color: var(--foreground);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.agent-markdown-content h1,
+.agent-markdown-content h2,
+.agent-markdown-content h3,
+.agent-markdown-content h4,
+.agent-markdown-content h5,
+.agent-markdown-content h6 {
+  color: var(--foreground);
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.agent-markdown-content blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+.agent-markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+
+.agent-markdown-content th,
+.agent-markdown-content td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+
+.agent-markdown-content th {
+  background-color: var(--muted);
+  font-weight: 600;
+}
