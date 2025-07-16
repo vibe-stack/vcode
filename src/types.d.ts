@@ -66,6 +66,23 @@ interface AI {
   removeAllListeners: () => void;
 }
 
+interface Agents {
+  sendMessage: (payload: { taskId: string, messages: import('ai').CoreMessage[], requestId: string }) => Promise<{ success: boolean, requestId: string }>;
+  onStreamChunk: (callback: (data: { taskId: string, requestId: string, chunk: Uint8Array }) => void) => void;
+  onStreamEnd: (callback: (data: { taskId: string, requestId: string }) => void) => void;
+  onStreamError: (callback: (data: { taskId: string, requestId: string, error: string }) => void) => void;
+  startAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  stopAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  pauseAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  resumeAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  onStatusUpdate: (callback: (data: any) => void) => void;
+  createWorktree: (taskId: string, branchName: string) => Promise<{ success: boolean; error?: string; worktreePath?: string }>;
+  deleteWorktree: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  switchWorktree: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  onWorktreeStatusChange: (callback: (data: any) => void) => void;
+  removeAllListeners: () => void;
+}
+
 interface SettingsApi {
   // Regular settings
   get: <T = any>(key: string) => Promise<T | undefined>;
@@ -105,6 +122,7 @@ declare interface Window {
   electronWindow: ElectronWindow;
   projectApi: ProjectApi;
   ai: AI;
+  agents: Agents;
   settingsApi: SettingsApi;
   terminalApi: TerminalApi;
   shellApi: ShellApi;

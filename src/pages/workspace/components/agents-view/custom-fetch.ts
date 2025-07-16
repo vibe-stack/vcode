@@ -1,51 +1,52 @@
-// Custom fetcher that works with Electron's IPC system
-export const chatFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+// Custom fetcher that works with Electron's IPC system for agents
+export const agentFetch = async (input: RequestInfo | URL, init?: RequestInit, taskId?: string) => {
   try {
     const body = JSON.parse(init?.body as string);
     const requestId = crypto.randomUUID();
 
     const stream = new ReadableStream({
       start(controller) {
-        const handleChunk = (data: { requestId: string, chunk: Uint8Array }) => {
-          if (data.requestId === requestId) {
+        const handleChunk = (data: { taskId: string, requestId: string, chunk: Uint8Array }) => {
+          if (data.requestId === requestId && data.taskId === taskId) {
             controller.enqueue(data.chunk);
           }
         };
         
-        const handleEnd = (data: { requestId: string }) => {
-          if (data.requestId === requestId) {
+        const handleEnd = (data: { taskId: string, requestId: string }) => {
+          if (data.requestId === requestId && data.taskId === taskId) {
             controller.close();
           }
         };
         
-        const handleError = (data: { requestId: string, error: string }) => {
-          if (data.requestId === requestId) {
+        const handleError = (data: { taskId: string, requestId: string, error: string }) => {
+          if (data.requestId === requestId && data.taskId === taskId) {
             controller.error(new Error(data.error));
           }
         };
         
-        window.ai.onStreamChunk(handleChunk);
-        window.ai.onStreamEnd(handleEnd);
-        window.ai.onStreamError(handleError);
+        window.agents.onStreamChunk(handleChunk);
+        window.agents.onStreamEnd(handleEnd);
+        window.agents.onStreamError(handleError);
         
-        // Start the AI request with attachments if they exist
+        // Start the AI request for this specific task
         const requestData = { 
+          taskId: taskId || '',
           messages: body.messages, 
           requestId,
         };
         
-        window.ai.sendMessage(requestData)
+        window.agents.sendMessage(requestData)
           .then(response => {
             // noop
           })
           .catch(error => {
-            console.error("AI request error:", error);
+            console.error("Agent request error:", error);
             controller.error(error);
           });
       },
       
       cancel() {
-        window.ai.removeAllListeners();
+        window.agents.removeAllListeners();
       }
     });
 

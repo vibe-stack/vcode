@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useKanbanStore } from '@/stores/kanban';
 import { useProjectStore } from '@/stores/project';
 import { KanbanTask, TaskStatus } from '@/stores/kanban/types';
@@ -7,13 +7,45 @@ import { TaskModal } from './task-modal';
 
 export const KanbanBoard: React.FC = () => {
   const { currentProject } = useProjectStore();
-  const { getBoard, createTask, updateTask } = useKanbanStore();
+  const { getBoard, createTask, updateTask, updateAgentExecution } = useKanbanStore();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<KanbanTask | undefined>();
   const [modalInitialStatus, setModalInitialStatus] = useState<TaskStatus>('ideas');
 
   const board = getBoard(currentProject || '');
+
+  // Listen for agent status updates
+  useEffect(() => {
+    const handleAgentStatusUpdate = (update: any) => {
+      if (currentProject) {
+        updateAgentExecution(currentProject, update.taskId, {
+          status: update.status,
+          progress: update.progress,
+          currentStep: update.currentStep,
+          error: update.error,
+          lastUpdateTime: new Date()
+        });
+      }
+    };
+
+    const handleWorktreeStatusChange = (info: any) => {
+      if (currentProject) {
+        updateAgentExecution(currentProject, info.taskId, {
+          worktreePath: info.worktreePath,
+          branchName: info.branchName
+        });
+      }
+    };
+
+    // Setup listeners
+    window.agents?.onStatusUpdate(handleAgentStatusUpdate);
+    window.agents?.onWorktreeStatusChange(handleWorktreeStatusChange);
+
+    return () => {
+      window.agents?.removeAllListeners();
+    };
+  }, [currentProject, updateAgentExecution]);
 
   const handleCreateTask = (status: TaskStatus) => {
     setModalInitialStatus(status);
@@ -38,8 +70,8 @@ export const KanbanBoard: React.FC = () => {
   };
 
   const handleTaskClick = (task: KanbanTask) => {
-    // Optional: implement task details view
-    console.log('Task clicked:', task);
+    // Open task modal for editing/viewing
+    handleEditTask(task);
   };
 
   if (!currentProject) {

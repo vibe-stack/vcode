@@ -4,6 +4,8 @@ export type TaskStatus = 'ideas' | 'todo' | 'doing' | 'review' | 'done' | 'rejec
 
 export type WorkStatus = 'not-started' | 'in-progress' | 'paused' | 'blocked' | 'testing' | 'finalizing';
 
+export type AgentStatus = 'idle' | 'running' | 'paused' | 'stopped' | 'error';
+
 export interface TaskAttachment {
   id: string;
   type: 'file';
@@ -11,6 +13,19 @@ export interface TaskAttachment {
   path: string;
   size?: number;
   lastModified?: Date;
+}
+
+export interface AgentExecution {
+  isRunning: boolean;
+  status: AgentStatus;
+  progress?: number;
+  currentStep?: string;
+  error?: string;
+  startTime?: Date;
+  lastUpdateTime?: Date;
+  worktreePath?: string;
+  branchName?: string;
+  sessionId?: string; // For chat session tracking
 }
 
 export interface KanbanTask {
@@ -23,6 +38,9 @@ export interface KanbanTask {
   attachments: TaskAttachment[];
   createdAt: Date;
   updatedAt: Date;
+  // Agent-specific fields
+  agentExecution?: AgentExecution;
+  messages?: { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date }[];
 }
 
 export interface KanbanColumn {
@@ -47,4 +65,13 @@ export interface KanbanState {
   getBoard: (projectPath: string) => KanbanBoard;
   getTasks: (projectPath: string, status?: TaskStatus) => KanbanTask[];
   getTask: (projectPath: string, taskId: string) => KanbanTask | undefined;
+  
+  // Agent-specific actions
+  updateAgentExecution: (projectPath: string, taskId: string, execution: Partial<AgentExecution>) => void;
+  startAgent: (projectPath: string, taskId: string) => void;
+  stopAgent: (projectPath: string, taskId: string) => void;
+  pauseAgent: (projectPath: string, taskId: string) => void;
+  resumeAgent: (projectPath: string, taskId: string) => void;
+  addMessage: (projectPath: string, taskId: string, message: { role: 'user' | 'assistant'; content: string }) => void;
+  getMessages: (projectPath: string, taskId: string) => KanbanTask['messages'];
 }

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { nanoid } from 'nanoid';
-import { KanbanState, KanbanTask, TaskStatus, KanbanBoard, KanbanColumn } from './types';
+import { KanbanState, KanbanTask, TaskStatus, KanbanBoard, KanbanColumn, AgentExecution } from './types';
 
 const createEmptyBoard = (): KanbanBoard => ({
   columns: [
@@ -168,6 +168,139 @@ export const useKanbanStore = create<KanbanState>()(
       getTask: (projectPath: string, taskId: string) => {
         const tasks = get().getTasks(projectPath);
         return tasks.find(task => task.id === taskId);
+      },
+
+      // Agent-specific actions
+      updateAgentExecution: (projectPath: string, taskId: string, execution: Partial<AgentExecution>) => {
+        set((state) => {
+          if (!state.boards[projectPath]) return;
+          
+          const board = state.boards[projectPath];
+          board.columns.forEach(column => {
+            const task = column.tasks.find(t => t.id === taskId);
+            if (task) {
+              if (!task.agentExecution) {
+                task.agentExecution = {
+                  isRunning: false,
+                  status: 'idle'
+                };
+              }
+              Object.assign(task.agentExecution, execution);
+              task.updatedAt = new Date();
+            }
+          });
+        });
+      },
+
+      startAgent: (projectPath: string, taskId: string) => {
+        set((state) => {
+          if (!state.boards[projectPath]) return;
+          
+          const board = state.boards[projectPath];
+          board.columns.forEach(column => {
+            const task = column.tasks.find(t => t.id === taskId);
+            if (task) {
+              if (!task.agentExecution) {
+                task.agentExecution = {
+                  isRunning: false,
+                  status: 'idle'
+                };
+              }
+              task.agentExecution.isRunning = true;
+              task.agentExecution.status = 'running';
+              task.agentExecution.startTime = new Date();
+              task.agentExecution.lastUpdateTime = new Date();
+              task.updatedAt = new Date();
+              
+              // Move to doing if not already there
+              if (task.status !== 'doing') {
+                task.status = 'doing';
+                task.workStatus = 'in-progress';
+              }
+            }
+          });
+        });
+      },
+
+      stopAgent: (projectPath: string, taskId: string) => {
+        set((state) => {
+          if (!state.boards[projectPath]) return;
+          
+          const board = state.boards[projectPath];
+          board.columns.forEach(column => {
+            const task = column.tasks.find(t => t.id === taskId);
+            if (task && task.agentExecution) {
+              task.agentExecution.isRunning = false;
+              task.agentExecution.status = 'stopped';
+              task.agentExecution.lastUpdateTime = new Date();
+              task.updatedAt = new Date();
+            }
+          });
+        });
+      },
+
+      pauseAgent: (projectPath: string, taskId: string) => {
+        set((state) => {
+          if (!state.boards[projectPath]) return;
+          
+          const board = state.boards[projectPath];
+          board.columns.forEach(column => {
+            const task = column.tasks.find(t => t.id === taskId);
+            if (task && task.agentExecution) {
+              task.agentExecution.isRunning = false;
+              task.agentExecution.status = 'paused';
+              task.agentExecution.lastUpdateTime = new Date();
+              task.workStatus = 'paused';
+              task.updatedAt = new Date();
+            }
+          });
+        });
+      },
+
+      resumeAgent: (projectPath: string, taskId: string) => {
+        set((state) => {
+          if (!state.boards[projectPath]) return;
+          
+          const board = state.boards[projectPath];
+          board.columns.forEach(column => {
+            const task = column.tasks.find(t => t.id === taskId);
+            if (task && task.agentExecution) {
+              task.agentExecution.isRunning = true;
+              task.agentExecution.status = 'running';
+              task.agentExecution.lastUpdateTime = new Date();
+              task.workStatus = 'in-progress';
+              task.updatedAt = new Date();
+            }
+          });
+        });
+      },
+
+      addMessage: (projectPath: string, taskId: string, message: { role: 'user' | 'assistant'; content: string }) => {
+        set((state) => {
+          if (!state.boards[projectPath]) return;
+          
+          const board = state.boards[projectPath];
+          board.columns.forEach(column => {
+            const task = column.tasks.find(t => t.id === taskId);
+            if (task) {
+              if (!task.messages) {
+                task.messages = [];
+              }
+              task.messages.push({
+                id: nanoid(),
+                role: message.role,
+                content: message.content,
+                timestamp: new Date()
+              });
+              task.updatedAt = new Date();
+            }
+          });
+        });
+      },
+
+      getMessages: (projectPath: string, taskId: string) => {
+        const task = get().getTask(projectPath, taskId);
+        return task?.messages || [];
       }
     })),
     {
