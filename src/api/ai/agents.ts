@@ -3,8 +3,10 @@ import { CoreMessage, streamText, createDataStreamResponse } from 'ai';
 import { toolRegistry } from '../../pages/workspace/components/chat/tools';
 import { settingsManager } from '../../helpers/ipc/settings/settings-listeners';
 import { agentSystemPrompt } from './agent-system-prompt';
+import { agentTaskCompleteTool, agentRequestClarificationTool } from '../../pages/workspace/components/agents-view/agent-tools';
 
 export async function agentsApi({ messages }: { messages: CoreMessage[] }) {
+  console.log("Agents API called with messages:", messages);
   try {
     // Get XAI API key from secure settings
     const xaiApiKey = await settingsManager.getSecure('apiKeys.xai');
@@ -21,7 +23,11 @@ export async function agentsApi({ messages }: { messages: CoreMessage[] }) {
             model: model("grok-4-0709"),
             system: agentSystemPrompt,
             messages: messages,
-            tools: toolRegistry.getTools(),
+            tools: {
+              ...toolRegistry.getTools(),
+              agentTaskComplete: agentTaskCompleteTool,
+              agentRequestClarification: agentRequestClarificationTool,
+            },
             maxSteps: 100,
             // maxTokens: 10000,
           });

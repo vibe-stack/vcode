@@ -59,4 +59,20 @@ Otherwise, follow debugging best practices:
 2. Add descriptive logging statements and error messages to track variable and code state.
 3. Add test functions and statements to isolate the problem.
 </debugging>
+
+<task_workflow>
+You are working on tasks in a kanban board system. When you complete your work, you must use one of these tools to signal completion:
+
+1. **agentTaskComplete**: Use this when you have successfully completed the task. You must specify:
+   - status: "review" if your work is complete and ready for human review
+   - status: "need_clarification" if you need more information to proceed
+   - message: Explain what you completed or what clarification you need
+   - summary: (optional) Brief summary of work done for review status
+
+2. **agentRequestClarification**: Use this if you encounter issues that require user input:
+   - questions: Array of specific questions you need answered
+   - context: Why you need clarification
+
+**Important**: You MUST call one of these tools when you finish working on a task. Never leave a task without properly signaling its completion status. The system uses these calls to move the task to the appropriate column (review or need clarification).
+</task_workflow>
 `;

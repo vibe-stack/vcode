@@ -199,7 +199,7 @@ export const useKanbanStore = create<KanbanState>()(
         });
       },
 
-      startAgent: (projectPath: string, taskId: string) => {
+      startAgent: async (projectPath: string, taskId: string) => {
         // Update agentExecution, workStatus, and status together
         const currentTask = get().getTask(projectPath, taskId);
         if (currentTask) {
@@ -217,6 +217,22 @@ export const useKanbanStore = create<KanbanState>()(
             status: 'doing',
             updatedAt: new Date()
           });
+
+          // Initialize messages if none exist
+          let messages = currentTask.messages || [];
+          if (messages.length === 0) {
+            const initialContent = currentTask.description 
+              ? `${currentTask.title}\n\n${currentTask.description}`
+              : currentTask.title;
+            
+            get().addMessage(projectPath, taskId, {
+              role: 'user',
+              content: initialContent
+            });
+          }
+
+          // Agent execution is now handled by the AgentChat component using useAgentExecution hook
+          // The AgentChat component will be triggered to execute via ref
         }
       },
 
@@ -227,13 +243,13 @@ export const useKanbanStore = create<KanbanState>()(
             ...(currentTask.agentExecution || { isRunning: false, status: 'idle' }),
             isRunning: false,
             status: 'stopped' as const,
-            lastUpdateTime: new Date()
+            lastUpdateTime: new Date(),
+            currentStep: 'Stopped by user'
           };
-          get().moveTask(projectPath, taskId, 'done');
+          // Keep task in doing column but mark as stopped
           get().updateTask(projectPath, taskId, {
             agentExecution,
-            workStatus: 'done' as const,
-            status: 'done',
+            workStatus: 'paused',
             updatedAt: new Date()
           });
         }
@@ -246,13 +262,13 @@ export const useKanbanStore = create<KanbanState>()(
             ...(currentTask.agentExecution || { isRunning: false, status: 'idle' }),
             isRunning: false,
             status: 'paused' as const,
-            lastUpdateTime: new Date()
+            lastUpdateTime: new Date(),
+            currentStep: 'Paused by user'
           };
-          get().moveTask(projectPath, taskId, 'need_clarification');
+          // Keep task in doing column but mark as paused
           get().updateTask(projectPath, taskId, {
             agentExecution,
             workStatus: 'paused',
-            status: 'need_clarification',
             updatedAt: new Date()
           });
         }
@@ -303,7 +319,102 @@ export const useKanbanStore = create<KanbanState>()(
       getMessages: (projectPath: string, taskId: string) => {
         const task = get().getTask(projectPath, taskId);
         return task?.messages || [];
-      }
+      },
+
+      executeAgent: async (projectPath: string, taskId: string) => {
+        const currentTask = get().getTask(projectPath, taskId);
+        if (!currentTask) {
+          throw new Error('Task not found');
+        }
+
+        let messages = currentTask.messages || [];
+        
+        // If no messages exist, create an initial message from task title and description
+        if (messages.length === 0) {
+          const initialContent = currentTask.description 
+            ? `${currentTask.title}\n\n${currentTask.description}`
+            : currentTask.title;
+          
+          // Add the initial message to the task
+          get().addMessage(projectPath, taskId, {
+            role: 'user',
+            content: initialContent
+          });
+          
+          // Get the updated messages
+          messages = get().getMessages(projectPath, taskId) || [];
+        }
+
+        if (messages.length === 0) {
+          throw new Error('No messages found for agent execution');
+        }
+
+        // This function is now handled by the AgentChat component using useAgentExecution hook
+        // The actual execution logic is moved to the hook for better stream handling
+        console.log('executeAgent called for task:', taskId, 'but execution is now handled by AgentChat component');
+      },
+
+      // Utility functions for agent execution management (used by useAgentExecution hook)
+      updateAgentStep: (projectPath: string, taskId: string, step: string) => {
+        const currentTask = get().getTask(projectPath, taskId);
+        if (currentTask) {
+          get().updateTask(projectPath, taskId, {
+            agentExecution: {
+              ...(currentTask.agentExecution || { isRunning: true, status: 'running' }),
+              currentStep: step,
+              lastUpdateTime: new Date()
+            },
+          });
+        }
+      },
+
+      completeAgentTask: (projectPath: string, taskId: string, status: 'review' | 'need_clarification', message?: string) => {
+        const currentTask = get().getTask(projectPath, taskId);
+        if (currentTask) {
+          // Move task to appropriate column
+          get().moveTask(projectPath, taskId, status);
+          
+          // Update task status and completion info
+          get().updateTask(projectPath, taskId, {
+            agentExecution: {
+              ...(currentTask.agentExecution || {}),
+              isRunning: false,
+              status: 'stopped',
+              lastUpdateTime: new Date(),
+              currentStep: message || 'Completed'
+            },
+            workStatus: status === 'review' ? 'finalizing' : 'paused',
+            status: status,
+            updatedAt: new Date()
+          });
+          
+          // Add completion message if provided
+          if (message) {
+            get().addMessage(projectPath, taskId, {
+              role: 'assistant', 
+              content: `**Task Status:** ${status === 'review' ? 'Ready for Review' : 'Needs Clarification'}\n\n${message}`
+            });
+          }
+        }
+      },
+
+      handleAgentError: (projectPath: string, taskId: string, error: string) => {
+        const currentTask = get().getTask(projectPath, taskId);
+        if (currentTask) {
+          get().updateTask(projectPath, taskId, {
+            agentExecution: {
+              ...(currentTask.agentExecution || {}),
+              isRunning: false,
+              status: 'error',
+              error: error,
+              lastUpdateTime: new Date(),
+              currentStep: 'Error occurred'
+            },
+          });
+        }
+      },
+
+      // ...existing code...
     })),
     {
       name: 'kanban-store',

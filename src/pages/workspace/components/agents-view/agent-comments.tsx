@@ -6,6 +6,10 @@ import { useKanbanStore } from '@/stores/kanban';
 import { useProjectStore } from '@/stores/project';
 import { Edit2, Trash2, Plus, Bot, User, Clock, Settings } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { markdownComponents } from '../chat/markdown-components';
+import '../chat/markdown-content.css';
 
 interface AgentCommentsProps {
   taskId: string;
@@ -169,9 +173,9 @@ export function AgentComments({ taskId, canAddMessages, className = '' }: AgentC
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <p className="text-sm whitespace-pre-wrap break-words">
-                          {message.content}
-                        </p>
+                        <div className="text-sm min-w-0">
+                          <MarkdownRenderer content={message.content} />
+                        </div>
                         
                         {message.role === 'user' && canAddMessages && (
                           <div className="flex gap-1">
@@ -253,3 +257,16 @@ export function AgentComments({ taskId, canAddMessages, className = '' }: AgentC
     </div>
   );
 }
+
+const MarkdownRenderer = ({ content }: { content?: string }) => {
+  return (
+    <div className="markdown-content max-w-full min-w-0 overflow-hidden">
+      <Markdown 
+        remarkPlugins={[remarkGfm]}
+        components={markdownComponents}
+      >
+        {content}
+      </Markdown>
+    </div>
+  );
+};

@@ -68,10 +68,16 @@ export interface KanbanState {
   
   // Agent-specific actions
   updateAgentExecution: (projectPath: string, taskId: string, execution: Partial<AgentExecution>) => void;
-  startAgent: (projectPath: string, taskId: string) => void;
+  executeAgent: (projectPath: string, taskId: string) => Promise<void>;
+  startAgent: (projectPath: string, taskId: string) => Promise<void>;
   stopAgent: (projectPath: string, taskId: string) => void;
   pauseAgent: (projectPath: string, taskId: string) => void;
   resumeAgent: (projectPath: string, taskId: string) => void;
   addMessage: (projectPath: string, taskId: string, message: { role: 'user' | 'assistant'; content: string }) => void;
   getMessages: (projectPath: string, taskId: string) => KanbanTask['messages'];
+  
+  // Utility functions for agent execution management (used by useAgentExecution hook)
+  updateAgentStep: (projectPath: string, taskId: string, step: string) => void;
+  completeAgentTask: (projectPath: string, taskId: string, status: 'review' | 'need_clarification', message?: string) => void;
+  handleAgentError: (projectPath: string, taskId: string, error: string) => void;
 }
