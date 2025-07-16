@@ -1,11 +1,15 @@
 import { ipcMain, WebContents } from 'electron';
 import { AI_SEND_MESSAGE_CHANNEL, AI_STREAM_CHUNK_CHANNEL, AI_STREAM_END_CHANNEL, AI_STREAM_ERROR_CHANNEL } from './ai-channels';
 import { chatApi } from '@/api/ai';
+import { agentsApi } from '@/api/ai/agents';
 
 export function addAIEventListeners() {
-  ipcMain.handle(AI_SEND_MESSAGE_CHANNEL, async (event, { messages, requestId }) => {
+  ipcMain.handle(AI_SEND_MESSAGE_CHANNEL, async (event, { messages, requestId, apiType }) => {
     try { 
-      const response = await chatApi({ messages });
+      // Route to appropriate API based on apiType parameter
+      const response = apiType === 'agents' 
+        ? await agentsApi({ messages })
+        : await chatApi({ messages });
       
       // Get the stream from the response body
       const stream = response.body;

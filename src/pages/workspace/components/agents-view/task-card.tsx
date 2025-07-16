@@ -84,8 +84,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
     e.stopPropagation();
     if (currentProject) {
       startAgent(currentProject, task.id);
-      // Also start the agent via IPC
-      window.agents.startAgent(task.id);
     }
   };
 
@@ -93,7 +91,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
     e.stopPropagation();
     if (currentProject) {
       pauseAgent(currentProject, task.id);
-      window.agents.pauseAgent(task.id);
     }
   };
 
@@ -101,7 +98,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
     e.stopPropagation();
     if (currentProject) {
       stopAgent(currentProject, task.id);
-      window.agents.stopAgent(task.id);
     }
   };
 
@@ -109,7 +105,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onClick }) => 
     e.stopPropagation();
     if (currentProject) {
       resumeAgent(currentProject, task.id);
-      window.agents.resumeAgent(task.id);
     }
   };
 

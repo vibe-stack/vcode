@@ -59,7 +59,7 @@ interface ProjectApi {
 }
 
 interface AI {
-  sendMessage: (payload: { messages: import('ai').CoreMessage[], requestId: string }) => Promise<{ success: boolean, requestId: string }>;
+  sendMessage: (payload: { messages: import('ai').CoreMessage[], requestId: string, apiType?: string }) => Promise<{ success: boolean, requestId: string }>;
   onStreamChunk: (callback: (data: { requestId: string, chunk: Uint8Array }) => void) => void;
   onStreamEnd: (callback: (data: { requestId: string }) => void) => void;
   onStreamError: (callback: (data: { requestId: string, error: string }) => void) => void;

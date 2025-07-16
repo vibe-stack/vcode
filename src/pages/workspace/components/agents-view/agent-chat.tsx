@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Send, Square } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
-import { agentFetch } from './custom-fetch';
+import { agentFetch } from './agent-fetch';
 import { MessageComponent } from '../chat/chat-message';
 import { useKanbanStore } from '@/stores/kanban';
 import { useProjectStore } from '@/stores/project';
@@ -24,7 +24,7 @@ export function AgentChat({ taskId, className = '' }: AgentChatProps) {
 
   const { messages, append, setMessages, isLoading, stop } = useChat({
     api: '/api/agents', // This will be handled by our custom fetcher
-    fetch: (input, init) => agentFetch(input, init, taskId),
+    fetch: agentFetch,
     maxSteps: 100, // Enable multi-step functionality for agents
     onResponse: () => { },
     onFinish: (message) => {
@@ -53,7 +53,7 @@ export function AgentChat({ taskId, className = '' }: AgentChatProps) {
 
   // Initialize messages from kanban store
   useEffect(() => {
-    if (storedMessages.length > 0 && messages.length === 0) {
+    if (storedMessages && storedMessages.length > 0 && messages.length === 0) {
       const aiSdkMessages = storedMessages.map(msg => ({
         id: msg.id,
         role: msg.role,

@@ -5,7 +5,7 @@ export function exposeAIContext() {
     const { contextBridge, ipcRenderer } = window.require("electron");
 
     contextBridge.exposeInMainWorld("ai", {
-        sendMessage: (payload: { messages: CoreMessage[], requestId: string }) => 
+        sendMessage: (payload: { messages: CoreMessage[], requestId: string, apiType?: string }) => 
             ipcRenderer.invoke(AI_SEND_MESSAGE_CHANNEL, payload),
         
         onStreamChunk: (callback: (data: { requestId: string, chunk: Uint8Array }) => void) => {

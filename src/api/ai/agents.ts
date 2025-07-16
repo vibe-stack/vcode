@@ -2,7 +2,7 @@ import { createXai } from '@ai-sdk/xai';
 import { CoreMessage, streamText, createDataStreamResponse } from 'ai';
 import { toolRegistry } from '../../pages/workspace/components/chat/tools';
 import { settingsManager } from '../../helpers/ipc/settings/settings-listeners';
-import { systemPrompt } from './system-prompt';
+import { agentSystemPrompt } from './agent-system-prompt';
 
 export async function agentsApi({ messages }: { messages: CoreMessage[] }) {
   try {
@@ -19,7 +19,7 @@ export async function agentsApi({ messages }: { messages: CoreMessage[] }) {
         try {
           const result = streamText({
             model: model("grok-4-0709"),
-            system: systemPrompt,
+            system: agentSystemPrompt,
             messages: messages,
             tools: toolRegistry.getTools(),
             maxSteps: 100,
