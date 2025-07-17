@@ -1,54 +1,61 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
-import { nanoid } from 'nanoid';
-import { KanbanState, KanbanTask, TaskStatus, KanbanBoard, KanbanColumn, AgentExecution } from './types';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
+import { nanoid } from "nanoid";
+import {
+  KanbanState,
+  KanbanTask,
+  TaskStatus,
+  KanbanBoard,
+  KanbanColumn,
+  AgentExecution,
+} from "./types";
 
 const createEmptyBoard = (): KanbanBoard => ({
   columns: [
     {
-      id: 'ideas',
-      title: 'Ideas',
+      id: "ideas",
+      title: "Ideas",
       tasks: [],
-      canCreateTasks: true
+      canCreateTasks: true,
     },
     {
-      id: 'todo',
-      title: 'To Do',
+      id: "todo",
+      title: "To Do",
       tasks: [],
-      canCreateTasks: true
+      canCreateTasks: true,
     },
     {
-      id: 'doing',
-      title: 'Doing',
+      id: "doing",
+      title: "Doing",
       tasks: [],
-      canCreateTasks: false
+      canCreateTasks: false,
     },
     {
-      id: 'need_clarification',
-      title: 'Need Clarification',
+      id: "need_clarification",
+      title: "Need Clarification",
       tasks: [],
-      canCreateTasks: false
+      canCreateTasks: false,
     },
     {
-      id: 'review',
-      title: 'Review',
+      id: "review",
+      title: "Review",
       tasks: [],
-      canCreateTasks: false
+      canCreateTasks: false,
     },
     {
-      id: 'done',
-      title: 'Done',
+      id: "done",
+      title: "Done",
       tasks: [],
-      canCreateTasks: false
+      canCreateTasks: false,
     },
     {
-      id: 'rejected',
-      title: 'Rejected',
+      id: "rejected",
+      title: "Rejected",
       tasks: [],
-      canCreateTasks: false
-    }
-  ]
+      canCreateTasks: false,
+    },
+  ],
 });
 
 export const useKanbanStore = create<KanbanState>()(
@@ -56,22 +63,27 @@ export const useKanbanStore = create<KanbanState>()(
     immer((set, get) => ({
       boards: {},
 
-      createTask: (projectPath: string, taskData: Omit<KanbanTask, 'id' | 'createdAt' | 'updatedAt'>) => {
+      createTask: (
+        projectPath: string,
+        taskData: Omit<KanbanTask, "id" | "createdAt" | "updatedAt">,
+      ) => {
         const newTask: KanbanTask = {
           ...taskData,
           id: nanoid(),
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         };
 
         set((state) => {
           if (!state.boards[projectPath]) {
             state.boards[projectPath] = createEmptyBoard();
           }
-          
+
           const board = state.boards[projectPath];
-          const column = board.columns.find(col => col.id === taskData.status);
-          
+          const column = board.columns.find(
+            (col) => col.id === taskData.status,
+          );
+
           if (column) {
             column.tasks.push(newTask);
           }
@@ -80,7 +92,11 @@ export const useKanbanStore = create<KanbanState>()(
         return newTask;
       },
 
-      updateTask: (projectPath: string, taskId: string, updates: Partial<KanbanTask>) => {
+      updateTask: (
+        projectPath: string,
+        taskId: string,
+        updates: Partial<KanbanTask>,
+      ) => {
         set((state) => {
           if (!state.boards[projectPath]) return;
           const board = state.boards[projectPath];
@@ -88,14 +104,16 @@ export const useKanbanStore = create<KanbanState>()(
           let currentStatus: TaskStatus | undefined;
           let currentColumn: KanbanColumn | undefined;
           // Find and update the task
-          board.columns.forEach(column => {
-            const taskIndex = column.tasks.findIndex(task => task.id === taskId);
+          board.columns.forEach((column) => {
+            const taskIndex = column.tasks.findIndex(
+              (task) => task.id === taskId,
+            );
             if (taskIndex !== -1) {
               currentStatus = column.tasks[taskIndex].status;
               updatedTask = {
                 ...column.tasks[taskIndex],
                 ...updates,
-                updatedAt: new Date()
+                updatedAt: new Date(),
               };
               currentColumn = column;
               // If status changed, remove from current column
@@ -107,8 +125,14 @@ export const useKanbanStore = create<KanbanState>()(
             }
           });
           // If status changed, add updated task to new column
-          if (updatedTask && updates.status && updates.status !== currentStatus) {
-            const newColumn = board.columns.find(col => col.id === updates.status);
+          if (
+            updatedTask &&
+            updates.status &&
+            updates.status !== currentStatus
+          ) {
+            const newColumn = board.columns.find(
+              (col) => col.id === updates.status,
+            );
             if (newColumn) {
               newColumn.tasks.push(updatedTask);
             }
@@ -119,35 +143,41 @@ export const useKanbanStore = create<KanbanState>()(
       deleteTask: (projectPath: string, taskId: string) => {
         set((state) => {
           if (!state.boards[projectPath]) return;
-          
+
           const board = state.boards[projectPath];
-          board.columns.forEach(column => {
-            column.tasks = column.tasks.filter(task => task.id !== taskId);
+          board.columns.forEach((column) => {
+            column.tasks = column.tasks.filter((task) => task.id !== taskId);
           });
         });
       },
 
-      moveTask: (projectPath: string, taskId: string, newStatus: TaskStatus) => {
+      moveTask: (
+        projectPath: string,
+        taskId: string,
+        newStatus: TaskStatus,
+      ) => {
         set((state) => {
           if (!state.boards[projectPath]) return;
-          
+
           const board = state.boards[projectPath];
           let taskToMove: KanbanTask | undefined;
-          
+
           // Find and remove task from current column
-          board.columns.forEach(column => {
-            const taskIndex = column.tasks.findIndex(task => task.id === taskId);
+          board.columns.forEach((column) => {
+            const taskIndex = column.tasks.findIndex(
+              (task) => task.id === taskId,
+            );
             if (taskIndex !== -1) {
               taskToMove = column.tasks.splice(taskIndex, 1)[0];
             }
           });
-          
+
           // Add task to new column
           if (taskToMove) {
             taskToMove.status = newStatus;
             taskToMove.updatedAt = new Date();
-            
-            const newColumn = board.columns.find(col => col.id === newStatus);
+
+            const newColumn = board.columns.find((col) => col.id === newStatus);
             if (newColumn) {
               newColumn.tasks.push(taskToMove);
             }
@@ -166,30 +196,34 @@ export const useKanbanStore = create<KanbanState>()(
       getTasks: (projectPath: string, status?: TaskStatus) => {
         const board = get().getBoard(projectPath);
         if (status) {
-          const column = board.columns.find(col => col.id === status);
+          const column = board.columns.find((col) => col.id === status);
           return column ? column.tasks : [];
         }
-        return board.columns.flatMap(col => col.tasks);
+        return board.columns.flatMap((col) => col.tasks);
       },
 
       getTask: (projectPath: string, taskId: string) => {
         const tasks = get().getTasks(projectPath);
-        return tasks.find(task => task.id === taskId);
+        return tasks.find((task) => task.id === taskId);
       },
 
       // Agent-specific actions
-      updateAgentExecution: (projectPath: string, taskId: string, execution: Partial<AgentExecution>) => {
+      updateAgentExecution: (
+        projectPath: string,
+        taskId: string,
+        execution: Partial<AgentExecution>,
+      ) => {
         set((state) => {
           if (!state.boards[projectPath]) return;
-          
+
           const board = state.boards[projectPath];
-          board.columns.forEach(column => {
-            const task = column.tasks.find(t => t.id === taskId);
+          board.columns.forEach((column) => {
+            const task = column.tasks.find((t) => t.id === taskId);
             if (task) {
               if (!task.agentExecution) {
                 task.agentExecution = {
                   isRunning: false,
-                  status: 'idle'
+                  status: "idle",
                 };
               }
               Object.assign(task.agentExecution, execution);
@@ -204,30 +238,33 @@ export const useKanbanStore = create<KanbanState>()(
         const currentTask = get().getTask(projectPath, taskId);
         if (currentTask) {
           const agentExecution = {
-            ...(currentTask.agentExecution || { isRunning: false, status: 'idle' }),
+            ...(currentTask.agentExecution || {
+              isRunning: false,
+              status: "idle",
+            }),
             isRunning: true,
-            status: 'running' as const,
+            status: "running" as const,
             startTime: new Date(),
-            lastUpdateTime: new Date()
+            lastUpdateTime: new Date(),
           };
-          get().moveTask(projectPath, taskId, 'doing');
+          get().moveTask(projectPath, taskId, "doing");
           get().updateTask(projectPath, taskId, {
             agentExecution,
-            workStatus: 'in-progress',
-            status: 'doing',
-            updatedAt: new Date()
+            workStatus: "in-progress",
+            status: "doing",
+            updatedAt: new Date(),
           });
 
           // Initialize messages if none exist
           let messages = currentTask.messages || [];
           if (messages.length === 0) {
-            const initialContent = currentTask.description 
+            const initialContent = currentTask.description
               ? `${currentTask.title}\n\n${currentTask.description}`
               : currentTask.title;
-            
+
             get().addMessage(projectPath, taskId, {
-              role: 'user',
-              content: initialContent
+              role: "user",
+              content: initialContent,
             });
           }
 
@@ -240,17 +277,20 @@ export const useKanbanStore = create<KanbanState>()(
         const currentTask = get().getTask(projectPath, taskId);
         if (currentTask) {
           const agentExecution = {
-            ...(currentTask.agentExecution || { isRunning: false, status: 'idle' }),
+            ...(currentTask.agentExecution || {
+              isRunning: false,
+              status: "idle",
+            }),
             isRunning: false,
-            status: 'stopped' as const,
+            status: "stopped" as const,
             lastUpdateTime: new Date(),
-            currentStep: 'Stopped by user'
+            currentStep: "Stopped by user",
           };
           // Keep task in doing column but mark as stopped
           get().updateTask(projectPath, taskId, {
             agentExecution,
-            workStatus: 'paused',
-            updatedAt: new Date()
+            workStatus: "paused",
+            updatedAt: new Date(),
           });
         }
       },
@@ -259,17 +299,20 @@ export const useKanbanStore = create<KanbanState>()(
         const currentTask = get().getTask(projectPath, taskId);
         if (currentTask) {
           const agentExecution = {
-            ...(currentTask.agentExecution || { isRunning: false, status: 'idle' }),
+            ...(currentTask.agentExecution || {
+              isRunning: false,
+              status: "idle",
+            }),
             isRunning: false,
-            status: 'paused' as const,
+            status: "paused" as const,
             lastUpdateTime: new Date(),
-            currentStep: 'Paused by user'
+            currentStep: "Paused by user",
           };
           // Keep task in doing column but mark as paused
           get().updateTask(projectPath, taskId, {
             agentExecution,
-            workStatus: 'paused',
-            updatedAt: new Date()
+            workStatus: "paused",
+            updatedAt: new Date(),
           });
         }
       },
@@ -278,28 +321,35 @@ export const useKanbanStore = create<KanbanState>()(
         const currentTask = get().getTask(projectPath, taskId);
         if (currentTask) {
           const agentExecution = {
-            ...(currentTask.agentExecution || { isRunning: false, status: 'idle' }),
+            ...(currentTask.agentExecution || {
+              isRunning: false,
+              status: "idle",
+            }),
             isRunning: true,
-            status: 'running' as const,
-            lastUpdateTime: new Date()
+            status: "running" as const,
+            lastUpdateTime: new Date(),
           };
-          get().moveTask(projectPath, taskId, 'doing');
+          get().moveTask(projectPath, taskId, "doing");
           get().updateTask(projectPath, taskId, {
             agentExecution,
-            workStatus: 'in-progress',
-            status: 'doing',
-            updatedAt: new Date()
+            workStatus: "in-progress",
+            status: "doing",
+            updatedAt: new Date(),
           });
         }
       },
 
-      addMessage: (projectPath: string, taskId: string, message: { role: 'user' | 'assistant'; content: string }) => {
+      addMessage: (
+        projectPath: string,
+        taskId: string,
+        message: { role: "user" | "assistant"; content: string },
+      ) => {
         set((state) => {
           if (!state.boards[projectPath]) return;
-          
+
           const board = state.boards[projectPath];
-          board.columns.forEach(column => {
-            const task = column.tasks.find(t => t.id === taskId);
+          board.columns.forEach((column) => {
+            const task = column.tasks.find((t) => t.id === taskId);
             if (task) {
               if (!task.messages) {
                 task.messages = [];
@@ -308,7 +358,7 @@ export const useKanbanStore = create<KanbanState>()(
                 id: nanoid(),
                 role: message.role,
                 content: message.content,
-                timestamp: new Date()
+                timestamp: new Date(),
               });
               task.updatedAt = new Date();
             }
@@ -324,34 +374,38 @@ export const useKanbanStore = create<KanbanState>()(
       executeAgent: async (projectPath: string, taskId: string) => {
         const currentTask = get().getTask(projectPath, taskId);
         if (!currentTask) {
-          throw new Error('Task not found');
+          throw new Error("Task not found");
         }
 
         let messages = currentTask.messages || [];
-        
+
         // If no messages exist, create an initial message from task title and description
         if (messages.length === 0) {
-          const initialContent = currentTask.description 
+          const initialContent = currentTask.description
             ? `${currentTask.title}\n\n${currentTask.description}`
             : currentTask.title;
-          
+
           // Add the initial message to the task
           get().addMessage(projectPath, taskId, {
-            role: 'user',
-            content: initialContent
+            role: "user",
+            content: initialContent,
           });
-          
+
           // Get the updated messages
           messages = get().getMessages(projectPath, taskId) || [];
         }
 
         if (messages.length === 0) {
-          throw new Error('No messages found for agent execution');
+          throw new Error("No messages found for agent execution");
         }
 
         // This function is now handled by the AgentChat component using useAgentExecution hook
         // The actual execution logic is moved to the hook for better stream handling
-        console.log('executeAgent called for task:', taskId, 'but execution is now handled by AgentChat component');
+        console.log(
+          "executeAgent called for task:",
+          taskId,
+          "but execution is now handled by AgentChat component",
+        );
       },
 
       // Utility functions for agent execution management (used by useAgentExecution hook)
@@ -360,55 +414,67 @@ export const useKanbanStore = create<KanbanState>()(
         if (currentTask) {
           get().updateTask(projectPath, taskId, {
             agentExecution: {
-              ...(currentTask.agentExecution || { isRunning: true, status: 'running' }),
+              ...(currentTask.agentExecution || {
+                isRunning: true,
+                status: "running",
+              }),
               currentStep: step,
-              lastUpdateTime: new Date()
+              lastUpdateTime: new Date(),
             },
           });
         }
       },
 
-      completeAgentTask: (projectPath: string, taskId: string, status: 'review' | 'need_clarification', message?: string) => {
+      completeAgentTask: (
+        projectPath: string,
+        taskId: string,
+        status: "review" | "need_clarification",
+        message?: string,
+      ) => {
         const currentTask = get().getTask(projectPath, taskId);
         if (currentTask) {
           // Move task to appropriate column
           get().moveTask(projectPath, taskId, status);
-          
+
           // Update task status and completion info
           get().updateTask(projectPath, taskId, {
             agentExecution: {
               ...(currentTask.agentExecution || {}),
               isRunning: false,
-              status: 'stopped',
+              status: "stopped",
               lastUpdateTime: new Date(),
-              currentStep: message || 'Completed'
+              currentStep: message || "Completed",
             },
-            workStatus: status === 'review' ? 'finalizing' : 'paused',
+            workStatus: status === "review" ? "finalizing" : "paused",
             status: status,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           });
-          
+
           // Add completion message if provided
           if (message) {
             get().addMessage(projectPath, taskId, {
-              role: 'assistant', 
-              content: `**Task Status:** ${status === 'review' ? 'Ready for Review' : 'Needs Clarification'}\n\n${message}`
+              role: "assistant",
+              content: `**Task Status:** ${status === "review" ? "Ready for Review" : "Needs Clarification"}\n\n${message}`,
             });
           }
         }
       },
 
-      handleAgentError: (projectPath: string, taskId: string, error: string) => {
+      handleAgentError: (
+        projectPath: string,
+        taskId: string,
+        error: string,
+      ) => {
         const currentTask = get().getTask(projectPath, taskId);
         if (currentTask) {
           get().updateTask(projectPath, taskId, {
             agentExecution: {
               ...(currentTask.agentExecution || {}),
               isRunning: false,
-              status: 'error',
+              status: "error",
               error: error,
               lastUpdateTime: new Date(),
-              currentStep: 'Error occurred'
+              currentStep: "Error occurred",
             },
           });
         }
@@ -417,10 +483,10 @@ export const useKanbanStore = create<KanbanState>()(
       // ...existing code...
     })),
     {
-      name: 'kanban-store',
+      name: "kanban-store",
       partialize: (state) => ({
-        boards: state.boards
-      })
-    }
-  )
+        boards: state.boards,
+      }),
+    },
+  ),
 );

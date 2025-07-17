@@ -1,24 +1,33 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import { Extension } from '@tiptap/core';
-import { Document } from '@tiptap/extension-document';
-import { Paragraph } from '@tiptap/extension-paragraph';
-import { Text } from '@tiptap/extension-text';
-import { Mention } from '@tiptap/extension-mention';
-import { Button } from '@/components/ui/button';
-import { ArrowUp, Square, Paperclip, X, Hash, AtSign, Image, Slash } from 'lucide-react';
-import { cn } from '@/utils/tailwind';
-import { mentionProvider } from './mention-provider';
-import { chatSerializationService } from './chat-serialization';
-import { ChatAttachment } from './types';
-import tippy from 'tippy.js';
-import { MentionSuggestionRenderer } from './mention-renderer';
-import { useBufferStore } from '@/stores/buffers';
-import { useEditorSplitStore } from '@/stores/editor-splits';
-import { slashCommandProvider } from './slash-commands';
-import { SlashCommandSuggestionRenderer } from './slash-command-renderer';
-import { useSettingsStore } from '@/stores/settings';
-import { getAccentGlowStyle } from '@/utils/accent-colors';
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import { Extension } from "@tiptap/core";
+import { Document } from "@tiptap/extension-document";
+import { Paragraph } from "@tiptap/extension-paragraph";
+import { Text } from "@tiptap/extension-text";
+import { Mention } from "@tiptap/extension-mention";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowUp,
+  Square,
+  Paperclip,
+  X,
+  Hash,
+  AtSign,
+  Image,
+  Slash,
+} from "lucide-react";
+import { cn } from "@/utils/tailwind";
+import { mentionProvider } from "./mention-provider";
+import { chatSerializationService } from "./chat-serialization";
+import { ChatAttachment } from "./types";
+import tippy from "tippy.js";
+import { MentionSuggestionRenderer } from "./mention-renderer";
+import { useBufferStore } from "@/stores/buffers";
+import { useEditorSplitStore } from "@/stores/editor-splits";
+import { slashCommandProvider } from "./slash-commands";
+import { SlashCommandSuggestionRenderer } from "./slash-command-renderer";
+import { useSettingsStore } from "@/stores/settings";
+import { getAccentGlowStyle } from "@/utils/accent-colors";
 
 interface ChatInputProps {
   onSend: (content: string, attachments: ChatAttachment[]) => void;
@@ -49,22 +58,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const sendingRef = React.useRef(false); // Ref to track sending state
 
   // Store references
-  const buffers = useBufferStore(state => state.buffers);
-  const tabOrder = useBufferStore(state => state.tabOrder);
+  const buffers = useBufferStore((state) => state.buffers);
+  const tabOrder = useBufferStore((state) => state.tabOrder);
   const { settings } = useSettingsStore();
-  const accentColor = settings.appearance?.accentColor || 'blue';
+  const accentColor = settings.appearance?.accentColor || "blue";
   const useGradient = settings.appearance?.accentGradient ?? true;
-  const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
+  const getAllPanes = useEditorSplitStore((state) => state.getAllPanes);
 
   // Custom extension to intercept Enter for send
   const EnterSend = Extension.create({
-    name: 'enterSend',
+    name: "enterSend",
     addKeyboardShortcuts() {
       return {
-        'Enter': ({ editor }) => {
+        Enter: ({ editor }) => {
           // Check if shift is pressed - if so, let default behavior happen (new line)
           const event = editor.view.dom.ownerDocument.defaultView?.event;
-          if (event && 'shiftKey' in event && event.shiftKey) {
+          if (event && "shiftKey" in event && event.shiftKey) {
             return false; // Let default behavior happen
           }
           handleSend().catch(console.error);
@@ -81,14 +90,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       Text,
       Mention.configure({
         HTMLAttributes: {
-          class: 'mention',
+          class: "mention",
         },
         suggestion: {
-          char: '@',
+          char: "@",
           items: ({ query }) => {
             // Show all files when @ is typed with no query
             // Use synchronous search for Tiptap compatibility
-            const result = mentionProvider.searchMentionsSync(query || '', 'file');
+            const result = mentionProvider.searchMentionsSync(
+              query || "",
+              "file",
+            );
             return result;
           },
           render: () => {
@@ -98,14 +110,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             return {
               onStart: (props: any) => {
                 component = new MentionSuggestionRenderer(props);
-                popup = tippy('body', {
+                popup = tippy("body", {
                   getReferenceClientRect: props.clientRect,
                   appendTo: () => document.body,
                   content: component.element,
                   showOnCreate: true,
                   interactive: true,
-                  trigger: 'manual',
-                  placement: 'bottom-start',
+                  trigger: "manual",
+                  placement: "bottom-start",
                 });
               },
               onUpdate: (props: any) => {
@@ -115,7 +127,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 });
               },
               onKeyDown: (props: any) => {
-                if (props.event.key === 'Escape') {
+                if (props.event.key === "Escape") {
                   popup[0].hide();
                   return true;
                 }
@@ -134,13 +146,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         },
       }),
       Mention.extend({
-        name: 'slashCommand',
+        name: "slashCommand",
       }).configure({
         HTMLAttributes: {
-          class: 'slash-command',
+          class: "slash-command",
         },
         suggestion: {
-          char: '/',
+          char: "/",
           items: ({ query }) => {
             return slashCommandProvider.searchCommands(query);
           },
@@ -151,14 +163,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             return {
               onStart: (props: any) => {
                 component = new SlashCommandSuggestionRenderer(props);
-                popup = tippy('body', {
+                popup = tippy("body", {
                   getReferenceClientRect: props.clientRect,
                   appendTo: () => document.body,
                   content: component.element,
                   showOnCreate: true,
                   interactive: true,
-                  trigger: 'manual',
-                  placement: 'bottom-start',
+                  trigger: "manual",
+                  placement: "bottom-start",
                 });
               },
               onUpdate: (props: any) => {
@@ -168,7 +180,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 });
               },
               onKeyDown: (props: any) => {
-                if (props.event.key === 'Escape') {
+                if (props.event.key === "Escape") {
                   popup[0].hide();
                   return true;
                 }
@@ -182,7 +194,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           },
           command: ({ editor, range, props }) => {
             const commandText = slashCommandProvider.executeCommand(props.id);
-            
+
             // Delete the slash command mention
             editor
               .chain()
@@ -195,7 +207,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }),
       EnterSend,
     ],
-    content: '',
+    content: "",
     editable: !disabled,
     onUpdate: ({ editor }) => {
       // Update attachments when mentions change (but don't mark as user input yet)
@@ -211,9 +223,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       handlePaste: (view, event) => {
         const items = event.clipboardData?.items;
         if (!items) return false;
-        
+
         for (const item of items) {
-          if (item.type.startsWith('image/')) {
+          if (item.type.startsWith("image/")) {
             event.preventDefault();
             const file = item.getAsFile();
             if (file) {
@@ -227,9 +239,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       handleDrop: (view, event) => {
         const files = event.dataTransfer?.files;
         if (!files || files.length === 0) return false;
-        
+
         for (const file of files) {
-          if (file.type.startsWith('image/')) {
+          if (file.type.startsWith("image/")) {
             event.preventDefault();
             handleImageUpload(file);
             return true;
@@ -247,10 +259,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     for (const pane of allPanes) {
       if (pane.activeBufferId) {
         const buffer = buffers.get(pane.activeBufferId);
-        if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+        if (buffer && buffer.filePath && typeof buffer.content === "string") {
           bufferAttachmentMap.set(buffer.filePath, {
             id: `buffer-${buffer.id}`,
-            type: 'file',
+            type: "file",
             name: buffer.name,
             path: buffer.filePath,
             content: buffer.content,
@@ -261,10 +273,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       } else if (pane.bufferIds.length > 0) {
         const lastBufferId = pane.bufferIds[pane.bufferIds.length - 1];
         const buffer = buffers.get(lastBufferId);
-        if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+        if (buffer && buffer.filePath && typeof buffer.content === "string") {
           bufferAttachmentMap.set(buffer.filePath, {
             id: `buffer-${buffer.id}`,
-            type: 'file',
+            type: "file",
             name: buffer.name,
             path: buffer.filePath,
             content: buffer.content,
@@ -278,11 +290,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (bufferAttachmentMap.size < 2 && tabOrder.length > 0) {
       for (const bufferId of tabOrder.slice(-2)) {
         const buffer = buffers.get(bufferId);
-        if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+        if (buffer && buffer.filePath && typeof buffer.content === "string") {
           if (!bufferAttachmentMap.has(buffer.filePath)) {
             bufferAttachmentMap.set(buffer.filePath, {
               id: `buffer-${buffer.id}`,
-              type: 'file',
+              type: "file",
               name: buffer.name,
               path: buffer.filePath,
               content: buffer.content,
@@ -300,21 +312,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (!editor || isSending || sendingRef.current) return;
     const content = editor.getJSON();
     const mentions = chatSerializationService.extractMentions(content);
-    const mentionAttachments = await chatSerializationService.mentionsToAttachments(mentions);
+    const mentionAttachments =
+      await chatSerializationService.mentionsToAttachments(mentions);
 
     // Always recompute buffer attachments for UI
-    const autoBufferAttachments = computeAutoBufferAttachments().filter(att =>
-      !mentionAttachments.some(ma => ma.id === att.id)
+    const autoBufferAttachments = computeAutoBufferAttachments().filter(
+      (att) => !mentionAttachments.some((ma) => ma.id === att.id),
     );
 
     setAttachments([...autoBufferAttachments, ...mentionAttachments]);
-  }
+  };
 
   const handleSend = async () => {
     if (!editor || isLoading || isSending || sendingRef.current) return;
     sendingRef.current = true; // Set sending state to prevent re-entrance
 
-    const content = chatSerializationService.tiptapToPlainText(editor.getJSON());
+    const content = chatSerializationService.tiptapToPlainText(
+      editor.getJSON(),
+    );
     if (!content.trim()) return;
 
     setIsSending(true);
@@ -329,7 +344,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
     setIsSending(false);
     sendingRef.current = false; // Reset sending state
-  }
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     // If mention suggestion handled the event, don't send
@@ -341,11 +356,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
 
     // Enter sends the message, Shift+Enter creates new line
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       handleSend().catch(console.error);
     }
-  }
+  };
 
   const isEmpty = !editor?.getText().trim();
 
@@ -369,7 +384,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
     const addActiveBuffersAsAttachments = async () => {
       // Add a small delay to ensure panes are properly initialized
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const allPanes = getAllPanes();
 
@@ -379,13 +394,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       for (const pane of allPanes) {
         if (pane.activeBufferId) {
           const buffer = buffers.get(pane.activeBufferId);
-          if (buffer && buffer.filePath && typeof buffer.content === 'string') {
+          if (buffer && buffer.filePath && typeof buffer.content === "string") {
             // Check if we already have this buffer to avoid duplicates
-            const existingAttachment = activeBuffers.find(att => att.path === buffer.filePath);
+            const existingAttachment = activeBuffers.find(
+              (att) => att.path === buffer.filePath,
+            );
             if (!existingAttachment) {
               const attachment: ChatAttachment = {
                 id: `buffer-${buffer.id}`,
-                type: 'file',
+                type: "file",
                 name: buffer.name,
                 path: buffer.filePath,
                 content: buffer.content,
@@ -400,12 +417,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           if (pane.bufferIds.length > 0) {
             const lastBufferId = pane.bufferIds[pane.bufferIds.length - 1];
             const buffer = buffers.get(lastBufferId);
-            if (buffer && buffer.filePath && typeof buffer.content === 'string') {
-              const existingAttachment = activeBuffers.find(att => att.path === buffer.filePath);
+            if (
+              buffer &&
+              buffer.filePath &&
+              typeof buffer.content === "string"
+            ) {
+              const existingAttachment = activeBuffers.find(
+                (att) => att.path === buffer.filePath,
+              );
               if (!existingAttachment) {
                 const attachment: ChatAttachment = {
                   id: `buffer-${buffer.id}`,
-                  type: 'file',
+                  type: "file",
                   name: buffer.name,
                   path: buffer.filePath,
                   content: buffer.content,
@@ -421,14 +444,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       // Strategy 3: If we still don't have enough attachments, get recent buffers from global store
       if (activeBuffers.length < 2 && tabOrder.length > 0) {
-        for (const bufferId of tabOrder.slice(-2)) { // Get last 2 buffers
+        for (const bufferId of tabOrder.slice(-2)) {
+          // Get last 2 buffers
           const buffer = buffers.get(bufferId);
-          if (buffer && buffer.filePath && typeof buffer.content === 'string') {
-            const existingAttachment = activeBuffers.find(att => att.path === buffer.filePath);
+          if (buffer && buffer.filePath && typeof buffer.content === "string") {
+            const existingAttachment = activeBuffers.find(
+              (att) => att.path === buffer.filePath,
+            );
             if (!existingAttachment) {
               const attachment: ChatAttachment = {
                 id: `buffer-${buffer.id}`,
-                type: 'file',
+                type: "file",
                 name: buffer.name,
                 path: buffer.filePath,
                 content: buffer.content,
@@ -442,9 +468,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }
 
       if (activeBuffers.length > 0) {
-        setAttachments(prev => {
+        setAttachments((prev) => {
           // Only add if we don't already have buffer attachments
-          const existingBufferAttachments = prev.filter(att => att.id.startsWith('buffer-'));
+          const existingBufferAttachments = prev.filter((att) =>
+            att.id.startsWith("buffer-"),
+          );
           if (existingBufferAttachments.length === 0) {
             return [...prev, ...activeBuffers];
           }
@@ -457,14 +485,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, [isNewChat, buffers, tabOrder, getAllPanes]);
 
   // Function to remove an attachment
-  const removeAttachment = useCallback((attachmentId: string) => {
-    setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+  const removeAttachment = useCallback(
+    (attachmentId: string) => {
+      setAttachments((prev) => prev.filter((att) => att.id !== attachmentId));
 
-    // If user removes an attachment, mark as having user input to prevent re-adding
-    if (!hasUserInput) {
-      setHasUserInput(true);
-    }
-  }, [hasUserInput]);
+      // If user removes an attachment, mark as having user input to prevent re-adding
+      if (!hasUserInput) {
+        setHasUserInput(true);
+      }
+    },
+    [hasUserInput],
+  );
 
   const handleImageUpload = async (file: File) => {
     try {
@@ -472,34 +503,34 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
-        
+
         // Create image attachment
         const imageAttachment: ChatAttachment = {
           id: `image-${Date.now()}`,
-          type: 'image',
+          type: "image",
           name: file.name,
           content: dataUrl,
           size: file.size,
           lastModified: file.lastModified,
         };
-        
+
         // Add to attachments
-        setAttachments(prev => [...prev, imageAttachment]);
-        
+        setAttachments((prev) => [...prev, imageAttachment]);
+
         // Focus back to editor
         editor?.commands.focus();
       };
-      
+
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error("Error uploading image:", error);
     }
   };
 
   if (!editor) {
     return (
       <div className="relative w-full">
-        <div className="flex-1 resize-none min-h-0 h-20 border rounded-md p-3 bg-muted animate-pulse">
+        <div className="bg-muted h-20 min-h-0 flex-1 animate-pulse resize-none rounded-md border p-3">
           <div className="text-muted-foreground text-xs">Loading editor...</div>
         </div>
       </div>
@@ -510,30 +541,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <div className="relative w-full">
       {/* Attachments preview - moved to top */}
       {attachments.length > 0 && (
-        <div className="mb-2 p-2 bg-muted/50 rounded-md border">
+        <div className="bg-muted/50 mb-2 rounded-md border p-2">
           <div className="flex flex-wrap gap-2">
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
-                className="flex items-center gap-1 px-2 py-1 bg-background rounded-md text-xs border group"
+                className="bg-background group flex items-center gap-1 rounded-md border px-2 py-1 text-xs"
               >
-                {attachment.type === 'image' ? (
+                {attachment.type === "image" ? (
                   <>
                     <Image className="h-3 w-3" />
-                    <img 
-                      src={attachment.content as string} 
-                      alt={attachment.name} 
-                      className="h-12 w-12 object-cover rounded"
+                    <img
+                      src={attachment.content as string}
+                      alt={attachment.name}
+                      className="h-12 w-12 rounded object-cover"
                     />
                   </>
                 ) : (
                   <Paperclip className="h-3 w-3" />
                 )}
-                <span className="truncate max-w-[200px]">{attachment.name}</span>
+                <span className="max-w-[200px] truncate">
+                  {attachment.name}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-3 w-3 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                  className="hover:bg-destructive hover:text-destructive-foreground h-3 w-3 p-0 opacity-0 transition-opacity group-hover:opacity-100"
                   onClick={() => removeAttachment(attachment.id)}
                   title="Remove attachment"
                 >
@@ -545,30 +578,30 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      <div 
-        className="relative border border-border rounded-md transition-all duration-300 [&:focus-within]:ring-0 [&:focus-within]:ring-offset-0 [&:focus-within]:outline-none [&:focus-within]:border-transparent"
+      <div
+        className="border-border relative rounded-md border transition-all duration-300 [&:focus-within]:border-transparent [&:focus-within]:ring-0 [&:focus-within]:ring-offset-0 [&:focus-within]:outline-none"
         style={{
           ...(isFocused ? getAccentGlowStyle(accentColor, useGradient) : {}),
-          '--tw-ring-color': 'transparent',
-          '--tw-ring-offset-color': 'transparent'
+          "--tw-ring-color": "transparent",
+          "--tw-ring-offset-color": "transparent",
         }}
       >
         <EditorContent
           editor={editor}
           className={cn(
-            "min-h-[80px] max-h-[200px] overflow-y-auto p-0 text-xs",
-            "prose prose-sm max-w-none dark:prose-invert",
-            "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:rounded [&_.mention]:text-xs",
+            "max-h-[200px] min-h-[80px] overflow-y-auto p-0 text-xs",
+            "prose prose-sm dark:prose-invert max-w-none",
+            "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:rounded [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:text-xs",
             "[&_.ProseMirror]:outline-none [&_.ProseMirror]:focus:outline-none",
             "[&_.ProseMirror-focused]:outline-none",
-            disabled && "opacity-50 cursor-not-allowed"
+            disabled && "cursor-not-allowed opacity-50",
           )}
           onKeyDown={handleKeyDown}
         />
 
         {/* Placeholder */}
         {isEmpty && !isLoading && (
-          <div className="absolute top-3 left-3 text-muted-foreground text-xs pointer-events-none">
+          <div className="text-muted-foreground pointer-events-none absolute top-3 left-3 text-xs">
             {placeholder}
           </div>
         )}
@@ -581,7 +614,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             className="h-7 w-7 p-0"
             onClick={() => {
               // Trigger @ mention
-              editor?.chain().focus().insertContent('@').run();
+              editor?.chain().focus().insertContent("@").run();
             }}
             disabled={disabled || isLoading}
             tabIndex={-1}
@@ -595,9 +628,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             className="h-7 w-7 p-0"
             onClick={() => {
               // Create file input and trigger click
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = 'image/*';
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "image/*";
               input.onchange = async (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0];
                 if (file) {
@@ -618,7 +651,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             className="h-7 w-7 p-0"
             onClick={() => {
               // Trigger slash command
-              editor?.chain().focus().insertContent('/').run();
+              editor?.chain().focus().insertContent("/").run();
             }}
             disabled={disabled || isLoading}
             tabIndex={-1}
@@ -630,7 +663,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       </div>
 
       {/* Send button */}
-      <div className="absolute bottom-2 right-2 flex items-end">
+      <div className="absolute right-2 bottom-2 flex items-end">
         {isLoading ? (
           <Button
             variant="ghost"
@@ -659,4 +692,3 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     </div>
   );
 };
-

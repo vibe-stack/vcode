@@ -1,11 +1,15 @@
 /* Apply font settings from CSS variables */
-body, html {
+body,
+html {
   font-family: var(--font-sans) !important;
   font-size: var(--app-font-size, 14px) !important;
   font-weight: var(--app-font-weight, 400) !important;
 }
 
-code, pre, .font-mono, [class*="monaco"] {
+code,
+pre,
+.font-mono,
+[class*="monaco"] {
   font-family: var(--font-mono) !important;
   font-size: var(--code-font-size, 13px) !important;
   font-weight: var(--code-font-weight, 400) !important;
@@ -13,7 +17,8 @@ code, pre, .font-mono, [class*="monaco"] {
 
 /* Animation for gradient glow */
 @keyframes gradient-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -30,7 +35,9 @@ code, pre, .font-mono, [class*="monaco"] {
   --tw-ring-color: transparent !important;
   --tw-ring-offset-width: 0px !important;
   --tw-ring-offset-color: transparent !important;
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 transparent), var(--tw-ring-shadow, 0 0 transparent), var(--tw-shadow, 0 0 transparent) !important;
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 transparent),
+    var(--tw-ring-shadow, 0 0 transparent), var(--tw-shadow, 0 0 transparent) !important;
 }
 
 /* Remove webkit focus styles */
@@ -51,81 +58,239 @@ textarea:focus,
 }
 
 /* Ensure all accent color classes are available for Tailwind JIT */
-.focus-within\:ring-blue-500:focus-within { --tw-ring-color: rgb(59 130 246); }
-.focus-within\:ring-purple-500:focus-within { --tw-ring-color: rgb(168 85 247); }
-.focus-within\:ring-pink-500:focus-within { --tw-ring-color: rgb(236 72 153); }
-.focus-within\:ring-red-500:focus-within { --tw-ring-color: rgb(239 68 68); }
-.focus-within\:ring-orange-500:focus-within { --tw-ring-color: rgb(249 115 22); }
-.focus-within\:ring-yellow-500:focus-within { --tw-ring-color: rgb(234 179 8); }
-.focus-within\:ring-green-500:focus-within { --tw-ring-color: rgb(34 197 94); }
-.focus-within\:ring-teal-500:focus-within { --tw-ring-color: rgb(20 184 166); }
-.focus-within\:ring-cyan-500:focus-within { --tw-ring-color: rgb(6 182 212); }
-.focus-within\:ring-gray-500:focus-within { --tw-ring-color: rgb(107 114 128); }
+.focus-within\:ring-blue-500:focus-within {
+  --tw-ring-color: rgb(59 130 246);
+}
+.focus-within\:ring-purple-500:focus-within {
+  --tw-ring-color: rgb(168 85 247);
+}
+.focus-within\:ring-pink-500:focus-within {
+  --tw-ring-color: rgb(236 72 153);
+}
+.focus-within\:ring-red-500:focus-within {
+  --tw-ring-color: rgb(239 68 68);
+}
+.focus-within\:ring-orange-500:focus-within {
+  --tw-ring-color: rgb(249 115 22);
+}
+.focus-within\:ring-yellow-500:focus-within {
+  --tw-ring-color: rgb(234 179 8);
+}
+.focus-within\:ring-green-500:focus-within {
+  --tw-ring-color: rgb(34 197 94);
+}
+.focus-within\:ring-teal-500:focus-within {
+  --tw-ring-color: rgb(20 184 166);
+}
+.focus-within\:ring-cyan-500:focus-within {
+  --tw-ring-color: rgb(6 182 212);
+}
+.focus-within\:ring-gray-500:focus-within {
+  --tw-ring-color: rgb(107 114 128);
+}
 
 /* Gradient backgrounds */
-.bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-stops)); }
-.from-blue-500 { --tw-gradient-from: rgb(59 130 246); --tw-gradient-to: rgb(59 130 246 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-purple-500 { --tw-gradient-from: rgb(168 85 247); --tw-gradient-to: rgb(168 85 247 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-pink-500 { --tw-gradient-from: rgb(236 72 153); --tw-gradient-to: rgb(236 72 153 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-red-500 { --tw-gradient-from: rgb(239 68 68); --tw-gradient-to: rgb(239 68 68 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-orange-500 { --tw-gradient-from: rgb(249 115 22); --tw-gradient-to: rgb(249 115 22 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-yellow-500 { --tw-gradient-from: rgb(234 179 8); --tw-gradient-to: rgb(234 179 8 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-green-500 { --tw-gradient-from: rgb(34 197 94); --tw-gradient-to: rgb(34 197 94 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-teal-500 { --tw-gradient-from: rgb(20 184 166); --tw-gradient-to: rgb(20 184 166 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-cyan-500 { --tw-gradient-from: rgb(6 182 212); --tw-gradient-to: rgb(6 182 212 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-.from-gray-500 { --tw-gradient-from: rgb(107 114 128); --tw-gradient-to: rgb(107 114 128 / 0); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+.from-blue-500 {
+  --tw-gradient-from: rgb(59 130 246);
+  --tw-gradient-to: rgb(59 130 246 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-purple-500 {
+  --tw-gradient-from: rgb(168 85 247);
+  --tw-gradient-to: rgb(168 85 247 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-pink-500 {
+  --tw-gradient-from: rgb(236 72 153);
+  --tw-gradient-to: rgb(236 72 153 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-red-500 {
+  --tw-gradient-from: rgb(239 68 68);
+  --tw-gradient-to: rgb(239 68 68 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-orange-500 {
+  --tw-gradient-from: rgb(249 115 22);
+  --tw-gradient-to: rgb(249 115 22 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-yellow-500 {
+  --tw-gradient-from: rgb(234 179 8);
+  --tw-gradient-to: rgb(234 179 8 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-green-500 {
+  --tw-gradient-from: rgb(34 197 94);
+  --tw-gradient-to: rgb(34 197 94 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-teal-500 {
+  --tw-gradient-from: rgb(20 184 166);
+  --tw-gradient-to: rgb(20 184 166 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-cyan-500 {
+  --tw-gradient-from: rgb(6 182 212);
+  --tw-gradient-to: rgb(6 182 212 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.from-gray-500 {
+  --tw-gradient-from: rgb(107 114 128);
+  --tw-gradient-to: rgb(107 114 128 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
 
-.to-indigo-600 { --tw-gradient-to: rgb(79 70 229); }
-.to-pink-600 { --tw-gradient-to: rgb(219 39 119); }
-.to-rose-600 { --tw-gradient-to: rgb(225 29 72); }
-.to-red-600 { --tw-gradient-to: rgb(220 38 38); }
-.to-orange-600 { --tw-gradient-to: rgb(234 88 12); }
-.to-teal-600 { --tw-gradient-to: rgb(13 148 136); }
-.to-cyan-600 { --tw-gradient-to: rgb(8 145 178); }
-.to-sky-600 { --tw-gradient-to: rgb(2 132 199); }
-.to-zinc-600 { --tw-gradient-to: rgb(82 82 91); }
+.to-indigo-600 {
+  --tw-gradient-to: rgb(79 70 229);
+}
+.to-pink-600 {
+  --tw-gradient-to: rgb(219 39 119);
+}
+.to-rose-600 {
+  --tw-gradient-to: rgb(225 29 72);
+}
+.to-red-600 {
+  --tw-gradient-to: rgb(220 38 38);
+}
+.to-orange-600 {
+  --tw-gradient-to: rgb(234 88 12);
+}
+.to-teal-600 {
+  --tw-gradient-to: rgb(13 148 136);
+}
+.to-cyan-600 {
+  --tw-gradient-to: rgb(8 145 178);
+}
+.to-sky-600 {
+  --tw-gradient-to: rgb(2 132 199);
+}
+.to-zinc-600 {
+  --tw-gradient-to: rgb(82 82 91);
+}
 
 /* Hover states */
-.hover\:from-blue-600:hover { --tw-gradient-from: rgb(37 99 235); }
-.hover\:from-purple-600:hover { --tw-gradient-from: rgb(147 51 234); }
-.hover\:from-pink-600:hover { --tw-gradient-from: rgb(219 39 119); }
-.hover\:from-red-600:hover { --tw-gradient-from: rgb(220 38 38); }
-.hover\:from-orange-600:hover { --tw-gradient-from: rgb(234 88 12); }
-.hover\:from-yellow-600:hover { --tw-gradient-from: rgb(202 138 4); }
-.hover\:from-green-600:hover { --tw-gradient-from: rgb(22 163 74); }
-.hover\:from-teal-600:hover { --tw-gradient-from: rgb(13 148 136); }
-.hover\:from-cyan-600:hover { --tw-gradient-from: rgb(8 145 178); }
-.hover\:from-gray-600:hover { --tw-gradient-from: rgb(75 85 99); }
+.hover\:from-blue-600:hover {
+  --tw-gradient-from: rgb(37 99 235);
+}
+.hover\:from-purple-600:hover {
+  --tw-gradient-from: rgb(147 51 234);
+}
+.hover\:from-pink-600:hover {
+  --tw-gradient-from: rgb(219 39 119);
+}
+.hover\:from-red-600:hover {
+  --tw-gradient-from: rgb(220 38 38);
+}
+.hover\:from-orange-600:hover {
+  --tw-gradient-from: rgb(234 88 12);
+}
+.hover\:from-yellow-600:hover {
+  --tw-gradient-from: rgb(202 138 4);
+}
+.hover\:from-green-600:hover {
+  --tw-gradient-from: rgb(22 163 74);
+}
+.hover\:from-teal-600:hover {
+  --tw-gradient-from: rgb(13 148 136);
+}
+.hover\:from-cyan-600:hover {
+  --tw-gradient-from: rgb(8 145 178);
+}
+.hover\:from-gray-600:hover {
+  --tw-gradient-from: rgb(75 85 99);
+}
 
-.hover\:to-indigo-700:hover { --tw-gradient-to: rgb(67 56 202); }
-.hover\:to-pink-700:hover { --tw-gradient-to: rgb(190 24 93); }
-.hover\:to-rose-700:hover { --tw-gradient-to: rgb(190 18 60); }
-.hover\:to-red-700:hover { --tw-gradient-to: rgb(185 28 28); }
-.hover\:to-orange-700:hover { --tw-gradient-to: rgb(194 65 12); }
-.hover\:to-teal-700:hover { --tw-gradient-to: rgb(15 118 110); }
-.hover\:to-cyan-700:hover { --tw-gradient-to: rgb(14 116 144); }
-.hover\:to-sky-700:hover { --tw-gradient-to: rgb(3 105 161); }
-.hover\:to-zinc-700:hover { --tw-gradient-to: rgb(63 63 70); }
+.hover\:to-indigo-700:hover {
+  --tw-gradient-to: rgb(67 56 202);
+}
+.hover\:to-pink-700:hover {
+  --tw-gradient-to: rgb(190 24 93);
+}
+.hover\:to-rose-700:hover {
+  --tw-gradient-to: rgb(190 18 60);
+}
+.hover\:to-red-700:hover {
+  --tw-gradient-to: rgb(185 28 28);
+}
+.hover\:to-orange-700:hover {
+  --tw-gradient-to: rgb(194 65 12);
+}
+.hover\:to-teal-700:hover {
+  --tw-gradient-to: rgb(15 118 110);
+}
+.hover\:to-cyan-700:hover {
+  --tw-gradient-to: rgb(14 116 144);
+}
+.hover\:to-sky-700:hover {
+  --tw-gradient-to: rgb(3 105 161);
+}
+.hover\:to-zinc-700:hover {
+  --tw-gradient-to: rgb(63 63 70);
+}
 
 /* Message tints */
-.bg-blue-500\/10 { background-color: rgb(59 130 246 / 0.1); }
-.bg-purple-500\/10 { background-color: rgb(168 85 247 / 0.1); }
-.bg-pink-500\/10 { background-color: rgb(236 72 153 / 0.1); }
-.bg-red-500\/10 { background-color: rgb(239 68 68 / 0.1); }
-.bg-orange-500\/10 { background-color: rgb(249 115 22 / 0.1); }
-.bg-yellow-500\/10 { background-color: rgb(234 179 8 / 0.1); }
-.bg-green-500\/10 { background-color: rgb(34 197 94 / 0.1); }
-.bg-teal-500\/10 { background-color: rgb(20 184 166 / 0.1); }
-.bg-cyan-500\/10 { background-color: rgb(6 182 212 / 0.1); }
-.bg-gray-500\/10 { background-color: rgb(107 114 128 / 0.1); }
+.bg-blue-500\/10 {
+  background-color: rgb(59 130 246 / 0.1);
+}
+.bg-purple-500\/10 {
+  background-color: rgb(168 85 247 / 0.1);
+}
+.bg-pink-500\/10 {
+  background-color: rgb(236 72 153 / 0.1);
+}
+.bg-red-500\/10 {
+  background-color: rgb(239 68 68 / 0.1);
+}
+.bg-orange-500\/10 {
+  background-color: rgb(249 115 22 / 0.1);
+}
+.bg-yellow-500\/10 {
+  background-color: rgb(234 179 8 / 0.1);
+}
+.bg-green-500\/10 {
+  background-color: rgb(34 197 94 / 0.1);
+}
+.bg-teal-500\/10 {
+  background-color: rgb(20 184 166 / 0.1);
+}
+.bg-cyan-500\/10 {
+  background-color: rgb(6 182 212 / 0.1);
+}
+.bg-gray-500\/10 {
+  background-color: rgb(107 114 128 / 0.1);
+}
 
-.border-blue-500\/20 { border-color: rgb(59 130 246 / 0.2); }
-.border-purple-500\/20 { border-color: rgb(168 85 247 / 0.2); }
-.border-pink-500\/20 { border-color: rgb(236 72 153 / 0.2); }
-.border-red-500\/20 { border-color: rgb(239 68 68 / 0.2); }
-.border-orange-500\/20 { border-color: rgb(249 115 22 / 0.2); }
-.border-yellow-500\/20 { border-color: rgb(234 179 8 / 0.2); }
-.border-green-500\/20 { border-color: rgb(34 197 94 / 0.2); }
-.border-teal-500\/20 { border-color: rgb(20 184 166 / 0.2); }
-.border-cyan-500\/20 { border-color: rgb(6 182 212 / 0.2); }
-.border-gray-500\/20 { border-color: rgb(107 114 128 / 0.2); }
+.border-blue-500\/20 {
+  border-color: rgb(59 130 246 / 0.2);
+}
+.border-purple-500\/20 {
+  border-color: rgb(168 85 247 / 0.2);
+}
+.border-pink-500\/20 {
+  border-color: rgb(236 72 153 / 0.2);
+}
+.border-red-500\/20 {
+  border-color: rgb(239 68 68 / 0.2);
+}
+.border-orange-500\/20 {
+  border-color: rgb(249 115 22 / 0.2);
+}
+.border-yellow-500\/20 {
+  border-color: rgb(234 179 8 / 0.2);
+}
+.border-green-500\/20 {
+  border-color: rgb(34 197 94 / 0.2);
+}
+.border-teal-500\/20 {
+  border-color: rgb(20 184 166 / 0.2);
+}
+.border-cyan-500\/20 {
+  border-color: rgb(6 182 212 / 0.2);
+}
+.border-gray-500\/20 {
+  border-color: rgb(107 114 128 / 0.2);
+}

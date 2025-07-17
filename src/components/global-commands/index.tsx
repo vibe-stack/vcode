@@ -16,10 +16,13 @@ interface GlobalCommandsProps {
   onOpenSettings?: () => void;
 }
 
-export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) {
+export default function GlobalCommands({
+  onOpenSettings,
+}: GlobalCommandsProps) {
   const [focused, setFocused] = React.useState(false);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } = useTerminalStore();
+  const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } =
+    useTerminalStore();
 
   const handleToggleTerminal = () => {
     setTerminalVisible(!isTerminalVisible);
@@ -35,20 +38,20 @@ export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) 
           onBlur={() => setFocused(false)}
         />
         {focused && (
-          <div className="absolute left-0 right-0 top-10 border rounded-md z-50 mt-1 w-full bg-background/50 backdrop-blur-sm">
+          <div className="bg-background/50 absolute top-10 right-0 left-0 z-50 mt-1 w-full rounded-md border backdrop-blur-sm">
             <CommandList>
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandSeparator />
               <CommandGroup heading="Terminal">
                 <CommandItem onSelect={handleToggleTerminal}>
                   <Terminal className="mr-2 h-4 w-4" />
-                  {isTerminalVisible ? 'Hide Terminal' : 'Show Terminal'}
+                  {isTerminalVisible ? "Hide Terminal" : "Show Terminal"}
                   <CommandShortcut>⌘`</CommandShortcut>
                 </CommandItem>
               </CommandGroup>
               <CommandSeparator />
               <CommandGroup heading="Settings">
-                <CommandItem 
+                <CommandItem
                   onSelect={() => {
                     onOpenSettings?.();
                     setFocused(false);

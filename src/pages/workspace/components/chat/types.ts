@@ -3,7 +3,7 @@
 export interface MentionItem {
   id: string;
   label: string;
-  type: 'file' | 'url' | 'reference';
+  type: "file" | "url" | "reference";
   path?: string;
   description?: string;
   icon?: React.ReactNode;
@@ -11,7 +11,7 @@ export interface MentionItem {
 
 export interface ChatAttachment {
   id: string;
-  type: 'file' | 'url' | 'reference';
+  type: "file" | "url" | "reference";
   name: string;
   path?: string;
   url?: string;
@@ -22,7 +22,7 @@ export interface ChatAttachment {
 
 export interface EnhancedChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   parts: any[]; // Keep it flexible to accommodate AI SDK's various part types
   timestamp: Date;
   createdAt?: Date;

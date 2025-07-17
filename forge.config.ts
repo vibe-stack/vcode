@@ -12,13 +12,11 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     osxUniversal: {
-      x64ArchFiles: '*',
+      x64ArchFiles: "*",
     },
   },
   rebuildConfig: {
-    extraModules: [
-      "node-pty",
-    ],
+    extraModules: ["node-pty"],
   },
   makers: [
     new MakerSquirrel({}),

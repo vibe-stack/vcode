@@ -1,15 +1,25 @@
-import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
-import { KeyBinding, KeymapProfile, KeymapState, KeyCommand, KeyEventInfo } from './types';
-import { getDefaultProfiles } from './profiles';
-import { registerDefaultCommands } from './commands';
-import { keyEventToString, matchesKeyCombination, isValidKeyCombination } from './utils';
-import { useBufferStore } from '@/stores/buffers';
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import {
+  KeyBinding,
+  KeymapProfile,
+  KeymapState,
+  KeyCommand,
+  KeyEventInfo,
+} from "./types";
+import { getDefaultProfiles } from "./profiles";
+import { registerDefaultCommands } from "./commands";
+import {
+  keyEventToString,
+  matchesKeyCombination,
+  isValidKeyCombination,
+} from "./utils";
+import { useBufferStore } from "@/stores/buffers";
 
 export const useKeymapStore = create<KeymapState>()(
   immer((set, get) => ({
     profiles: getDefaultProfiles(),
-    activeProfile: 'Default',
+    activeProfile: "Default",
     commands: registerDefaultCommands(),
     enabled: true,
 
@@ -32,11 +42,13 @@ export const useKeymapStore = create<KeymapState>()(
       }
 
       set((state) => {
-        const activeProfile = state.profiles.find(p => p.name === state.activeProfile);
+        const activeProfile = state.profiles.find(
+          (p) => p.name === state.activeProfile,
+        );
         if (activeProfile) {
           // Remove any existing binding with the same key combination
           activeProfile.bindings = activeProfile.bindings.filter(
-            b => !matchesKeyCombination(b.key, binding.key)
+            (b) => !matchesKeyCombination(b.key, binding.key),
           );
           activeProfile.bindings.push(binding);
         }
@@ -45,18 +57,26 @@ export const useKeymapStore = create<KeymapState>()(
 
     removeKeyBinding: (id: string) => {
       set((state) => {
-        const activeProfile = state.profiles.find(p => p.name === state.activeProfile);
+        const activeProfile = state.profiles.find(
+          (p) => p.name === state.activeProfile,
+        );
         if (activeProfile) {
-          activeProfile.bindings = activeProfile.bindings.filter(b => b.id !== id);
+          activeProfile.bindings = activeProfile.bindings.filter(
+            (b) => b.id !== id,
+          );
         }
       });
     },
 
     updateKeyBinding: (id: string, binding: Partial<KeyBinding>) => {
       set((state) => {
-        const activeProfile = state.profiles.find(p => p.name === state.activeProfile);
+        const activeProfile = state.profiles.find(
+          (p) => p.name === state.activeProfile,
+        );
         if (activeProfile) {
-          const existingBinding = activeProfile.bindings.find(b => b.id === id);
+          const existingBinding = activeProfile.bindings.find(
+            (b) => b.id === id,
+          );
           if (existingBinding) {
             Object.assign(existingBinding, binding);
           }
@@ -67,10 +87,12 @@ export const useKeymapStore = create<KeymapState>()(
     setActiveProfile: (profileName: string) => {
       set((state) => {
         // Mark all profiles as inactive
-        state.profiles.forEach(p => p.isActive = false);
-        
+        state.profiles.forEach((p) => (p.isActive = false));
+
         // Mark the target profile as active
-        const targetProfile = state.profiles.find(p => p.name === profileName);
+        const targetProfile = state.profiles.find(
+          (p) => p.name === profileName,
+        );
         if (targetProfile) {
           targetProfile.isActive = true;
           state.activeProfile = profileName;
@@ -80,12 +102,12 @@ export const useKeymapStore = create<KeymapState>()(
 
     handleKeyEvent: (event: KeyboardEvent): boolean => {
       const state = get();
-      
+
       if (!state.enabled) return false;
 
       const keyCombination = keyEventToString(event);
       const binding = state.getKeyBinding(keyCombination);
-      
+
       if (!binding || !binding.enabled) return false;
 
       // Safety check: Don't intercept critical browser shortcuts in certain contexts
@@ -95,7 +117,11 @@ export const useKeymapStore = create<KeymapState>()(
 
       // Check context
       const context = getEventContext(event);
-      if (binding.context && binding.context !== 'global' && binding.context !== context) {
+      if (
+        binding.context &&
+        binding.context !== "global" &&
+        binding.context !== context
+      ) {
         return false;
       }
 
@@ -115,11 +141,11 @@ export const useKeymapStore = create<KeymapState>()(
       try {
         const result = command.execute(binding.args);
         if (result instanceof Promise) {
-          result.catch(error => {
+          result.catch((error) => {
             console.error(`Error executing command ${binding.command}:`, error);
           });
         }
-        
+
         // Prevent default behavior
         event.preventDefault();
         event.stopPropagation();
@@ -132,18 +158,22 @@ export const useKeymapStore = create<KeymapState>()(
 
     getKeyBinding: (key: string): KeyBinding | null => {
       const state = get();
-      const activeProfile = state.profiles.find(p => p.name === state.activeProfile);
+      const activeProfile = state.profiles.find(
+        (p) => p.name === state.activeProfile,
+      );
       if (!activeProfile) return null;
 
       // Find exact match first
-      let binding = activeProfile.bindings.find(b => 
-        b.enabled && matchesKeyCombination(b.key, key)
+      let binding = activeProfile.bindings.find(
+        (b) => b.enabled && matchesKeyCombination(b.key, key),
       );
 
       // If no exact match, try alternative keys
       if (!binding) {
-        binding = activeProfile.bindings.find(b => 
-          b.enabled && b.altKeys?.some(altKey => matchesKeyCombination(altKey, key))
+        binding = activeProfile.bindings.find(
+          (b) =>
+            b.enabled &&
+            b.altKeys?.some((altKey) => matchesKeyCombination(altKey, key)),
         );
       }
 
@@ -152,7 +182,9 @@ export const useKeymapStore = create<KeymapState>()(
 
     loadProfile: (profile: KeymapProfile) => {
       set((state) => {
-        const existingIndex = state.profiles.findIndex(p => p.name === profile.name);
+        const existingIndex = state.profiles.findIndex(
+          (p) => p.name === profile.name,
+        );
         if (existingIndex >= 0) {
           state.profiles[existingIndex] = profile;
         } else {
@@ -163,20 +195,25 @@ export const useKeymapStore = create<KeymapState>()(
 
     saveProfile: () => {
       const state = get();
-      const activeProfile = state.profiles.find(p => p.name === state.activeProfile);
+      const activeProfile = state.profiles.find(
+        (p) => p.name === state.activeProfile,
+      );
       if (activeProfile) {
         // Save to localStorage or your preferred storage
-        localStorage.setItem(`keymap_profile_${activeProfile.name}`, JSON.stringify(activeProfile));
+        localStorage.setItem(
+          `keymap_profile_${activeProfile.name}`,
+          JSON.stringify(activeProfile),
+        );
       }
     },
 
     resetToDefault: () => {
       set((state) => {
         state.profiles = getDefaultProfiles();
-        state.activeProfile = 'Default';
+        state.activeProfile = "Default";
       });
-    }
-  }))
+    },
+  })),
 );
 
 /**
@@ -184,76 +221,98 @@ export const useKeymapStore = create<KeymapState>()(
  */
 function getEventContext(event: KeyboardEvent): string {
   const target = event.target as HTMLElement;
-  
+
   if (target.closest('[data-context="terminal"]')) {
-    return 'terminal';
+    return "terminal";
   }
-  
+
   if (target.closest('[data-context="explorer"]')) {
-    return 'explorer';
+    return "explorer";
   }
-  
+
   if (target.closest('[data-context="editor"]')) {
-    return 'editor';
+    return "editor";
   }
-  
-  return 'global';
+
+  return "global";
 }
 
 /**
  * Check if we should preserve browser shortcuts to prevent breaking critical functionality
  */
-function shouldPreserveBrowserShortcut(event: KeyboardEvent, binding: KeyBinding): boolean {
+function shouldPreserveBrowserShortcut(
+  event: KeyboardEvent,
+  binding: KeyBinding,
+): boolean {
   const target = event.target as HTMLElement;
   const keyCombination = keyEventToString(event);
-  
+
   // Critical browser shortcuts that should never be intercepted
   const criticalShortcuts = [
-    'cmd+r',     // Refresh page
-    'ctrl+r',    // Refresh page
-    'cmd+shift+r', // Hard refresh
-    'ctrl+shift+r', // Hard refresh
-    'f5',        // Refresh
-    'ctrl+f5',   // Hard refresh
-    'cmd+q',     // Quit application (macOS)
-    'alt+f4',    // Close window (Windows)
-    'cmd+m',     // Minimize window (macOS)
-    'cmd+h',     // Hide window (macOS)
-    'cmd+tab',   // Switch applications (macOS)
-    'alt+tab',   // Switch applications (Windows)
-    'ctrl+shift+i', // Dev tools
-    'cmd+option+i', // Dev tools (macOS)
-    'f12',       // Dev tools
+    "cmd+r", // Refresh page
+    "ctrl+r", // Refresh page
+    "cmd+shift+r", // Hard refresh
+    "ctrl+shift+r", // Hard refresh
+    "f5", // Refresh
+    "ctrl+f5", // Hard refresh
+    "cmd+q", // Quit application (macOS)
+    "alt+f4", // Close window (Windows)
+    "cmd+m", // Minimize window (macOS)
+    "cmd+h", // Hide window (macOS)
+    "cmd+tab", // Switch applications (macOS)
+    "alt+tab", // Switch applications (Windows)
+    "ctrl+shift+i", // Dev tools
+    "cmd+option+i", // Dev tools (macOS)
+    "f12", // Dev tools
   ];
-  
-  if (criticalShortcuts.some(shortcut => matchesKeyCombination(shortcut, keyCombination))) {
+
+  if (
+    criticalShortcuts.some((shortcut) =>
+      matchesKeyCombination(shortcut, keyCombination),
+    )
+  ) {
     return true;
   }
-  
+
   // Always intercept Cmd+W / Ctrl+W to prevent accidentally closing the browser
-  if (keyCombination === 'cmd+w' || keyCombination === 'ctrl+w') {
+  if (keyCombination === "cmd+w" || keyCombination === "ctrl+w") {
     // Always prevent browser from closing tab/window
     return false; // Allow our handler to process it
   }
-  
+
   // Don't intercept shortcuts in input fields unless specifically designed for them
-  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+  if (
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.contentEditable === "true"
+  ) {
     // Allow some common editing shortcuts
     const editorShortcuts = [
-      'cmd+a', 'ctrl+a', // Select all
-      'cmd+c', 'ctrl+c', // Copy
-      'cmd+v', 'ctrl+v', // Paste
-      'cmd+x', 'ctrl+x', // Cut
-      'cmd+z', 'ctrl+z', // Undo
-      'cmd+y', 'ctrl+y', // Redo
-      'cmd+shift+z', 'ctrl+shift+z', // Redo (alt)
+      "cmd+a",
+      "ctrl+a", // Select all
+      "cmd+c",
+      "ctrl+c", // Copy
+      "cmd+v",
+      "ctrl+v", // Paste
+      "cmd+x",
+      "ctrl+x", // Cut
+      "cmd+z",
+      "ctrl+z", // Undo
+      "cmd+y",
+      "ctrl+y", // Redo
+      "cmd+shift+z",
+      "ctrl+shift+z", // Redo (alt)
     ];
-    
-    if (!editorShortcuts.some(shortcut => matchesKeyCombination(shortcut, keyCombination))) {
+
+    if (
+      !editorShortcuts.some((shortcut) =>
+        matchesKeyCombination(shortcut, keyCombination),
+      )
+    ) {
       return true; // Preserve browser behavior for other shortcuts in inputs
     }
   }
-  
+
   return false;
 }
 
@@ -262,29 +321,39 @@ function shouldPreserveBrowserShortcut(event: KeyboardEvent, binding: KeyBinding
  */
 export const useKeymap = () => {
   const store = useKeymapStore();
-  
+
   return {
     ...store,
     // Helper functions
-    getActiveProfile: () => store.profiles.find(p => p.name === store.activeProfile),
-    getKeyBindingsByCategory: (category: KeyBinding['category']) => {
-      const activeProfile = store.profiles.find(p => p.name === store.activeProfile);
-      return activeProfile?.bindings.filter(b => b.category === category) || [];
+    getActiveProfile: () =>
+      store.profiles.find((p) => p.name === store.activeProfile),
+    getKeyBindingsByCategory: (category: KeyBinding["category"]) => {
+      const activeProfile = store.profiles.find(
+        (p) => p.name === store.activeProfile,
+      );
+      return (
+        activeProfile?.bindings.filter((b) => b.category === category) || []
+      );
     },
-    getKeyBindingsByContext: (context: KeyBinding['context']) => {
-      const activeProfile = store.profiles.find(p => p.name === store.activeProfile);
-      return activeProfile?.bindings.filter(b => b.context === context) || [];
+    getKeyBindingsByContext: (context: KeyBinding["context"]) => {
+      const activeProfile = store.profiles.find(
+        (p) => p.name === store.activeProfile,
+      );
+      return activeProfile?.bindings.filter((b) => b.context === context) || [];
     },
     searchKeyBindings: (query: string) => {
-      const activeProfile = store.profiles.find(p => p.name === store.activeProfile);
-      if (!activeProfile) return [];
-      
-      const lowerQuery = query.toLowerCase();
-      return activeProfile.bindings.filter(b => 
-        b.description.toLowerCase().includes(lowerQuery) ||
-        b.command.toLowerCase().includes(lowerQuery) ||
-        b.key.toLowerCase().includes(lowerQuery)
+      const activeProfile = store.profiles.find(
+        (p) => p.name === store.activeProfile,
       );
-    }
+      if (!activeProfile) return [];
+
+      const lowerQuery = query.toLowerCase();
+      return activeProfile.bindings.filter(
+        (b) =>
+          b.description.toLowerCase().includes(lowerQuery) ||
+          b.command.toLowerCase().includes(lowerQuery) ||
+          b.key.toLowerCase().includes(lowerQuery),
+      );
+    },
   };
 };

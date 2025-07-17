@@ -1,8 +1,8 @@
-import { EventEmitter } from 'events';
-import { execSync } from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
-import { AgentWorktreeInfo } from '@/helpers/ipc/agents/agent-context';
+import { EventEmitter } from "events";
+import { execSync } from "child_process";
+import * as path from "path";
+import * as fs from "fs";
+import { AgentWorktreeInfo } from "@/helpers/ipc/agents/agent-context";
 
 export interface WorktreeInfo {
   taskId: string;
@@ -14,7 +14,7 @@ export interface WorktreeInfo {
 
 export class AgentWorktreeManager extends EventEmitter {
   private worktrees: Map<string, WorktreeInfo> = new Map();
-  private projectPath: string = '';
+  private projectPath: string = "";
 
   constructor() {
     super();
@@ -26,33 +26,39 @@ export class AgentWorktreeManager extends EventEmitter {
     this.projectPath = projectPath;
   }
 
-  async createWorktree(taskId: string, branchName: string): Promise<{ success: boolean; error?: string; worktreePath?: string }> {
+  async createWorktree(
+    taskId: string,
+    branchName: string,
+  ): Promise<{ success: boolean; error?: string; worktreePath?: string }> {
     try {
       if (!this.projectPath) {
-        return { success: false, error: 'Project path not set' };
+        return { success: false, error: "Project path not set" };
       }
 
       // Create worktree directory name based on task ID
       const worktreeDir = `agent-${taskId}`;
-      const worktreePath = path.join(this.projectPath, '..', worktreeDir);
+      const worktreePath = path.join(this.projectPath, "..", worktreeDir);
 
       // Check if worktree already exists
       if (this.worktrees.has(taskId)) {
-        return { success: false, error: 'Worktree already exists for this task' };
+        return {
+          success: false,
+          error: "Worktree already exists for this task",
+        };
       }
 
       // Create the git worktree
       const gitCommand = `git worktree add ${worktreePath} -b ${branchName}`;
-      
+
       try {
-        execSync(gitCommand, { 
+        execSync(gitCommand, {
           cwd: this.projectPath,
-          stdio: 'pipe' 
+          stdio: "pipe",
         });
       } catch (gitError) {
-        return { 
-          success: false, 
-          error: `Failed to create git worktree: ${gitError instanceof Error ? gitError.message : 'Unknown error'}` 
+        return {
+          success: false,
+          error: `Failed to create git worktree: ${gitError instanceof Error ? gitError.message : "Unknown error"}`,
         };
       }
 
@@ -62,7 +68,7 @@ export class AgentWorktreeManager extends EventEmitter {
         worktreePath,
         branchName,
         isActive: false,
-        createdAt: new Date()
+        createdAt: new Date(),
       };
 
       this.worktrees.set(taskId, worktreeInfo);
@@ -70,39 +76,41 @@ export class AgentWorktreeManager extends EventEmitter {
 
       return { success: true, worktreePath };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
 
-  async deleteWorktree(taskId: string): Promise<{ success: boolean; error?: string }> {
+  async deleteWorktree(
+    taskId: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const worktreeInfo = this.worktrees.get(taskId);
       if (!worktreeInfo) {
-        return { success: false, error: 'Worktree not found' };
+        return { success: false, error: "Worktree not found" };
       }
 
       // Remove the git worktree
       const gitCommand = `git worktree remove ${worktreeInfo.worktreePath}`;
-      
+
       try {
-        execSync(gitCommand, { 
+        execSync(gitCommand, {
           cwd: this.projectPath,
-          stdio: 'pipe' 
+          stdio: "pipe",
         });
       } catch (gitError) {
         // If git worktree remove fails, try to force remove
         try {
-          execSync(`git worktree remove --force ${worktreeInfo.worktreePath}`, { 
+          execSync(`git worktree remove --force ${worktreeInfo.worktreePath}`, {
             cwd: this.projectPath,
-            stdio: 'pipe' 
+            stdio: "pipe",
           });
         } catch (forceError) {
-          return { 
-            success: false, 
-            error: `Failed to remove git worktree: ${forceError instanceof Error ? forceError.message : 'Unknown error'}` 
+          return {
+            success: false,
+            error: `Failed to remove git worktree: ${forceError instanceof Error ? forceError.message : "Unknown error"}`,
           };
         }
       }
@@ -112,22 +120,24 @@ export class AgentWorktreeManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
 
-  async switchToWorktree(taskId: string): Promise<{ success: boolean; error?: string }> {
+  async switchToWorktree(
+    taskId: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const worktreeInfo = this.worktrees.get(taskId);
       if (!worktreeInfo) {
-        return { success: false, error: 'Worktree not found' };
+        return { success: false, error: "Worktree not found" };
       }
 
       // Mark all worktrees as inactive
-      this.worktrees.forEach(wt => {
+      this.worktrees.forEach((wt) => {
         wt.isActive = false;
       });
 
@@ -143,9 +153,9 @@ export class AgentWorktreeManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -159,11 +169,11 @@ export class AgentWorktreeManager extends EventEmitter {
   }
 
   getActiveWorktree(): WorktreeInfo | undefined {
-    return Array.from(this.worktrees.values()).find(wt => wt.isActive);
+    return Array.from(this.worktrees.values()).find((wt) => wt.isActive);
   }
 
   onWorktreeStatusChange(callback: (info: AgentWorktreeInfo) => void) {
-    this.on('worktreeStatusChange', callback);
+    this.on("worktreeStatusChange", callback);
   }
 
   private emitWorktreeStatusChange(worktreeInfo: WorktreeInfo) {
@@ -171,22 +181,22 @@ export class AgentWorktreeManager extends EventEmitter {
       taskId: worktreeInfo.taskId,
       worktreePath: worktreeInfo.worktreePath,
       branchName: worktreeInfo.branchName,
-      isActive: worktreeInfo.isActive
+      isActive: worktreeInfo.isActive,
     };
-    
-    this.emit('worktreeStatusChange', info);
+
+    this.emit("worktreeStatusChange", info);
   }
 
   // Utility method to list all git worktrees
   async listGitWorktrees(): Promise<string[]> {
     try {
-      const output = execSync('git worktree list', { 
+      const output = execSync("git worktree list", {
         cwd: this.projectPath,
-        encoding: 'utf8'
+        encoding: "utf8",
       });
-      return output.trim().split('\n');
+      return output.trim().split("\n");
     } catch (error) {
-      console.error('Failed to list git worktrees:', error);
+      console.error("Failed to list git worktrees:", error);
       return [];
     }
   }
@@ -198,16 +208,18 @@ export class AgentWorktreeManager extends EventEmitter {
 
     // Find worktrees that exist in git but not in our tracking
     for (const gitWorktree of gitWorktrees) {
-      if (gitWorktree.includes('agent-')) {
+      if (gitWorktree.includes("agent-")) {
         const worktreePath = gitWorktree.split(/\s+/)[0];
-        const found = trackedWorktrees.find(wt => wt.worktreePath === worktreePath);
-        
+        const found = trackedWorktrees.find(
+          (wt) => wt.worktreePath === worktreePath,
+        );
+
         if (!found) {
           // This is an orphaned worktree, remove it
           try {
-            execSync(`git worktree remove --force ${worktreePath}`, { 
+            execSync(`git worktree remove --force ${worktreePath}`, {
               cwd: this.projectPath,
-              stdio: 'pipe' 
+              stdio: "pipe",
             });
             console.log(`Cleaned up orphaned worktree: ${worktreePath}`);
           } catch (error) {

@@ -14,7 +14,7 @@
 
 /* Code block improvements */
 .markdown-content pre {
-  font-family: 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-family: "Fira Code", "Monaco", "Menlo", monospace;
   font-size: 0.875rem;
   line-height: 1.4;
   tab-size: 2;
@@ -44,7 +44,7 @@
 
 /* Inline code improvements */
 .markdown-content code {
-  font-family: 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-family: "Fira Code", "Monaco", "Menlo", monospace;
   font-size: 0.875rem;
 }
 

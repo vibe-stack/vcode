@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -8,9 +8,9 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 
 interface UnsavedChangesDialogProps {
   open: boolean;
@@ -37,7 +37,7 @@ export function UnsavedChangesDialog({
       await onSave();
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to save file:', error);
+      console.error("Failed to save file:", error);
     } finally {
       setIsSaving(false);
     }
@@ -62,22 +62,17 @@ export function UnsavedChangesDialog({
             Unsaved Changes
           </AlertDialogTitle>
           <AlertDialogDescription>
-            You have unsaved changes in "{fileName}". Do you want to save them before closing?
+            You have unsaved changes in "{fileName}". Do you want to save them
+            before closing?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleCancel}>
-            Cancel
-          </AlertDialogCancel>
-          <Button
-            variant="outline"
-            onClick={handleDiscard}
-            disabled={isSaving}
-          >
+          <AlertDialogCancel onClick={handleCancel}>Cancel</AlertDialogCancel>
+          <Button variant="outline" onClick={handleDiscard} disabled={isSaving}>
             Don't Save
           </Button>
           <AlertDialogAction onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? "Saving..." : "Save"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,12 +1,15 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
-import { AgentStatusUpdate, AgentWorktreeInfo } from '@/helpers/ipc/agents/agent-context';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
+import {
+  AgentStatusUpdate,
+  AgentWorktreeInfo,
+} from "@/helpers/ipc/agents/agent-context";
 
 export interface AgentTaskState {
   agentStatuses: Record<string, AgentStatusUpdate>;
   worktreeInfo: Record<string, AgentWorktreeInfo>;
-  
+
   // Actions
   updateAgentStatus: (update: AgentStatusUpdate) => void;
   updateWorktreeInfo: (info: AgentWorktreeInfo) => void;
@@ -48,14 +51,14 @@ export const useAgentTaskStore = create<AgentTaskState>()(
           delete state.agentStatuses[taskId];
           delete state.worktreeInfo[taskId];
         });
-      }
+      },
     })),
     {
-      name: 'agent-tasks-store',
+      name: "agent-tasks-store",
       partialize: (state) => ({
         agentStatuses: state.agentStatuses,
-        worktreeInfo: state.worktreeInfo
-      })
-    }
-  )
+        worktreeInfo: state.worktreeInfo,
+      }),
+    },
+  ),
 );

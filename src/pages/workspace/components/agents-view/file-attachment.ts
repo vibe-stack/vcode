@@ -1,31 +1,35 @@
 // File attachment functionality for kanban tasks
 
-import { TaskAttachment } from '@/stores/kanban/types';
+import { TaskAttachment } from "@/stores/kanban/types";
 
 export interface FileAttachmentItem {
   id: string;
   label: string;
-  type: 'file';
+  type: "file";
   path: string;
   description?: string;
   size?: number;
   lastModified?: Date;
 }
 
-export const convertFileToAttachment = (file: FileAttachmentItem): TaskAttachment => ({
+export const convertFileToAttachment = (
+  file: FileAttachmentItem,
+): TaskAttachment => ({
   id: file.id,
-  type: 'file',
+  type: "file",
   name: file.label,
   path: file.path,
   size: file.size,
-  lastModified: file.lastModified
+  lastModified: file.lastModified,
 });
 
-export const convertAttachmentToFile = (attachment: TaskAttachment): FileAttachmentItem => ({
+export const convertAttachmentToFile = (
+  attachment: TaskAttachment,
+): FileAttachmentItem => ({
   id: attachment.id,
   label: attachment.name,
-  type: 'file',
+  type: "file",
   path: attachment.path,
   size: attachment.size,
-  lastModified: attachment.lastModified
+  lastModified: attachment.lastModified,
 });

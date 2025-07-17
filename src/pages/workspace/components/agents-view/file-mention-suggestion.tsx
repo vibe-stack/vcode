@@ -1,5 +1,5 @@
-import React from 'react';
-import { MentionItem } from '@/pages/workspace/components/chat/types';
+import React from "react";
+import { MentionItem } from "@/pages/workspace/components/chat/types";
 
 interface FileMentionSuggestionProps {
   items: MentionItem[];
@@ -13,8 +13,9 @@ export class FileMentionSuggestion {
 
   constructor(props: FileMentionSuggestionProps) {
     this.props = props;
-    this.element = document.createElement('div');
-    this.element.className = 'bg-white border rounded-md shadow-lg p-1 max-h-48 overflow-y-auto z-50';
+    this.element = document.createElement("div");
+    this.element.className =
+      "bg-white border rounded-md shadow-lg p-1 max-h-48 overflow-y-auto z-50";
     this.render();
   }
 
@@ -24,17 +25,17 @@ export class FileMentionSuggestion {
   }
 
   onKeyDown({ event }: { event: KeyboardEvent }) {
-    if (event.key === 'ArrowUp') {
+    if (event.key === "ArrowUp") {
       this.upHandler();
       return true;
     }
 
-    if (event.key === 'ArrowDown') {
+    if (event.key === "ArrowDown") {
       this.downHandler();
       return true;
     }
 
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       this.enterHandler();
       return true;
     }
@@ -43,24 +44,26 @@ export class FileMentionSuggestion {
   }
 
   upHandler() {
-    const newIndex = this.props.selectedIndex === 0 
-      ? this.props.items.length - 1 
-      : this.props.selectedIndex - 1;
-    
+    const newIndex =
+      this.props.selectedIndex === 0
+        ? this.props.items.length - 1
+        : this.props.selectedIndex - 1;
+
     this.updateProps({
       ...this.props,
-      selectedIndex: newIndex
+      selectedIndex: newIndex,
     });
   }
 
   downHandler() {
-    const newIndex = this.props.selectedIndex === this.props.items.length - 1 
-      ? 0 
-      : this.props.selectedIndex + 1;
-    
+    const newIndex =
+      this.props.selectedIndex === this.props.items.length - 1
+        ? 0
+        : this.props.selectedIndex + 1;
+
     this.updateProps({
       ...this.props,
-      selectedIndex: newIndex
+      selectedIndex: newIndex,
     });
   }
 
@@ -76,28 +79,28 @@ export class FileMentionSuggestion {
   }
 
   render() {
-    this.element.innerHTML = '';
-    
+    this.element.innerHTML = "";
+
     if (this.props.items.length === 0) {
-      const noResults = document.createElement('div');
-      noResults.className = 'px-3 py-2 text-sm text-gray-500';
-      noResults.textContent = 'No files found';
+      const noResults = document.createElement("div");
+      noResults.className = "px-3 py-2 text-sm text-gray-500";
+      noResults.textContent = "No files found";
       this.element.appendChild(noResults);
       return;
     }
 
     this.props.items.forEach((item, index) => {
-      const button = document.createElement('button');
+      const button = document.createElement("button");
       button.className = `w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100 ${
-        index === this.props.selectedIndex ? 'bg-blue-50' : ''
+        index === this.props.selectedIndex ? "bg-blue-50" : ""
       }`;
-      
+
       button.innerHTML = `
         <div class="font-medium">${item.label}</div>
-        ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
+        ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ""}
       `;
-      
-      button.addEventListener('click', () => this.selectItem(index));
+
+      button.addEventListener("click", () => this.selectItem(index));
       this.element.appendChild(button);
     });
   }

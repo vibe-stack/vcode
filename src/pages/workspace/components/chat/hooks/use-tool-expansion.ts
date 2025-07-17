@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 export function useToolExpansion() {
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
 
   const toggleExpanded = useCallback((toolCallId: string) => {
-    setExpandedTools(prev => {
+    setExpandedTools((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(toolCallId)) {
         newSet.delete(toolCallId);
@@ -15,9 +15,12 @@ export function useToolExpansion() {
     });
   }, []);
 
-  const isExpanded = useCallback((toolCallId: string) => {
-    return expandedTools.has(toolCallId);
-  }, [expandedTools]);
+  const isExpanded = useCallback(
+    (toolCallId: string) => {
+      return expandedTools.has(toolCallId);
+    },
+    [expandedTools],
+  );
 
   const collapseAll = useCallback(() => {
     setExpandedTools(new Set());
@@ -26,6 +29,6 @@ export function useToolExpansion() {
   return {
     isExpanded,
     toggleExpanded,
-    collapseAll
+    collapseAll,
   };
 }

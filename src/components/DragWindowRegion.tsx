@@ -22,7 +22,10 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
         <div className="flex flex-1 items-center px-4">
           <div className="no-drag">
             <Link to="/">
-              <img src="src/assets/imgs/vcode_long.svg" className="text-xs h-4" />
+              <img
+                src="src/assets/imgs/vcode_long.svg"
+                className="h-4 text-xs"
+              />
             </Link>
           </div>
         </div>
@@ -35,7 +38,7 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
           <div className="no-drag">
             <button
               onClick={() => setSettingsOpen(true)}
-              className="p-2 hover:bg-slate-700 rounded-md transition-colors"
+              className="rounded-md p-2 transition-colors hover:bg-slate-700"
               title="Settings"
             >
               <SettingsIcon size={12} />
@@ -55,7 +58,7 @@ function WindowButtons() {
       <button
         type="button"
         title="Close"
-        className="p-2 hover:bg-red-700 rounded-md cursor-default hover:cursor-default"
+        className="cursor-default rounded-md p-2 hover:cursor-default hover:bg-red-700"
         onClick={closeWindow}
       >
         <svg
@@ -75,7 +78,7 @@ function WindowButtons() {
       <button
         title="Minimize"
         type="button"
-        className="p-2 hover:bg-slate-700 rounded-md cursor-default hover:cursor-default"
+        className="cursor-default rounded-md p-2 hover:cursor-default hover:bg-slate-700"
         onClick={minimizeWindow}
       >
         <svg
@@ -91,7 +94,7 @@ function WindowButtons() {
       <button
         title="Maximize"
         type="button"
-        className="p-2 hover:bg-slate-700 rounded-md cursor-default hover:cursor-default"
+        className="cursor-default rounded-md p-2 hover:cursor-default hover:bg-slate-700"
         onClick={maximizeWindow}
       >
         <svg

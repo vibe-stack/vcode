@@ -34,7 +34,7 @@ interface AppSettings {
   general: {
     autoSave: boolean;
     confirmBeforeClose: boolean;
-    startupBehavior: 'welcome' | 'lastProject' | 'empty';
+    startupBehavior: "welcome" | "lastProject" | "empty";
   };
 }
 
@@ -66,7 +66,7 @@ const defaultSettings: AppSettings = {
   general: {
     autoSave: true,
     confirmBeforeClose: true,
-    startupBehavior: 'welcome',
+    startupBehavior: "welcome",
   },
 };
 
@@ -81,9 +81,9 @@ class SettingsManager {
   private secureSettings: SecureSettings;
 
   constructor() {
-    const userDataPath = app.getPath('userData');
-    this.settingsPath = path.join(userDataPath, 'settings.json');
-    this.secureSettingsPath = path.join(userDataPath, 'secure-settings.json');
+    const userDataPath = app.getPath("userData");
+    this.settingsPath = path.join(userDataPath, "settings.json");
+    this.secureSettingsPath = path.join(userDataPath, "secure-settings.json");
     this.settings = { ...defaultSettings };
     this.secureSettings = { ...defaultSecureSettings };
   }
@@ -95,71 +95,79 @@ class SettingsManager {
 
   private async loadSettings() {
     try {
-      const data = await fs.readFile(this.settingsPath, 'utf8');
+      const data = await fs.readFile(this.settingsPath, "utf8");
       this.settings = { ...defaultSettings, ...JSON.parse(data) };
     } catch (error) {
       // File doesn't exist or is corrupted, use defaults
-      console.log('Settings file not found or corrupted, using defaults');
+      console.log("Settings file not found or corrupted, using defaults");
       await this.saveSettings();
     }
   }
 
   private async saveSettings() {
     try {
-      await fs.writeFile(this.settingsPath, JSON.stringify(this.settings, null, 2));
+      await fs.writeFile(
+        this.settingsPath,
+        JSON.stringify(this.settings, null, 2),
+      );
     } catch (error) {
-      console.error('Failed to save settings:', error);
-      throw new Error('Failed to save settings');
+      console.error("Failed to save settings:", error);
+      throw new Error("Failed to save settings");
     }
   }
 
   private async loadSecureSettings() {
     try {
-      const data = await fs.readFile(this.secureSettingsPath, 'utf8');
+      const data = await fs.readFile(this.secureSettingsPath, "utf8");
       this.secureSettings = { ...defaultSecureSettings, ...JSON.parse(data) };
     } catch (error) {
       // File doesn't exist or is corrupted, use defaults
-      console.log('Secure settings file not found or corrupted, using defaults');
+      console.log(
+        "Secure settings file not found or corrupted, using defaults",
+      );
       await this.saveSecureSettings();
     }
   }
 
   private async saveSecureSettings() {
     try {
-      await fs.writeFile(this.secureSettingsPath, JSON.stringify(this.secureSettings, null, 2));
+      await fs.writeFile(
+        this.secureSettingsPath,
+        JSON.stringify(this.secureSettings, null, 2),
+      );
     } catch (error) {
-      console.error('Failed to save secure settings:', error);
-      throw new Error('Failed to save secure settings');
+      console.error("Failed to save secure settings:", error);
+      throw new Error("Failed to save secure settings");
     }
   }
 
   async get<T = any>(key: string): Promise<T | undefined> {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let current: any = this.settings;
-    
+
     for (const k of keys) {
-      if (current && typeof current === 'object' && k in current) {
+      if (current && typeof current === "object" && k in current) {
         current = current[k];
       } else {
         return undefined;
       }
     }
-    
+
     return current;
   }
 
   async set(key: string, value: any): Promise<void> {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let current: any = this.settings;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
-      if (!(k in current) || typeof current[k] !== 'object') {
+      if (!(k in current) || typeof current[k] !== "object") {
         current[k] = {};
       }
       current = current[k];
     }
-    
+
     current[keys[keys.length - 1]] = value;
     await this.saveSettings();
   }
@@ -183,72 +191,72 @@ class SettingsManager {
       this.settings = { ...defaultSettings, ...importedSettings };
       await this.saveSettings();
     } catch (error) {
-      throw new Error('Invalid settings format');
+      throw new Error("Invalid settings format");
     }
   }
 
   // Secure settings methods
   async getSecure(key: string): Promise<string | undefined> {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let current: any = this.secureSettings;
-    
+
     for (const k of keys) {
-      if (current && typeof current === 'object' && k in current) {
+      if (current && typeof current === "object" && k in current) {
         current = current[k];
       } else {
         return undefined;
       }
     }
-    
+
     return current;
   }
 
   async setSecure(key: string, value: string): Promise<void> {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let current: any = this.secureSettings;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
-      if (!(k in current) || typeof current[k] !== 'object') {
+      if (!(k in current) || typeof current[k] !== "object") {
         current[k] = {};
       }
       current = current[k];
     }
-    
+
     current[keys[keys.length - 1]] = value;
     await this.saveSecureSettings();
   }
 
   async deleteSecure(key: string): Promise<void> {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let current: any = this.secureSettings;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
-      if (!(k in current) || typeof current[k] !== 'object') {
+      if (!(k in current) || typeof current[k] !== "object") {
         return; // Key doesn't exist
       }
       current = current[k];
     }
-    
+
     delete current[keys[keys.length - 1]];
     await this.saveSecureSettings();
   }
 
   async listSecureKeys(): Promise<string[]> {
     const keys: string[] = [];
-    
-    const traverse = (obj: any, prefix: string = '') => {
+
+    const traverse = (obj: any, prefix: string = "") => {
       for (const key in obj) {
         const fullKey = prefix ? `${prefix}.${key}` : key;
-        if (typeof obj[key] === 'object' && obj[key] !== null) {
+        if (typeof obj[key] === "object" && obj[key] !== null) {
           traverse(obj[key], fullKey);
         } else {
           keys.push(fullKey);
         }
       }
     };
-    
+
     traverse(this.secureSettings);
     return keys;
   }
@@ -293,10 +301,13 @@ export function addSettingsEventListeners() {
     return settingsManager.getSecure(key);
   });
 
-  ipcMain.handle(SETTINGS_SET_SECURE_CHANNEL, async (_, key: string, value: string) => {
-    await settingsManager.setSecure(key, value);
-    return true;
-  });
+  ipcMain.handle(
+    SETTINGS_SET_SECURE_CHANNEL,
+    async (_, key: string, value: string) => {
+      await settingsManager.setSecure(key, value);
+      return true;
+    },
+  );
 
   ipcMain.handle(SETTINGS_DELETE_SECURE_CHANNEL, async (_, key: string) => {
     await settingsManager.deleteSecure(key);

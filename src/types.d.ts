@@ -20,7 +20,7 @@ interface ElectronWindow {
 
 interface ProjectApi {
   openFolder: (folderPath?: string) => Promise<void>;
-  getCurrentProject: () => Promise<string | null>; 
+  getCurrentProject: () => Promise<string | null>;
   setCurrentProject: (projectPath: string) => Promise<void>;
   openFile: (filePath: string) => Promise<{ content: string; path: string }>;
   saveFile: (filePath: string, content: string) => Promise<void>;
@@ -37,48 +37,86 @@ interface ProjectApi {
   }>;
   getDirectoryTree: (
     rootPath: string,
-    options?: { depth?: number; includeFiles?: boolean } 
+    options?: { depth?: number; includeFiles?: boolean },
   ) => Promise<any>;
   watchFileChanges: (filePath: string) => Promise<void>;
   unwatchFileChanges: (filePath: string) => Promise<void>;
   searchFiles: (
     query: string,
     rootPath?: string,
-    options?: { includePatterns?: string[]; excludePatterns?: string[] }
+    options?: { includePatterns?: string[]; excludePatterns?: string[] },
   ) => Promise<string[]>;
   searchInFiles: (
     query: string,
     rootPath?: string,
-    options?: { filePatterns?: string[]; excludePatterns?: string[] }
+    options?: { filePatterns?: string[]; excludePatterns?: string[] },
   ) => Promise<string[]>;
   getRecentProjects: () => Promise<string[]>;
-  addRecentProject: (projectPath: string, projectName?: string) => Promise<void>;
+  addRecentProject: (
+    projectPath: string,
+    projectName?: string,
+  ) => Promise<void>;
   removeRecentProject: (projectPath: string) => Promise<void>;
   setLastOpenedProject: (projectPath: string) => Promise<void>;
   getLastOpenedProject: () => Promise<string | null>;
 }
 
 interface AI {
-  sendMessage: (payload: { messages: import('ai').CoreMessage[], requestId: string, apiType?: string }) => Promise<{ success: boolean, requestId: string }>;
-  onStreamChunk: (callback: (data: { requestId: string, chunk: Uint8Array }) => void) => void;
+  sendMessage: (payload: {
+    messages: import("ai").CoreMessage[];
+    requestId: string;
+    apiType?: string;
+  }) => Promise<{ success: boolean; requestId: string }>;
+  onStreamChunk: (
+    callback: (data: { requestId: string; chunk: Uint8Array }) => void,
+  ) => void;
   onStreamEnd: (callback: (data: { requestId: string }) => void) => void;
-  onStreamError: (callback: (data: { requestId: string, error: string }) => void) => void;
+  onStreamError: (
+    callback: (data: { requestId: string; error: string }) => void,
+  ) => void;
   removeAllListeners: () => void;
 }
 
 interface Agents {
-  sendMessage: (payload: { taskId: string, messages: import('ai').CoreMessage[], requestId: string }) => Promise<{ success: boolean, requestId: string }>;
-  onStreamChunk: (callback: (data: { taskId: string, requestId: string, chunk: Uint8Array }) => void) => void;
-  onStreamEnd: (callback: (data: { taskId: string, requestId: string }) => void) => void;
-  onStreamError: (callback: (data: { taskId: string, requestId: string, error: string }) => void) => void;
+  sendMessage: (payload: {
+    taskId: string;
+    messages: import("ai").CoreMessage[];
+    requestId: string;
+  }) => Promise<{ success: boolean; requestId: string }>;
+  onStreamChunk: (
+    callback: (data: {
+      taskId: string;
+      requestId: string;
+      chunk: Uint8Array;
+    }) => void,
+  ) => void;
+  onStreamEnd: (
+    callback: (data: { taskId: string; requestId: string }) => void,
+  ) => void;
+  onStreamError: (
+    callback: (data: {
+      taskId: string;
+      requestId: string;
+      error: string;
+    }) => void,
+  ) => void;
   startAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   stopAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   pauseAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
-  resumeAgent: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  resumeAgent: (
+    taskId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   onStatusUpdate: (callback: (data: any) => void) => void;
-  createWorktree: (taskId: string, branchName: string) => Promise<{ success: boolean; error?: string; worktreePath?: string }>;
-  deleteWorktree: (taskId: string) => Promise<{ success: boolean; error?: string }>;
-  switchWorktree: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  createWorktree: (
+    taskId: string,
+    branchName: string,
+  ) => Promise<{ success: boolean; error?: string; worktreePath?: string }>;
+  deleteWorktree: (
+    taskId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  switchWorktree: (
+    taskId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   onWorktreeStatusChange: (callback: (data: any) => void) => void;
   removeAllListeners: () => void;
 }
@@ -100,15 +138,26 @@ interface SettingsApi {
 }
 
 interface TerminalApi {
-  create: (options?: { cwd?: string; title?: string }) => Promise<{ id: string; title: string; cwd: string; pid: number }>;
+  create: (options?: {
+    cwd?: string;
+    title?: string;
+  }) => Promise<{ id: string; title: string; cwd: string; pid: number }>;
   write: (terminalId: string, data: string) => Promise<boolean>;
   resize: (terminalId: string, cols: number, rows: number) => Promise<boolean>;
   kill: (terminalId: string) => Promise<boolean>;
   killAll: () => Promise<boolean>;
-  list: () => Promise<{ id: string; title: string; cwd: string; pid: number }[]>;
-  onData: (callback: (data: { terminalId: string; data: string }) => void) => () => void;
-  onExit: (callback: (data: { terminalId: string; exitCode: number }) => void) => () => void;
-  onError: (callback: (data: { terminalId: string; error: string }) => void) => () => void;
+  list: () => Promise<
+    { id: string; title: string; cwd: string; pid: number }[]
+  >;
+  onData: (
+    callback: (data: { terminalId: string; data: string }) => void,
+  ) => () => void;
+  onExit: (
+    callback: (data: { terminalId: string; exitCode: number }) => void,
+  ) => () => void;
+  onError: (
+    callback: (data: { terminalId: string; error: string }) => void,
+  ) => () => void;
   removeAllListeners: () => void;
 }
 

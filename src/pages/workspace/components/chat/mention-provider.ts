@@ -1,5 +1,5 @@
-import { projectApi } from '@/services/project-api';
-import { MentionItem } from './types';
+import { projectApi } from "@/services/project-api";
+import { MentionItem } from "./types";
 
 export class MentionProvider {
   private static instance: MentionProvider;
@@ -14,58 +14,64 @@ export class MentionProvider {
     return MentionProvider.instance;
   }
 
-  async searchMentions(query: string, type: 'file' | 'all' = 'all'): Promise<MentionItem[]> {
-    console.log('searchMentions called with query:', query, 'type:', type);
+  async searchMentions(
+    query: string,
+    type: "file" | "all" = "all",
+  ): Promise<MentionItem[]> {
+    console.log("searchMentions called with query:", query, "type:", type);
     const results: MentionItem[] = [];
 
-    if (type === 'file' || type === 'all') {
+    if (type === "file" || type === "all") {
       const fileResults = await this.searchFiles(query);
-      console.log('File search results:', fileResults);
+      console.log("File search results:", fileResults);
       results.push(...fileResults);
     }
 
     // Future: Add other mention types like URLs, references, etc.
-    if (type === 'all') {
+    if (type === "all") {
       // Add URL suggestions for common patterns
-      if (query.includes('http') || query.includes('www')) {
+      if (query.includes("http") || query.includes("www")) {
         results.push({
           id: `url-${query}`,
           label: query,
-          type: 'url',
-          description: 'Web URL',
+          type: "url",
+          description: "Web URL",
         });
       }
     }
 
-    console.log('Final mention search results:', results);
+    console.log("Final mention search results:", results);
     return results;
   }
 
   // Synchronous search for Tiptap suggestions
-  searchMentionsSync(query: string, type: 'file' | 'all' = 'all'): MentionItem[] {
-    console.log('searchMentionsSync called with query:', query, 'type:', type);
+  searchMentionsSync(
+    query: string,
+    type: "file" | "all" = "all",
+  ): MentionItem[] {
+    console.log("searchMentionsSync called with query:", query, "type:", type);
     const results: MentionItem[] = [];
 
-    if (type === 'file' || type === 'all') {
+    if (type === "file" || type === "all") {
       const fileResults = this.searchFilesSync(query);
-      console.log('File search results (sync):', fileResults);
+      console.log("File search results (sync):", fileResults);
       results.push(...fileResults);
     }
 
     // Future: Add other mention types like URLs, references, etc.
-    if (type === 'all') {
+    if (type === "all") {
       // Add URL suggestions for common patterns
-      if (query.includes('http') || query.includes('www')) {
+      if (query.includes("http") || query.includes("www")) {
         results.push({
           id: `url-${query}`,
           label: query,
-          type: 'url',
-          description: 'Web URL',
+          type: "url",
+          description: "Web URL",
         });
       }
     }
 
-    console.log('Final mention search results (sync):', results);
+    console.log("Final mention search results (sync):", results);
     return results;
   }
 
@@ -73,25 +79,25 @@ export class MentionProvider {
   private searchFilesSync(query: string): MentionItem[] {
     try {
       // Use cached files only (no async update)
-      const matchingFiles = this.cachedFiles.filter(filePath => {
-        const fileName = filePath.split('/').pop() || '';
+      const matchingFiles = this.cachedFiles.filter((filePath) => {
+        const fileName = filePath.split("/").pop() || "";
         // If query is empty, show all files (limited)
-        if (query.trim() === '') {
+        if (query.trim() === "") {
           return true;
         }
         return fileName.toLowerCase().includes(query.toLowerCase());
       });
 
       // Convert to MentionItem format
-      return matchingFiles.slice(0, 10).map(filePath => ({
+      return matchingFiles.slice(0, 10).map((filePath) => ({
         id: `file-${filePath}`,
-        label: filePath.split('/').pop() || filePath,
-        type: 'file' as const,
+        label: filePath.split("/").pop() || filePath,
+        type: "file" as const,
         path: filePath,
         description: this.getFileDescription(filePath),
       }));
     } catch (error) {
-      console.error('Error searching files (sync):', error);
+      console.error("Error searching files (sync):", error);
       return [];
     }
   }
@@ -102,85 +108,96 @@ export class MentionProvider {
       await this.updateFileCache();
 
       // Filter files by query
-      const matchingFiles = this.cachedFiles.filter(filePath => {
-        const fileName = filePath.split('/').pop() || '';
+      const matchingFiles = this.cachedFiles.filter((filePath) => {
+        const fileName = filePath.split("/").pop() || "";
         return fileName.toLowerCase().includes(query.toLowerCase());
       });
 
       // Convert to MentionItem format
-      return matchingFiles.slice(0, 10).map(filePath => ({
+      return matchingFiles.slice(0, 10).map((filePath) => ({
         id: `file-${filePath}`,
-        label: filePath.split('/').pop() || filePath,
-        type: 'file' as const,
+        label: filePath.split("/").pop() || filePath,
+        type: "file" as const,
         path: filePath,
         description: this.getFileDescription(filePath),
       }));
     } catch (error) {
-      console.error('Error searching files:', error);
+      console.error("Error searching files:", error);
       return [];
     }
   }
 
   private async updateFileCache(): Promise<void> {
     const now = Date.now();
-    console.log('updateFileCache called, cache age:', now - this.lastCacheTime, 'ms');
+    console.log(
+      "updateFileCache called, cache age:",
+      now - this.lastCacheTime,
+      "ms",
+    );
     if (now - this.lastCacheTime < this.CACHE_DURATION) {
-      console.log('Cache is still fresh, skipping update');
+      console.log("Cache is still fresh, skipping update");
       return; // Cache is still fresh
     }
 
     try {
       // Get current project and search for files
       const currentProject = await projectApi.getCurrentProject();
-      console.log('Current project:', currentProject);
+      console.log("Current project:", currentProject);
       if (!currentProject) {
-        console.log('No current project, clearing cache');
+        console.log("No current project, clearing cache");
         this.cachedFiles = [];
         return;
       }
 
       // Search for all files in the project
-      const files = await projectApi.searchFiles('', currentProject, {
-        excludePatterns: ['node_modules', '.git', 'dist', 'build', '.next', '.vscode'],
+      const files = await projectApi.searchFiles("", currentProject, {
+        excludePatterns: [
+          "node_modules",
+          ".git",
+          "dist",
+          "build",
+          ".next",
+          ".vscode",
+        ],
       });
-      console.log('Found files:', files.length, 'files');
+      console.log("Found files:", files.length, "files");
 
       this.cachedFiles = files;
       this.lastCacheTime = now;
     } catch (error) {
-      console.error('Error updating file cache:', error);
+      console.error("Error updating file cache:", error);
       this.cachedFiles = [];
     }
   }
 
   private getFileDescription(filePath: string): string {
-    const extension = filePath.split('.').pop()?.toLowerCase();
+    const extension = filePath.split(".").pop()?.toLowerCase();
     const descriptions: Record<string, string> = {
-      'ts': 'TypeScript file',
-      'tsx': 'TypeScript React file',
-      'js': 'JavaScript file',
-      'jsx': 'JavaScript React file',
-      'css': 'CSS stylesheet',
-      'scss': 'SCSS stylesheet',
-      'html': 'HTML file',
-      'json': 'JSON file',
-      'md': 'Markdown file',
-      'txt': 'Text file',
-      'py': 'Python file',
-      'java': 'Java file',
-      'cpp': 'C++ file',
-      'c': 'C file',
-      'php': 'PHP file',
-      'rb': 'Ruby file',
-      'go': 'Go file',
-      'rs': 'Rust file',
-      'swift': 'Swift file',
-      'kt': 'Kotlin file',
-      'vue': 'Vue component',
-      'svelte': 'Svelte component',
+      ts: "TypeScript file",
+      tsx: "TypeScript React file",
+      js: "JavaScript file",
+      jsx: "JavaScript React file",
+      css: "CSS stylesheet",
+      scss: "SCSS stylesheet",
+      html: "HTML file",
+      json: "JSON file",
+      md: "Markdown file",
+      txt: "Text file",
+      py: "Python file",
+      java: "Java file",
+      cpp: "C++ file",
+      c: "C file",
+      php: "PHP file",
+      rb: "Ruby file",
+      go: "Go file",
+      rs: "Rust file",
+      swift: "Swift file",
+      kt: "Kotlin file",
+      vue: "Vue component",
+      svelte: "Svelte component",
     };
 
-    return descriptions[extension || ''] || 'File';
+    return descriptions[extension || ""] || "File";
   }
 
   clearCache(): void {
@@ -190,7 +207,7 @@ export class MentionProvider {
 
   // Preload cache for better performance
   async preloadCache(): Promise<void> {
-    console.log('Preloading mention cache...');
+    console.log("Preloading mention cache...");
     await this.updateFileCache();
   }
 }

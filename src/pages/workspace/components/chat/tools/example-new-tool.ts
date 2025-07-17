@@ -1,6 +1,6 @@
 /**
  * Example: How to add a new tool
- * 
+ *
  * This file demonstrates how to add a simple "getCurrentTime" tool
  * Follow these steps to add any new tool to the system.
  */

@@ -24,7 +24,7 @@ function createWindow() {
       webSecurity: false,
       preload: preload,
     },
-    frame: false,
+    frame: true,
   });
   registerListeners(mainWindow);
 

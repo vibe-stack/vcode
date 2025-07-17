@@ -1,4 +1,4 @@
-import { GitResult } from '@/services/git-api';
+import { GitResult } from "@/services/git-api";
 
 export interface GitWorktreeInfo {
   path: string;
@@ -14,11 +14,22 @@ export interface GitWorktreeAPI {
   removeWorktree: (path: string, force?: boolean) => Promise<GitResult>;
   listWorktrees: (projectPath: string) => Promise<GitWorktreeInfo[]>;
   pruneWorktrees: (projectPath: string) => Promise<GitResult>;
-  
+
   // Branch operations for worktrees
-  createBranch: (projectPath: string, branchName: string, startPoint?: string) => Promise<GitResult>;
-  deleteBranch: (projectPath: string, branchName: string, force?: boolean) => Promise<GitResult>;
-  checkoutBranch: (projectPath: string, branchName: string) => Promise<GitResult>;
+  createBranch: (
+    projectPath: string,
+    branchName: string,
+    startPoint?: string,
+  ) => Promise<GitResult>;
+  deleteBranch: (
+    projectPath: string,
+    branchName: string,
+    force?: boolean,
+  ) => Promise<GitResult>;
+  checkoutBranch: (
+    projectPath: string,
+    branchName: string,
+  ) => Promise<GitResult>;
 }
 
 declare global {

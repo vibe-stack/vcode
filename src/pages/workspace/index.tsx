@@ -9,11 +9,7 @@ import { useProjectStore } from "@/stores/project";
 import { WorkspaceFooter } from "./components/footer";
 import { useEditorContentStore } from "@/stores/editor-content";
 import { AgentsView } from "./components/agents-view";
-import { Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import GlobalCommands from "@/components/global-commands";
 import { SettingsModal } from "@/components/SettingsModal";
-import { Link } from "@tanstack/react-router";
 
 export default function WorkspacePage() {
   const { currentProject } = useProjectStore();
@@ -40,60 +36,17 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="bg-background relative flex h-full max-h-full w-full flex-col">
-      {/* Custom title bar */}
-      <div className="draglayer bg-background/95 flex h-12 flex-shrink-0 items-center border-b px-4 backdrop-blur-md">
-        {/* Left section - Logo/Home */}
-        <div className="flex flex-1 items-center">
-          <div className="no-drag">
-            <Link
-              to="/"
-              className="flex items-center gap-2 transition-opacity hover:opacity-80"
-            >
-              <img
-                src="/src/assets/imgs/vcode_long.svg"
-                className="h-5"
-                alt="vCode"
-              />
-            </Link>
-          </div>
-        </div>
-
-        {/* Center section - Project name */}
-        <div className="flex flex-1 items-center justify-center">
-          <span className="text-foreground/80 text-sm font-medium select-none">
-            {currentProject ? currentProject.split("/").pop() : "vCode"}
-          </span>
-        </div>
-
-        {/* Right section - Commands and Settings */}
-        <div className="flex flex-1 items-center justify-end gap-2">
-          <div className="no-drag">
-            <GlobalCommands onOpenSettings={() => setSettingsOpen(true)} />
-          </div>
-          <div className="no-drag">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => setSettingsOpen(true)}
-              title="Settings"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+    <div className="bg-background relative flex w-full flex-col h-full">
 
       {/* Main content area */}
       <div className="flex-1">
-        <ResizablePanelGroup direction="horizontal">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* Left Panel - File Explorer */}
           <ResizablePanel
             defaultSize={leftPanelSize}
             onResize={onResizeLeftPanel}
           >
-            <div className="h-full w-full">
+            <div className="w-full h-full">
               <FileExplorer />
             </div>
           </ResizablePanel>
@@ -115,7 +68,7 @@ export default function WorkspacePage() {
               onResize={onResizeRightPanel}
               minSize={15}
             >
-              <div className="h-full w-full">
+              <div className="w-full h-full">
                 <ChatPanel />
               </div>
             </ResizablePanel>

@@ -313,10 +313,6 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
             {/* Header */}
             <div className="border-b px-4 py-3 flex-shrink-0 bg-gradient-to-b from-background to-background/80">
                 <div className="flex items-center justify-between">
-<<<<<<< HEAD
-                    <h2 className="text-sm font-medium">Grok Assistant</h2>
-                    <div className="flex items-center gap-1">
-=======
                     <div className="flex-1" /> {/* Left spacer */}
                     
                     {/* Centered Agent/Code toggle */}
@@ -353,7 +349,6 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
                     
                     {/* Right side buttons */}
                     <div className="flex items-center gap-1 flex-1 justify-end">
->>>>>>> monaco-config-assessment
                         <Button
                             variant="ghost"
                             size="sm"
@@ -378,16 +373,11 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
             {/* Messages */}
             <div className="flex-1 overflow-hidden w-full">
                 <div className="h-full w-full overflow-y-auto" >
-<<<<<<< HEAD
-                    <div className="p-3 space-y-4 w-full">
-                        {messages.map((message, index) => (
-=======
                     <div className={cn(
                         "space-y-4 w-full",
                         isAgentMode ? "max-w-4xl mx-auto p-8" : "p-4"
                     )}>
                         {messages.map((message) => (
->>>>>>> monaco-config-assessment
                             <MessageComponent
                                 key={message.id}
                                 message={message}
@@ -417,8 +407,7 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
             </div>
 
             {/* Input Area */}
-<<<<<<< HEAD
-            <div className="border-t flex-shrink-0">
+            <div className="border-t flex-shrink-0 bg-gradient-to-t from-background to-background/80">
                 {currentSessionId && (
                     <GlobalFileChanges
                         sessionId={currentSessionId}
@@ -426,13 +415,9 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
                         onRejectAll={handleRejectAllFileChanges}
                     />
                 )}
-                <div className="px-3 pb-3">
-=======
-            <div className="border-t flex-shrink-0 bg-gradient-to-t from-background to-background/80">
                 <div className={cn(
                     isAgentMode ? "max-w-4xl mx-auto p-6" : "p-4"
                 )}>
->>>>>>> monaco-config-assessment
                     <ChatInput
                         onSend={handleEnhancedSend}
                         onStop={handleStop}

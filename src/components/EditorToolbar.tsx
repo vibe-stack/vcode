@@ -1,14 +1,16 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { useBufferStore } from '@/stores/buffers';
-import EditorAdvancedFeatures, { EditorExamples } from '@/services/monaco/advanced-features';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { useBufferStore } from "@/stores/buffers";
+import EditorAdvancedFeatures, {
+  EditorExamples,
+} from "@/services/monaco/advanced-features";
 
 /**
  * Example component demonstrating how to interact with Monaco editors
  * from outside the Editor component using the registry
  */
 export function EditorToolbar() {
-  const activeBufferId = useBufferStore(state => state.activeBufferId);
+  const activeBufferId = useBufferStore((state) => state.activeBufferId);
 
   if (!activeBufferId) {
     return null;
@@ -23,7 +25,7 @@ export function EditorToolbar() {
   };
 
   const handleGoToLine = () => {
-    const line = prompt('Go to line number:');
+    const line = prompt("Go to line number:");
     if (line && !isNaN(parseInt(line))) {
       EditorAdvancedFeatures.goToPosition(activeBufferId, parseInt(line));
     }
@@ -34,23 +36,28 @@ export function EditorToolbar() {
   };
 
   const handleInsertSnippet = () => {
-    const componentName = prompt('Component name:');
+    const componentName = prompt("Component name:");
     if (componentName) {
       EditorExamples.insertReactComponent(activeBufferId, componentName);
     }
   };
 
   const handleFindReplace = () => {
-    const searchText = prompt('Search for:');
+    const searchText = prompt("Search for:");
     if (searchText) {
-      const replaceText = prompt('Replace with:') || '';
-      const replaceAll = confirm('Replace all occurrences?');
-      EditorAdvancedFeatures.findAndReplace(activeBufferId, searchText, replaceText, replaceAll);
+      const replaceText = prompt("Replace with:") || "";
+      const replaceAll = confirm("Replace all occurrences?");
+      EditorAdvancedFeatures.findAndReplace(
+        activeBufferId,
+        searchText,
+        replaceText,
+        replaceAll,
+      );
     }
   };
 
   return (
-    <div className="flex gap-2 p-2 border-b">
+    <div className="flex gap-2 border-b p-2">
       <Button variant="outline" size="sm" onClick={handleFormatDocument}>
         Format
       </Button>

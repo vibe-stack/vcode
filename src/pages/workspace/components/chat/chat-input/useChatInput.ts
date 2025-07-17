@@ -1,9 +1,9 @@
-import { useCallback, useEffect } from 'react';
-import { useChatEditor } from './useChatEditor';
-import { useAttachments } from './useAttachments';
-import { useChatSending } from './useChatSending';
-import { useAutoBufferAttachments } from './useAutoBufferAttachments';
-import { ChatAttachment } from '../types';
+import { useCallback, useEffect } from "react";
+import { useChatEditor } from "./useChatEditor";
+import { useAttachments } from "./useAttachments";
+import { useChatSending } from "./useChatSending";
+import { useAutoBufferAttachments } from "./useAutoBufferAttachments";
+import { ChatAttachment } from "../types";
 
 interface UseChatInputProps {
   disabled: boolean;
@@ -79,11 +79,11 @@ export const useChatInput = ({
     editor,
     handleKeyDown,
     isEmpty,
-    
+
     // Attachments
     attachments,
     removeAttachment,
-    
+
     // Sending
     isSending,
     handleSend,
