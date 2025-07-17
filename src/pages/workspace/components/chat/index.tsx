@@ -11,6 +11,8 @@ import { chatPersistenceService } from './chat-persistence';
 import { ChatHistory } from './chat-history';
 import DotMatrix from '@/components/ui/animated-dot-matrix';
 import { cn } from '@/utils/tailwind';
+import { useSettingsStore } from '@/stores/settings';
+import { getActiveAccentClasses } from '@/utils/accent-colors';
 
 interface ChatPanelProps {
     isAgentMode?: boolean;
@@ -20,6 +22,9 @@ interface ChatPanelProps {
 export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelProps) {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
+    const { settings } = useSettingsStore();
+    const accentColor = settings.appearance?.accentColor || 'blue';
+    const useGradient = settings.appearance?.accentGradient ?? true;
     const { messages, append, setMessages, isLoading, addToolResult, stop } = useChat({
         api: '/api/chat', // This will be handled by our custom fetcher
         fetch: chatFetch,
@@ -258,32 +263,42 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
             {/* Header */}
             <div className="border-b px-4 py-3 flex-shrink-0 bg-gradient-to-b from-background to-background/80">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold tracking-tight">AI Assistant</h2>
-                    <div className="flex items-center gap-1">
-                        {onToggleAgentMode && (
-                            <div className="flex items-center gap-0.5 mr-2 bg-muted rounded-md p-0.5">
-                                <Button 
-                                    variant={isAgentMode ? "default" : "ghost"} 
-                                    size="sm" 
-                                    className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
-                                    onClick={onToggleAgentMode}
-                                    title="Agent Mode - Full screen chat"
-                                >
-                                    <Bot className="h-3.5 w-3.5" />
-                                    Agent
-                                </Button>
-                                <Button 
-                                    variant={!isAgentMode ? "default" : "ghost"} 
-                                    size="sm" 
-                                    className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
-                                    onClick={onToggleAgentMode}
-                                    title="Code Mode - Show code editor and files"
-                                >
-                                    <Code2 className="h-3.5 w-3.5" />
-                                    Code
-                                </Button>
-                            </div>
-                        )}
+                    <div className="flex-1" /> {/* Left spacer */}
+                    
+                    {/* Centered Agent/Code toggle */}
+                    {onToggleAgentMode && (
+                        <div className="flex items-center gap-0 bg-muted/50 rounded-md p-0.5">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn(
+                                    "h-8 px-4 text-xs gap-1.5 rounded-md transition-all",
+                                    isAgentMode && getActiveAccentClasses(accentColor, useGradient)
+                                )}
+                                onClick={onToggleAgentMode}
+                                title="Agent Mode - Full screen chat"
+                            >
+                                <Bot className="h-4 w-4" />
+                                Agent
+                            </Button>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn(
+                                    "h-8 px-4 text-xs gap-1.5 rounded-md transition-all",
+                                    !isAgentMode && getActiveAccentClasses(accentColor, useGradient)
+                                )}
+                                onClick={onToggleAgentMode}
+                                title="Code Mode - Show code editor and files"
+                            >
+                                <Code2 className="h-4 w-4" />
+                                Code
+                            </Button>
+                        </div>
+                    )}
+                    
+                    {/* Right side buttons */}
+                    <div className="flex items-center gap-1 flex-1 justify-end">
                         <Button
                             variant="ghost"
                             size="sm"

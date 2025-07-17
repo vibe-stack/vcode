@@ -15,6 +15,10 @@ import tippy from 'tippy.js';
 import { MentionSuggestionRenderer } from './mention-renderer';
 import { useBufferStore } from '@/stores/buffers';
 import { useEditorSplitStore } from '@/stores/editor-splits';
+import { slashCommandProvider } from './slash-commands';
+import { SlashCommandSuggestionRenderer } from './slash-command-renderer';
+import { useSettingsStore } from '@/stores/settings';
+import { getAccentGlowStyle } from '@/utils/accent-colors';
 
 interface ChatInputProps {
   onSend: (content: string, attachments: ChatAttachment[]) => void;
@@ -41,11 +45,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, [attachments]);
   const [hasUserInput, setHasUserInput] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const sendingRef = React.useRef(false); // Ref to track sending state
 
   // Store references
   const buffers = useBufferStore(state => state.buffers);
   const tabOrder = useBufferStore(state => state.tabOrder);
+  const { settings } = useSettingsStore();
+  const accentColor = settings.appearance?.accentColor || 'blue';
+  const useGradient = settings.appearance?.accentGradient ?? true;
   const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
 
   // Custom extension to intercept Enter for send
@@ -78,11 +86,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         suggestion: {
           char: '@',
           items: ({ query }) => {
-            if (query.length < 1) {
-              return [];
-            }
+            // Show all files when @ is typed with no query
             // Use synchronous search for Tiptap compatibility
-            const result = mentionProvider.searchMentionsSync(query, 'file');
+            const result = mentionProvider.searchMentionsSync(query || '', 'file');
             return result;
           },
           render: () => {
@@ -127,6 +133,66 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           },
         },
       }),
+      Mention.extend({
+        name: 'slashCommand',
+      }).configure({
+        HTMLAttributes: {
+          class: 'slash-command',
+        },
+        suggestion: {
+          char: '/',
+          items: ({ query }) => {
+            return slashCommandProvider.searchCommands(query);
+          },
+          render: () => {
+            let component: any;
+            let popup: any;
+
+            return {
+              onStart: (props: any) => {
+                component = new SlashCommandSuggestionRenderer(props);
+                popup = tippy('body', {
+                  getReferenceClientRect: props.clientRect,
+                  appendTo: () => document.body,
+                  content: component.element,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                  placement: 'bottom-start',
+                });
+              },
+              onUpdate: (props: any) => {
+                component.updateProps(props);
+                popup[0].setProps({
+                  getReferenceClientRect: props.clientRect,
+                });
+              },
+              onKeyDown: (props: any) => {
+                if (props.event.key === 'Escape') {
+                  popup[0].hide();
+                  return true;
+                }
+                return component.onKeyDown(props);
+              },
+              onExit: () => {
+                popup[0].destroy();
+                component.destroy();
+              },
+            };
+          },
+          command: ({ editor, range, props }) => {
+            const commandText = slashCommandProvider.executeCommand(props.id);
+            
+            // Delete the slash command mention
+            editor
+              .chain()
+              .focus()
+              .deleteRange(range)
+              .insertContent(commandText)
+              .run();
+          },
+        },
+      }),
       EnterSend,
     ],
     content: '',
@@ -134,6 +200,43 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     onUpdate: ({ editor }) => {
       // Update attachments when mentions change (but don't mark as user input yet)
       updateAttachmentsFromContent().catch(console.error);
+    },
+    onFocus: () => {
+      setIsFocused(true);
+    },
+    onBlur: () => {
+      setIsFocused(false);
+    },
+    editorProps: {
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (file) {
+              handleImageUpload(file);
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+      handleDrop: (view, event) => {
+        const files = event.dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        
+        for (const file of files) {
+          if (file.type.startsWith('image/')) {
+            event.preventDefault();
+            handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
+      },
     },
   });
 
@@ -363,6 +466,36 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [hasUserInput]);
 
+  const handleImageUpload = async (file: File) => {
+    try {
+      // Read file as data URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        
+        // Create image attachment
+        const imageAttachment: ChatAttachment = {
+          id: `image-${Date.now()}`,
+          type: 'image',
+          name: file.name,
+          content: dataUrl,
+          size: file.size,
+          lastModified: file.lastModified,
+        };
+        
+        // Add to attachments
+        setAttachments(prev => [...prev, imageAttachment]);
+        
+        // Focus back to editor
+        editor?.commands.focus();
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
   if (!editor) {
     return (
       <div className="relative w-full">
@@ -384,7 +517,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 key={attachment.id}
                 className="flex items-center gap-1 px-2 py-1 bg-background rounded-md text-xs border group"
               >
-                <Paperclip className="h-3 w-3" />
+                {attachment.type === 'image' ? (
+                  <>
+                    <Image className="h-3 w-3" />
+                    <img 
+                      src={attachment.content as string} 
+                      alt={attachment.name} 
+                      className="h-12 w-12 object-cover rounded"
+                    />
+                  </>
+                ) : (
+                  <Paperclip className="h-3 w-3" />
+                )}
                 <span className="truncate max-w-[200px]">{attachment.name}</span>
                 <Button
                   variant="ghost"
@@ -401,13 +545,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      <div className="relative border rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      <div 
+        className="relative border border-border rounded-md transition-all duration-300 [&:focus-within]:ring-0 [&:focus-within]:ring-offset-0 [&:focus-within]:outline-none [&:focus-within]:border-transparent"
+        style={{
+          ...(isFocused ? getAccentGlowStyle(accentColor, useGradient) : {}),
+          '--tw-ring-color': 'transparent',
+          '--tw-ring-offset-color': 'transparent'
+        }}
+      >
         <EditorContent
           editor={editor}
           className={cn(
             "min-h-[80px] max-h-[200px] overflow-y-auto p-0 text-xs",
             "prose prose-sm max-w-none dark:prose-invert",
             "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:rounded [&_.mention]:text-xs",
+            "[&_.ProseMirror]:outline-none [&_.ProseMirror]:focus:outline-none",
+            "[&_.ProseMirror-focused]:outline-none",
             disabled && "opacity-50 cursor-not-allowed"
           )}
           onKeyDown={handleKeyDown}
@@ -419,6 +572,61 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             {placeholder}
           </div>
         )}
+
+        {/* Toolbar buttons */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => {
+              // Trigger @ mention
+              editor?.chain().focus().insertContent('@').run();
+            }}
+            disabled={disabled || isLoading}
+            tabIndex={-1}
+            title="Mention file"
+          >
+            <AtSign className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => {
+              // Create file input and trigger click
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'image/*';
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                  await handleImageUpload(file);
+                }
+              };
+              input.click();
+            }}
+            disabled={disabled || isLoading}
+            tabIndex={-1}
+            title="Add image"
+          >
+            <Image className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => {
+              // Trigger slash command
+              editor?.chain().focus().insertContent('/').run();
+            }}
+            disabled={disabled || isLoading}
+            tabIndex={-1}
+            title="Use command"
+          >
+            <Slash className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {/* Send button */}

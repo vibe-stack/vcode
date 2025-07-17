@@ -160,6 +160,38 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
     };
   }, [terminalId]);
 
+  // Update terminal font when settings change
+  useEffect(() => {
+    if (!xtermRef.current || !isInitialized) return;
+
+    const fontMap: Record<string, string> = {
+      'sf-mono': '"SF Mono", Monaco, Menlo, "Courier New", monospace',
+      'jetbrains-mono': '"JetBrains Mono", "Fira Code", Monaco, Menlo, monospace',
+      'fira-code': '"Fira Code", "JetBrains Mono", Monaco, Menlo, monospace',
+      'menlo': 'Menlo, Monaco, "Courier New", monospace',
+      'consolas': 'Consolas, Monaco, "Courier New", monospace',
+      'monaco': 'Monaco, Menlo, "Courier New", monospace',
+      'cascadia-code': '"Cascadia Code", "Fira Code", Monaco, monospace',
+      'source-code-pro': '"Source Code Pro", Monaco, Menlo, monospace',
+      'tektur': 'Tektur, "SF Mono", Monaco, Menlo, monospace',
+      'ubuntu-mono': '"Ubuntu Mono", "SF Mono", monospace',
+      'courier': '"Courier New", Courier, monospace'
+    };
+
+    try {
+      xtermRef.current.options.fontFamily = fontMap[terminalFontFamily] || fontMap['sf-mono'];
+      xtermRef.current.options.fontSize = terminalFontSize;
+      xtermRef.current.options.fontWeight = terminalFontBold ? '600' : 'normal';
+      
+      // Trigger a re-fit after font change
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit();
+      }
+    } catch (error) {
+      console.error('Error updating terminal font:', error);
+    }
+  }, [terminalFontFamily, terminalFontSize, terminalFontBold, isInitialized]);
+
   // Handle resize when container size changes or when becoming active
   useEffect(() => {
     if (!isInitialized || !fitAddonRef.current) return;
@@ -205,10 +237,11 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
   return (
     <div 
       ref={terminalRef} 
-      className={`h-full w-full ${className || ''}`}
+      className={`h-full w-full p-2 ${className || ''}`}
       style={{ 
-        backgroundColor: '#1e1e1e', // Match terminal background
-        display: isActive ? 'block' : 'none'
+        backgroundColor: '#000000', // Match terminal background
+        display: isActive ? 'block' : 'none',
+        boxSizing: 'border-box'
       }}
     />
   );

@@ -104,8 +104,8 @@ export function Editor({ buffer, onChange }: EditorProps) {
             editorRef.current = editor;
             
             // Check if editor and model are valid
-            if (!editor || editor.isDisposed()) {
-                console.error('Editor is disposed or invalid');
+            if (!editor || !editor.getModel()) {
+                console.error('Editor is invalid or has no model');
                 return;
             }
             
@@ -115,23 +115,40 @@ export function Editor({ buffer, onChange }: EditorProps) {
                 return;
             }
             
-            // Update font settings
-            const fontMap: Record<string, string> = {
-                'sf-mono': '"SF Mono", Monaco, Menlo, "Courier New", monospace',
-                'jetbrains-mono': '"JetBrains Mono", "Fira Code", Monaco, Menlo, monospace',
-                'fira-code': '"Fira Code", "JetBrains Mono", Monaco, Menlo, monospace',
-                'menlo': 'Menlo, Monaco, "Courier New", monospace',
-                'consolas': 'Consolas, Monaco, "Courier New", monospace',
-                'monaco': 'Monaco, Menlo, "Courier New", monospace',
-                'cascadia-code': '"Cascadia Code", "Fira Code", Monaco, monospace',
-                'source-code-pro': '"Source Code Pro", Monaco, Menlo, monospace',
-                'tektur': 'Tektur, "SF Mono", Monaco, Menlo, monospace'
-            };
+            // Get font settings from CSS variables for consistency
+            const root = document.documentElement;
+            const computedStyle = getComputedStyle(root);
+            
+            // Get font from CSS variable or use fallback
+            let fontFamily = computedStyle.getPropertyValue('--font-mono').trim();
+            if (!fontFamily) {
+                // Fallback font map if CSS variable is not set
+                const fontMap: Record<string, string> = {
+                    'sf-mono': "'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace",
+                    'fira-code': "'Fira Code', 'Cascadia Code', 'SF Mono', monospace",
+                    'jetbrains': "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+                    'jetbrains-mono': "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+                    'cascadia': "'Cascadia Code', 'Fira Code', 'SF Mono', monospace",
+                    'cascadia-code': "'Cascadia Code', 'Fira Code', 'SF Mono', monospace",
+                    'source-code-pro': "'Source Code Pro', 'SF Mono', 'Fira Code', monospace",
+                    'ubuntu-mono': "'Ubuntu Mono', 'SF Mono', monospace",
+                    'consolas': "Consolas, 'SF Mono', monospace",
+                    'menlo': "Menlo, 'SF Mono', monospace",
+                    'monaco': "Monaco, 'SF Mono', monospace",
+                    'courier': "'Courier New', Courier, monospace",
+                    'tektur': "Tektur, 'SF Mono', Monaco, Menlo, monospace"
+                };
+                fontFamily = fontMap[codeFontFamily] || fontMap['sf-mono'];
+            }
+            
+            // Get font size and weight from CSS variables
+            const fontSize = parseInt(computedStyle.getPropertyValue('--code-font-size')) || codeFontSize;
+            const fontWeight = computedStyle.getPropertyValue('--code-font-weight') || '400';
             
             editor.updateOptions({
-                fontFamily: fontMap[codeFontFamily] || fontMap['sf-mono'],
-                fontSize: codeFontSize,
-                fontWeight: codeFontBold ? '600' : 'normal'
+                fontFamily: fontFamily,
+                fontSize: fontSize,
+                fontWeight: fontWeight
             });
             
             // Focus the editor
@@ -174,6 +191,33 @@ export function Editor({ buffer, onChange }: EditorProps) {
             console.error('Error registering editor commands:', error);
         }
     };
+    
+    // Update editor when font settings change
+    useEffect(() => {
+        const updateEditorFromEvent = (event: CustomEvent) => {
+            if (editorRef.current && typeof editorRef.current.updateOptions === 'function') {
+                const computedStyle = getComputedStyle(document.documentElement);
+                
+                // Use the NEW values from the event, fallback to CSS variables
+                const fontSize = event.detail?.fontSize || parseInt(computedStyle.getPropertyValue('--code-font-size')) || 13;
+                const fontFamily = event.detail?.fontFamily || computedStyle.getPropertyValue('--font-mono').trim() || "'SF Mono', Monaco, monospace";
+                const fontWeight = event.detail?.fontWeight || computedStyle.getPropertyValue('--code-font-weight') || '400';
+                
+                editorRef.current.updateOptions({
+                    fontFamily: fontFamily,
+                    fontSize: fontSize,
+                    fontWeight: fontWeight
+                });
+            }
+        };
+        
+        // Listen for font change events
+        window.addEventListener('editor-font-change', updateEditorFromEvent as EventListener);
+        
+        return () => {
+            window.removeEventListener('editor-font-change', updateEditorFromEvent as EventListener);
+        };
+    }, []);
     
     // Cleanup on unmount
     useEffect(() => {

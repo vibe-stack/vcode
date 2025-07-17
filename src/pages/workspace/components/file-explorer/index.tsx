@@ -20,11 +20,17 @@ import {
 import { FileTreeNode } from './file-tree-node';
 import { GitPanel } from './git-panel';
 import { CreateFilePopover } from './create-file-popover';
+import { cn } from '@/utils/tailwind';
+import { useSettingsStore } from '@/stores/settings';
+import { getActiveAccentClasses } from '@/utils/accent-colors';
 
 export function FileExplorer() {
     const { fileTree, projectName, currentProject } = useProjectStore();
     const { isGitRepo } = useGitStore();
     const { openFile: openFileInSplit, startDrag } = useEditorSplitStore();
+    const { settings } = useSettingsStore();
+    const accentColor = settings.appearance?.accentColor || 'blue';
+    const useGradient = settings.appearance?.accentGradient ?? true;
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<'files' | 'git'>('files');
@@ -120,16 +126,35 @@ export function FileExplorer() {
     return (
         <div className="h-full flex flex-col border-r">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'files' | 'git')} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-2 border-b rounded-none h-11 px-2 py-1">
-                    <TabsTrigger value="files" className="flex items-center gap-1.5 rounded-md data-[state=active]:shadow-sm">
-                        <Files className="h-3.5 w-3.5" />
-                        <span className="text-xs font-medium">Files</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="git" className="flex items-center gap-1.5 rounded-md data-[state=active]:shadow-sm" disabled={!isGitRepo}>
-                        <GitBranch className="h-3.5 w-3.5" />
-                        <span className="text-xs font-medium">Git</span>
-                    </TabsTrigger>
-                </TabsList>
+                <div className="border-b px-2 py-2">
+                    <div className="flex items-center gap-0 bg-muted/50 rounded-md p-0.5">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                                "h-8 px-4 text-xs gap-1.5 rounded-md transition-all flex-1",
+                                activeTab === 'files' && getActiveAccentClasses(accentColor, useGradient)
+                            )}
+                            onClick={() => setActiveTab('files')}
+                        >
+                            <Files className="h-3.5 w-3.5" />
+                            Files
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                                "h-8 px-4 text-xs gap-1.5 rounded-md transition-all flex-1",
+                                activeTab === 'git' && getActiveAccentClasses(accentColor, useGradient)
+                            )}
+                            onClick={() => setActiveTab('git')}
+                            disabled={!isGitRepo}
+                        >
+                            <GitBranch className="h-3.5 w-3.5" />
+                            Git
+                        </Button>
+                    </div>
+                </div>
 
                 {/* Files Tab */}
                 <TabsContent value="files" className="flex-1 flex flex-col m-0 p-0 overflow-y-auto">

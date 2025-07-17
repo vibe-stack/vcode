@@ -49,27 +49,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
   const [terminalFontBold, setTerminalFontBold] = useState(settings.terminal?.font?.bold || false);
   const [selectedTheme, setSelectedTheme] = useState<'light' | 'dark' | 'dimmed' | 'tinted'>(settings.appearance?.theme || 'dark');
   const [selectedAccent, setSelectedAccent] = useState(settings.appearance?.accentColor || 'blue');
+  const [accentGradient, setAccentGradient] = useState(settings.appearance?.accentGradient ?? true);
 
   useEffect(() => {
     if (open) {
       initialize();
       loadApiKeys();
+      // Apply current settings to CSS variables
+      updateCSSVariables();
+      updateTheme();
     }
   }, [open, initialize]);
   
-  // Only sync settings from store when modal first opens
+  // Sync settings from store when modal opens
   useEffect(() => {
-    if (open && !selectedAppFont) {
+    if (open) {
       setSelectedAppFont(settings.appearance?.font?.family || 'system');
       setSelectedCodeFont(settings.editor?.font?.family || 'sf-mono');
       setAppFontSize(settings.appearance?.font?.size?.toString() || '14');
       setCodeFontSize(settings.editor?.font?.size?.toString() || '13');
       setAppFontBold(settings.appearance?.font?.bold || false);
       setCodeFontBold(settings.editor?.font?.bold || false);
+      setSelectedTerminalFont(settings.terminal?.font?.family || 'sf-mono');
+      setTerminalFontSize(settings.terminal?.font?.size?.toString() || '13');
+      setTerminalFontBold(settings.terminal?.font?.bold || false);
       setSelectedTheme(settings.appearance?.theme || 'dark');
       setSelectedAccent(settings.appearance?.accentColor || 'blue');
+      setAccentGradient(settings.appearance?.accentGradient ?? true);
     }
-  }, [open]);
+  }, [open]); // Only sync when modal opens, not when settings change
 
   const loadApiKeys = async () => {
     try {
@@ -166,7 +174,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
       'consolas': "Consolas, 'SF Mono', monospace",
       'menlo': "Menlo, 'SF Mono', monospace",
       'monaco': "Monaco, 'SF Mono', monospace",
-      'courier': "'Courier New', Courier, monospace"
+      'courier': "'Courier New', Courier, monospace",
+      'tektur': "Tektur, 'SF Mono', Monaco, Menlo, monospace"
     };
     
     // Update font families
@@ -230,6 +239,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                   <Label className="text-xs">Interface Font</Label>
                   <Select value={selectedAppFont} onValueChange={async (value) => {
                     setSelectedAppFont(value);
+                    // Update CSS variable immediately
+                    const root = document.documentElement;
+                    const fontMap: Record<string, string> = {
+                      'system': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      'inter': 'Inter, sans-serif',
+                      'helvetica': 'Helvetica, Arial, sans-serif',
+                      'arial': 'Arial, sans-serif',
+                      'segoe': '"Segoe UI", Tahoma, sans-serif',
+                      'roboto': 'Roboto, sans-serif',
+                      'tektur': 'Tektur, sans-serif'
+                    };
+                    root.style.setProperty('--font-sans', fontMap[value] || fontMap['system']);
                     await handleGeneralSettingChange('appearance.font.family', value);
                   }}>
                     <SelectTrigger className="h-7 text-xs">
@@ -247,6 +268,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                   </Select>
                   <Select value={appFontSize} onValueChange={async (value) => {
                     setAppFontSize(value);
+                    // Update CSS variable immediately
+                    document.documentElement.style.setProperty('--app-font-size', `${value}px`);
                     await handleGeneralSettingChange('appearance.font.size', parseInt(value));
                   }}>
                     <SelectTrigger className="h-7 text-xs">
@@ -269,6 +292,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                       checked={appFontBold}
                       onCheckedChange={async (checked) => {
                         setAppFontBold(checked);
+                        // Update CSS variable immediately
+                        document.documentElement.style.setProperty('--app-font-weight', checked ? '600' : '400');
                         await handleGeneralSettingChange('appearance.font.bold', checked);
                       }}
                       className="h-4 w-8"
@@ -280,27 +305,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                 <div className="space-y-1.5">
                   <Label className="text-xs">Code Font</Label>
                   <Select value={selectedCodeFont} onValueChange={async (value) => {
+                    console.log('Font selected:', value, 'Current:', selectedCodeFont);
                     setSelectedCodeFont(value);
+                    // Update CSS variable immediately before saving to settings
+                    const root = document.documentElement;
+                    const codeFontMap: Record<string, string> = {
+                      'sf-mono': "'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace",
+                      'fira-code': "'Fira Code', 'Cascadia Code', 'SF Mono', monospace",
+                      'jetbrains': "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+                      'cascadia': "'Cascadia Code', 'Fira Code', 'SF Mono', monospace",
+                      'source-code-pro': "'Source Code Pro', 'SF Mono', 'Fira Code', monospace",
+                      'ubuntu-mono': "'Ubuntu Mono', 'SF Mono', monospace",
+                      'consolas': "Consolas, 'SF Mono', monospace",
+                      'menlo': "Menlo, 'SF Mono', monospace",
+                      'monaco': "Monaco, 'SF Mono', monospace",
+                      'courier': "'Courier New', Courier, monospace",
+                      'tektur': "Tektur, 'SF Mono', Monaco, Menlo, monospace"
+                    };
+                    const fontFamily = codeFontMap[value] || codeFontMap['sf-mono'];
+                    console.log('Setting CSS font:', fontFamily);
+                    root.style.setProperty('--font-mono', fontFamily);
                     await handleGeneralSettingChange('editor.font.family', value);
+                    // Trigger editor update with NEW value
+                    window.dispatchEvent(new CustomEvent('editor-font-change', {
+                        detail: { fontFamily: fontFamily }
+                    }));
                   }}>
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sf-mono">SF Mono</SelectItem>
-                      <SelectItem value="jetbrains-mono">JetBrains Mono</SelectItem>
+                      <SelectItem value="jetbrains">JetBrains Mono</SelectItem>
                       <SelectItem value="fira-code">Fira Code</SelectItem>
                       <SelectItem value="menlo">Menlo</SelectItem>
                       <SelectItem value="consolas">Consolas</SelectItem>
                       <SelectItem value="monaco">Monaco</SelectItem>
-                      <SelectItem value="cascadia-code">Cascadia Code</SelectItem>
+                      <SelectItem value="cascadia">Cascadia Code</SelectItem>
                       <SelectItem value="source-code-pro">Source Code Pro</SelectItem>
                       <SelectItem value="tektur">Tektur</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={codeFontSize} onValueChange={async (value) => {
                     setCodeFontSize(value);
+                    // Update CSS variable immediately
+                    document.documentElement.style.setProperty('--code-font-size', `${value}px`);
                     await handleGeneralSettingChange('editor.font.size', parseInt(value));
+                    // Force all Monaco editors to update NOW with the NEW value
+                    const editors = document.querySelectorAll('.monaco-editor');
+                    editors.forEach(() => {
+                        window.dispatchEvent(new CustomEvent('editor-font-change', { 
+                            detail: { fontSize: parseInt(value) }
+                        }));
+                    });
                   }}>
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
@@ -322,7 +379,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                       checked={codeFontBold}
                       onCheckedChange={async (checked) => {
                         setCodeFontBold(checked);
+                        // Update CSS variable immediately
+                        const fontWeight = checked ? '600' : '400';
+                        document.documentElement.style.setProperty('--code-font-weight', fontWeight);
                         await handleGeneralSettingChange('editor.font.bold', checked);
+                        // Trigger editor update with NEW value
+                        window.dispatchEvent(new CustomEvent('editor-font-change', {
+                            detail: { fontWeight: fontWeight }
+                        }));
+                      }}
+                      className="h-4 w-8"
+                    />
+                  </div>
+                </div>
+                
+                {/* Terminal Font */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Terminal Font</Label>
+                  <Select value={selectedTerminalFont} onValueChange={async (value) => {
+                    setSelectedTerminalFont(value);
+                    await handleGeneralSettingChange('terminal.font.family', value);
+                  }}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sf-mono">SF Mono</SelectItem>
+                      <SelectItem value="jetbrains">JetBrains Mono</SelectItem>
+                      <SelectItem value="fira-code">Fira Code</SelectItem>
+                      <SelectItem value="menlo">Menlo</SelectItem>
+                      <SelectItem value="consolas">Consolas</SelectItem>
+                      <SelectItem value="monaco">Monaco</SelectItem>
+                      <SelectItem value="cascadia">Cascadia Code</SelectItem>
+                      <SelectItem value="source-code-pro">Source Code Pro</SelectItem>
+                      <SelectItem value="tektur">Tektur</SelectItem>
+                      <SelectItem value="ubuntu-mono">Ubuntu Mono</SelectItem>
+                      <SelectItem value="courier">Courier New</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={terminalFontSize} onValueChange={async (value) => {
+                    setTerminalFontSize(value);
+                    await handleGeneralSettingChange('terminal.font.size', parseInt(value));
+                  }}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="11">11px</SelectItem>
+                      <SelectItem value="12">12px</SelectItem>
+                      <SelectItem value="13">13px (Default)</SelectItem>
+                      <SelectItem value="14">14px</SelectItem>
+                      <SelectItem value="15">15px</SelectItem>
+                      <SelectItem value="16">16px</SelectItem>
+                      <SelectItem value="18">18px</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="terminal-font-bold" className="text-xs">Bold</Label>
+                    <Switch
+                      id="terminal-font-bold"
+                      checked={terminalFontBold}
+                      onCheckedChange={async (checked) => {
+                        setTerminalFontBold(checked);
+                        await handleGeneralSettingChange('terminal.font.bold', checked);
                       }}
                       className="h-4 w-8"
                     />
@@ -438,6 +557,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                     aria-label={`Select ${accent.name} accent`}
                   />
                 ))}
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <Label htmlFor="accent-gradient" className="text-xs">Use gradient effect</Label>
+                <Switch
+                  id="accent-gradient"
+                  checked={accentGradient}
+                  onCheckedChange={async (checked) => {
+                    setAccentGradient(checked);
+                    await handleGeneralSettingChange('appearance.accentGradient', checked);
+                  }}
+                  className="h-4 w-8"
+                />
               </div>
             </div>
           </div>
@@ -755,7 +886,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-full h-[75vh] flex flex-col bg-background border-border/50 p-0">
+      <DialogContent className="sm:max-w-[90vw] xl:max-w-7xl w-full h-[75vh] flex flex-col bg-background border-border/50 p-0">
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-4 w-4" />

@@ -69,7 +69,8 @@ export default function App() {
         'consolas': "Consolas, 'SF Mono', monospace",
         'menlo': "Menlo, 'SF Mono', monospace",
         'monaco': "Monaco, 'SF Mono', monospace",
-        'courier': "'Courier New', Courier, monospace"
+        'courier': "'Courier New', Courier, monospace",
+        'tektur': "Tektur, 'SF Mono', Monaco, Menlo, monospace"
       };
       
       root.style.setProperty('--font-mono', codeFontMap[codeFont] || codeFontMap['sf-mono']);

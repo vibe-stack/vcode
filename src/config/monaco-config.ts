@@ -207,7 +207,7 @@ export const getMonacoEditorOptions = (config: Partial<MonacoEditorConfig> = {})
         // Editor behavior
         automaticLayout: true,
         scrollbar: {
-            vertical: 'auto',
+            vertical: 'hidden',  // Hide vertical scrollbar since we have minimap
             horizontal: 'auto',
             useShadows: true,
             verticalHasArrows: false,

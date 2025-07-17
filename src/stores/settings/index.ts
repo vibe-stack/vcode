@@ -7,6 +7,7 @@ interface SettingsState {
     appearance: {
       theme: 'light' | 'dark' | 'dimmed' | 'tinted';
       accentColor: string;
+      accentGradient: boolean;
       font: {
         family: string;
         size: number;
@@ -84,6 +85,7 @@ export const useSettingsStore = create<SettingsState>()(
         appearance: {
           theme: 'dark',
           accentColor: 'blue',
+          accentGradient: true,
           font: {
             family: 'system',
             size: 14,
