@@ -86,13 +86,18 @@ class AgentExecutionEngine extends EventEmitter {
       // Start the execution
       const success = await this.executeAgent(context, options);
       
+      // Don't automatically change status here - let the agent API handle status changes
+      // through tool calls (finishWork, requireClarification, etc.)
       if (success) {
-        this.updateSessionStatus(sessionId, 'review', { completedAt: new Date().toISOString() });
-        this.addProgress(sessionId, 'Execution completed successfully', 'completed');
+        this.addProgress(sessionId, 'Agent stream completed successfully', 'completed');
         this.emit('executionComplete', { type: 'executionComplete', sessionId, success: true });
       } else {
-        this.updateSessionStatus(sessionId, 'need_clarification');
-        this.addProgress(sessionId, 'Execution requires clarification', 'completed');
+        // Only set to need_clarification if the agent didn't already set a status
+        const currentSession = agentDB.getSession(sessionId);
+        if (currentSession?.status === 'doing') {
+          this.updateSessionStatus(sessionId, 'need_clarification');
+          this.addProgress(sessionId, 'Execution failed - needs clarification', 'failed');
+        }
         this.emit('executionComplete', { type: 'executionComplete', sessionId, success: false });
       }
 

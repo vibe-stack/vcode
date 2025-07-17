@@ -66,7 +66,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
         return (
           <Button
             size="sm"
-            onClick={() => handleAction('promote', () => onPromoteToTodo(agent.id))}
+            onClick={e => { e.stopPropagation(); handleAction('promote', () => onPromoteToTodo(agent.id)); }}
             disabled={isLoading || actionLoading === 'promote'}
             className="gap-1.5"
           >
@@ -79,7 +79,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
         return (
           <Button
             size="sm"
-            onClick={() => handleAction('start', () => onStart(agent.id))}
+            onClick={e => { e.stopPropagation(); handleAction('start', () => onStart(agent.id)); }}
             disabled={isLoading || actionLoading === 'start'}
             className="gap-1.5"
           >
@@ -93,7 +93,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => handleAction('stop', () => onStop(agent.id))}
+            onClick={e => { e.stopPropagation(); handleAction('stop', () => onStop(agent.id)); }}
             disabled={isLoading || actionLoading === 'stop'}
             className="gap-1.5"
           >
@@ -107,7 +107,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
           <div className="flex gap-1">
             <Button
               size="sm"
-              onClick={() => handleAction('accept', () => onAccept(agent.id))}
+              onClick={e => { e.stopPropagation(); handleAction('accept', () => onAccept(agent.id)); }}
               disabled={isLoading || actionLoading === 'accept'}
               className="gap-1.5"
             >
@@ -117,7 +117,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => handleAction('reject', () => onReject(agent.id))}
+              onClick={e => { e.stopPropagation(); handleAction('reject', () => onReject(agent.id)); }}
               disabled={isLoading || actionLoading === 'reject'}
               className="gap-1.5"
             >
@@ -132,7 +132,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onAddMessage(agent.id)}
+            onClick={e => { e.stopPropagation(); onAddMessage(agent.id); }}
             className="gap-1.5"
           >
             <MessageSquare className="h-3 w-3" />
@@ -161,7 +161,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {canViewDetails && (
-            <DropdownMenuItem onClick={() => onViewDetails(agent.id)}>
+            <DropdownMenuItem onClick={e => { e.stopPropagation(); onViewDetails(agent.id); }}>
               <Eye className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
@@ -169,7 +169,8 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
           
           {compact && getPrimaryAction() && (
             <DropdownMenuItem 
-              onClick={() => {
+              onClick={e => {
+                e.stopPropagation();
                 // Handle compact primary actions through dropdown
                 switch (agent.status) {
                   case 'ideas':
@@ -216,11 +217,11 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
           
           {compact && agent.status === 'review' && (
             <>
-              <DropdownMenuItem onClick={() => handleAction('accept', () => onAccept(agent.id))}>
+              <DropdownMenuItem onClick={e => { e.stopPropagation(); handleAction('accept', () => onAccept(agent.id)); }}>
                 <Check className="mr-2 h-4 w-4" />
                 Accept
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAction('reject', () => onReject(agent.id))}>
+              <DropdownMenuItem onClick={e => { e.stopPropagation(); handleAction('reject', () => onReject(agent.id)); }}>
                 <X className="mr-2 h-4 w-4" />
                 Reject
               </DropdownMenuItem>
@@ -228,7 +229,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
           )}
           
           {canAddMessage && (
-            <DropdownMenuItem onClick={() => onAddMessage(agent.id)}>
+            <DropdownMenuItem onClick={e => { e.stopPropagation(); onAddMessage(agent.id); }}>
               <MessageSquare className="mr-2 h-4 w-4" />
               Add Message
             </DropdownMenuItem>
@@ -238,7 +239,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => handleAction('delete', () => onDelete(agent.id))}
+                onClick={e => { e.stopPropagation(); handleAction('delete', () => onDelete(agent.id)); }}
                 className="text-destructive"
                 disabled={actionLoading === 'delete'}
               >

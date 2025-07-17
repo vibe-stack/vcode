@@ -345,32 +345,57 @@ export const searchFiles = tool({
     addProgress(`Searching files in: ${searchDir}`, 'running');
 
     try {
-      // This is a simplified search - in a real implementation you'd want something more sophisticated
+      // Read .gitignore if present and build ignore patterns
+      const resolvedSearchDir = validateFilePath(searchDir);
+      let ignorePatterns: string[] = ['node_modules'];
+      const gitignorePath = path.join(resolvedSearchDir, '.gitignore');
+      if (fs.existsSync(gitignorePath)) {
+        try {
+          const gitignoreContent = await promisify(fs.readFile)(gitignorePath, 'utf-8');
+          ignorePatterns.push(...gitignoreContent.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#')));
+        } catch {}
+      }
+
+      // Helper to check if a path should be ignored
+      const shouldIgnore = (fullPath: string, name: string): boolean => {
+        // Ignore node_modules and .gitignore patterns
+        for (const pattern of ignorePatterns) {
+          if (!pattern) continue;
+          // Simple match: node_modules, folder/, file.ext, *.ext
+          if (pattern.endsWith('/')) {
+            // Directory pattern
+            if (name === pattern.replace(/\/$/, '')) return true;
+          } else if (pattern.startsWith('*')) {
+            // Extension pattern
+            if (name.endsWith(pattern.replace(/^\*/, ''))) return true;
+          } else {
+            // File or folder name
+            if (name === pattern) return true;
+          }
+        }
+        return false;
+      };
+
       const findFiles = async (dir: string, pattern: string): Promise<string[]> => {
         const results: string[] = [];
         const items = await promisify(fs.readdir)(dir, { withFileTypes: true });
-        
         for (const item of items) {
           const fullPath = path.join(dir, item.name);
-          
+          if (shouldIgnore(fullPath, item.name)) continue;
           if (item.isDirectory() && !item.name.startsWith('.')) {
             results.push(...await findFiles(fullPath, pattern));
           } else if (item.isFile() && item.name.toLowerCase().includes(pattern.toLowerCase())) {
             results.push(fullPath);
           }
         }
-        
         return results;
       };
 
-      // Validate and resolve search directory
-      const resolvedSearchDir = validateFilePath(searchDir);
-
       const matches = await findFiles(resolvedSearchDir, query);
-      
       addProgress(`Search completed in: ${searchDir}`, 'completed', `Found ${matches.length} matches`);
       return { success: true, matches };
-      
     } catch (error) {
       addProgress(`Error searching files in: ${searchDir}`, 'failed', error instanceof Error ? error.message : 'Unknown error');
       return { 
@@ -453,6 +478,96 @@ export const getProjectInfo = tool({
   },
 });
 
+// Finish Work Tool - Called when the agent completes its task
+const finishWorkParams = z.object({
+  summary: z.string().describe('A brief summary of what was accomplished'),
+  changes: z.array(z.string()).optional().describe('List of files that were modified or created'),
+  notes: z.string().optional().describe('Any additional notes or context about the completed work')
+});
+
+export const finishWork = tool({
+  description: 'Call this when you have completed your assigned task and are ready for review. This will move the agent to review status.',
+  parameters: finishWorkParams,
+  execute: async ({ summary, changes, notes }) => {
+    const sessionId = getCurrentSessionId();
+    addProgress('Task completed - ready for review', 'completed', summary);
+
+    try {
+      // Update agent status to 'review'
+      agentDB.updateSessionStatus(sessionId, 'review', { 
+        completedAt: new Date().toISOString(),
+        metadata: JSON.stringify({
+          summary,
+          changes: changes || [],
+          notes
+        })
+      });
+
+      console.log(`🎯 Agent work finished by LLM call, moving to review status: ${sessionId}`);
+      
+      return { 
+        success: true, 
+        message: 'Task completed successfully. Agent status set to review.',
+        summary,
+        changes: changes || [],
+        notes
+      };
+      
+    } catch (error) {
+      addProgress('Error finishing work', 'failed', error instanceof Error ? error.message : 'Unknown error');
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  },
+});
+
+// Require Clarification Tool - Called when the agent needs more information
+const requireClarificationParams = z.object({
+  question: z.string().describe('The specific question or clarification needed'),
+  context: z.string().optional().describe('Additional context about why clarification is needed'),
+  suggestedActions: z.array(z.string()).optional().describe('Suggested ways the user could provide the needed clarification')
+});
+
+export const requireClarification = tool({
+  description: 'Call this when you need clarification from the user before proceeding. This will pause the agent and request user input.',
+  parameters: requireClarificationParams,
+  execute: async ({ question, context, suggestedActions }) => {
+    const sessionId = getCurrentSessionId();
+    addProgress('Requesting clarification from user', 'pending', question);
+
+    try {
+      // Update agent status to 'need_clarification'
+      agentDB.updateSessionStatus(sessionId, 'need_clarification', { 
+        metadata: JSON.stringify({
+          question,
+          context,
+          suggestedActions: suggestedActions || [],
+          pausedAt: new Date().toISOString()
+        })
+      });
+
+      console.log(`❓ Agent requesting clarification, moving to need_clarification status: ${sessionId}`);
+      
+      return { 
+        success: true, 
+        message: 'Clarification requested. Agent paused pending user response.',
+        question,
+        context,
+        suggestedActions: suggestedActions || []
+      };
+      
+    } catch (error) {
+      addProgress('Error requesting clarification', 'failed', error instanceof Error ? error.message : 'Unknown error');
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  },
+});
+
 export const agentTools = {
   readFile,
   writeFile,
@@ -461,6 +576,7 @@ export const agentTools = {
   deleteFile,
   searchFiles,
   getProjectInfo,
+  finishWork,
 };
 
 export type ToolName = keyof typeof agentTools;

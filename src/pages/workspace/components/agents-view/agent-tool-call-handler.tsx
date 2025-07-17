@@ -31,6 +31,7 @@ export function AgentToolCallHandler({
     result 
 }: AgentToolCallHandlerProps) {
     const [showDetails, setShowDetails] = useState(false);
+    console.log("rendering", toolName, args, state, result)
 
     // Helper to get filename from path
     const getFileName = (filePath: string): string => {

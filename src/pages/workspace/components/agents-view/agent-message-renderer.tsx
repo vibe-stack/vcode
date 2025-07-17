@@ -104,6 +104,7 @@ export function AgentMessageRenderer({ message, onCopy, onDelete }: AgentMessage
         // For tool role messages, try to parse as tool data first
         if (message.role === 'tool') {
             try {
+                console.log("trying to parse tool", message.content)
                 const toolData = JSON.parse(message.content);
                 return (
                     <AgentToolCallHandler

@@ -6,6 +6,7 @@ import { AgentProgress } from './agent-progress';
 import { Agent } from './types';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/utils/tailwind';
+import { Loader2 } from 'lucide-react';
 
 interface AgentCardProps {
   agent: Agent;
@@ -42,11 +43,9 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <CardTitle className={`font-medium truncate ${compact ? "text-sm" : "text-base"}`}>
+              {isLoading && <Loader2 className="inline h-4 w-4 animate-spin mr-2 text-emerald-400" />}
               {agent.name}
             </CardTitle>
-            <CardDescription className={`mt-1 ${compact ? "text-xs" : "text-sm"} line-clamp-2`}>
-              {agent.description}
-            </CardDescription>
           </div>
           {!compact && <AgentStatusBadge status={agent.status} />}
         </div>

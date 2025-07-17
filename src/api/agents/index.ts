@@ -73,26 +73,48 @@ export async function agentApi({
                         });
                     }
 
-                    // Store tool results if they exist
+                    // Update tool calls with results if they exist
                     if (toolResults && toolResults.length > 0) {
                         toolResults.forEach((result, index) => {
                             const toolCall = toolCalls?.[index];
                             
-                            // Store each tool result as a separate message with full context
-                            agentDB.addMessage({
-                                sessionId,
-                                role: 'tool',
-                                content: JSON.stringify({
-                                    type: 'tool_result', 
-                                    toolCallId: toolCall?.toolCallId || `result-${index}`,
-                                    toolName: toolCall?.toolName || 'unknown_tool',
-                                    args: toolCall?.args || {},
-                                    state: 'result',
-                                    result: result.result
-                                }, null, 2),
-                                stepIndex: currentStepIndex,
-                                toolResults: JSON.stringify([result]),
-                            });
+                            if (toolCall?.toolCallId) {
+                                // Find the existing tool call message and update it with the result
+                                const existingMessage = agentDB.findMessageByToolCallId(sessionId, toolCall.toolCallId, currentStepIndex);
+                                
+                                if (existingMessage) {
+                                    // Update the existing message with the result
+                                    const updatedContent = JSON.stringify({
+                                        type: 'tool_call_with_result',
+                                        toolCallId: toolCall.toolCallId,
+                                        toolName: toolCall.toolName,
+                                        args: toolCall.args,
+                                        state: 'completed',
+                                        result: result.result
+                                    }, null, 2);
+                                    
+                                    agentDB.updateMessage(existingMessage.id, {
+                                        content: updatedContent,
+                                        toolResults: JSON.stringify([result])
+                                    });
+                                } else {
+                                    // Fallback: create new message if not found (shouldn't happen normally)
+                                    agentDB.addMessage({
+                                        sessionId,
+                                        role: 'tool',
+                                        content: JSON.stringify({
+                                            type: 'tool_result', 
+                                            toolCallId: toolCall.toolCallId,
+                                            toolName: toolCall.toolName,
+                                            args: toolCall.args,
+                                            state: 'result',
+                                            result: result.result
+                                        }, null, 2),
+                                        stepIndex: currentStepIndex,
+                                        toolResults: JSON.stringify([result]),
+                                    });
+                                }
+                            }
                         });
                     }
 
@@ -112,22 +134,33 @@ export async function agentApi({
             async onFinish({ response, finishReason, usage }) {
                 // Store final completion status if we have a session
                 if (sessionId) {
-                    agentDB.addProgress({
-                        sessionId,
-                        step: 'Agent execution completed',
-                        status: finishReason === 'stop' ? 'completed' : 'failed',
-                        details: `Reason: ${finishReason}, Usage: ${JSON.stringify(usage)}`,
-                    });
-
-                    // Update agent status to 'review' when execution completes successfully
-                    if (finishReason === 'stop') {
-                        console.log(`🎯 Agent execution completed successfully, moving to review status: ${sessionId}`);
-                        agentDB.updateSessionStatus(sessionId, 'review', { 
-                            completedAt: new Date().toISOString() 
+                    // Only handle error cases here - successful completion should be handled by finishWork() tool
+                    if (finishReason !== 'stop') {
+                        console.log(`❌ Agent execution failed with reason: ${finishReason}, moving to need_clarification status: ${sessionId}`);
+                        agentDB.updateSessionStatus(sessionId, 'need_clarification', {
+                            metadata: JSON.stringify({
+                                error: `Execution failed: ${finishReason}`,
+                                failedAt: new Date().toISOString()
+                            })
+                        });
+                        
+                        agentDB.addProgress({
+                            sessionId,
+                            step: 'Agent execution failed',
+                            status: 'failed',
+                            details: `Reason: ${finishReason}, Usage: ${JSON.stringify(usage)}`,
                         });
                     } else {
-                        console.log(`❌ Agent execution failed, moving to need_clarification status: ${sessionId}`);
-                        agentDB.updateSessionStatus(sessionId, 'need_clarification');
+                        // Successful completion - but don't change status here
+                        // The LLM should call finishWork() to move to 'review' status
+                        console.log(`✅ Agent stream completed successfully: ${sessionId}, waiting for finishWork() call`);
+                        
+                        agentDB.addProgress({
+                            sessionId,
+                            step: 'Agent stream completed',
+                            status: 'completed',
+                            details: `Usage: ${JSON.stringify(usage)}`,
+                        });
                     }
                 }
             },

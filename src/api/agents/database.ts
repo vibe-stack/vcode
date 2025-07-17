@@ -219,6 +219,8 @@ class AgentDatabase {
   }
 
   updateSessionStatus(id: string, status: AgentStatus, additionalData?: Partial<AgentSession>): void {
+    console.log(`🔄 updateSessionStatus called: ${id} -> ${status}`, { additionalData, stack: new Error().stack?.split('\n').slice(1, 4) });
+    
     const now = new Date().toISOString();
     
     let setFields = ['status = ?', 'updated_at = ?'];
@@ -394,6 +396,49 @@ class AgentDatabase {
       timestamp: row.timestamp,
       stepIndex: row.step_index,
     }));
+  }
+
+  updateMessage(messageId: string, updates: Partial<Pick<AgentMessage, 'content' | 'toolResults'>>): boolean {
+    const stmt = this.db.prepare(`
+      UPDATE agent_messages 
+      SET content = COALESCE(?, content), 
+          tool_results = COALESCE(?, tool_results)
+      WHERE id = ?
+    `);
+
+    const result = stmt.run(updates.content || null, updates.toolResults || null, messageId);
+    return result.changes > 0;
+  }
+
+  findMessageByToolCallId(sessionId: string, toolCallId: string, stepIndex: number): AgentMessage | null {
+    const stmt = this.db.prepare(`
+      SELECT * FROM agent_messages 
+      WHERE session_id = ? AND step_index = ? AND role = 'tool' AND tool_calls IS NOT NULL
+    `);
+    
+    const rows = stmt.all(sessionId, stepIndex) as any[];
+    
+    for (const row of rows) {
+      try {
+        const toolCalls = JSON.parse(row.tool_calls || '[]');
+        if (toolCalls.some((tc: any) => tc.toolCallId === toolCallId)) {
+          return {
+            id: row.id,
+            sessionId: row.session_id,
+            role: row.role as 'user' | 'assistant' | 'system' | 'tool',
+            content: row.content,
+            toolCalls: row.tool_calls || undefined,
+            toolResults: row.tool_results || undefined,
+            timestamp: row.timestamp,
+            stepIndex: row.step_index,
+          };
+        }
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    }
+    
+    return null;
   }
 
   // File Locks
