@@ -1,14 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
-export interface TerminalTab {
-  id: string;
-  title: string;
-  cwd: string;
-  pid: number;
-  isActive: boolean;
-}
-
 export interface TerminalSplit {
   id: string;
   terminalId: string;
@@ -17,14 +9,20 @@ export interface TerminalSplit {
   pid: number;
 }
 
+export interface TerminalTab {
+  id: string;
+  title: string;
+  cwd: string;
+  pid: number;
+  isActive: boolean;
+  splits: TerminalSplit[];
+  activeSplitId: string | null;
+}
+
 export interface TerminalState {
   // Terminal tabs
   tabs: TerminalTab[];
   activeTabId: string | null;
-  
-  // Terminal splits within active tab
-  splits: TerminalSplit[];
-  activeSplitId: string | null;
   
   // Terminal visibility
   isVisible: boolean;
@@ -34,18 +32,19 @@ export interface TerminalState {
   createTab: (terminalInfo: { id: string; title: string; cwd: string; pid: number }) => void;
   removeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
-  updateTab: (tabId: string, updates: Partial<TerminalTab>) => void;
+  updateTab: (tabId: string, updates: Partial<Omit<TerminalTab, 'splits' | 'activeSplitId'>>) => void;
   
   createSplit: (tabId: string, terminalInfo: { id: string; title: string; cwd: string; pid: number }) => void;
-  removeSplit: (splitId: string) => void;
-  setActiveSplit: (splitId: string) => void;
-  updateSplit: (splitId: string, updates: Partial<TerminalSplit>) => void;
+  removeSplit: (tabId: string, splitId: string) => void;
+  setActiveSplit: (tabId: string, splitId: string | null) => void;
+  updateSplit: (tabId: string, splitId: string, updates: Partial<TerminalSplit>) => void;
   
   setVisible: (visible: boolean) => void;
   setHeight: (height: number) => void;
   
-  // Get splits for active tab
-  getActiveSplits: () => TerminalSplit[];
+  // Get splits for specific tab
+  getTabSplits: (tabId: string) => TerminalSplit[];
+  getActiveTab: () => TerminalTab | null;
   
   // Cleanup
   cleanup: () => void;
@@ -55,8 +54,6 @@ export const useTerminalStore = create<TerminalState>()(
   subscribeWithSelector((set, get) => ({
     tabs: [],
     activeTabId: null,
-    splits: [],
-    activeSplitId: null,
     isVisible: false,
     height: 300,
 
@@ -66,7 +63,9 @@ export const useTerminalStore = create<TerminalState>()(
         title: terminalInfo.title,
         cwd: terminalInfo.cwd,
         pid: terminalInfo.pid,
-        isActive: true
+        isActive: true,
+        splits: [],
+        activeSplitId: null
       };
 
       set((state) => {
@@ -76,8 +75,6 @@ export const useTerminalStore = create<TerminalState>()(
         return {
           tabs: [...updatedTabs, newTab],
           activeTabId: newTab.id,
-          splits: [],
-          activeSplitId: null,
           isVisible: true
         };
       });
@@ -85,6 +82,7 @@ export const useTerminalStore = create<TerminalState>()(
 
     removeTab: (tabId) => {
       set((state) => {
+        const tabToRemove = state.tabs.find(tab => tab.id === tabId);
         const updatedTabs = state.tabs.filter(tab => tab.id !== tabId);
         let newActiveTabId = state.activeTabId;
         
@@ -99,14 +97,9 @@ export const useTerminalStore = create<TerminalState>()(
           isActive: tab.id === newActiveTabId
         }));
         
-        // Remove splits for this tab
-        const updatedSplits = state.splits.filter(split => split.terminalId !== tabId);
-        
         return {
           tabs: finalTabs,
           activeTabId: newActiveTabId,
-          splits: updatedSplits,
-          activeSplitId: updatedSplits.length > 0 ? updatedSplits[0].id : null,
           isVisible: finalTabs.length > 0
         };
       });
@@ -121,9 +114,7 @@ export const useTerminalStore = create<TerminalState>()(
         
         return {
           tabs: updatedTabs,
-          activeTabId: tabId,
-          splits: [],
-          activeSplitId: null
+          activeTabId: tabId
         };
       });
     },
@@ -146,36 +137,61 @@ export const useTerminalStore = create<TerminalState>()(
       };
 
       set((state) => ({
-        splits: [...state.splits, newSplit],
-        activeSplitId: newSplit.id
+        tabs: state.tabs.map(tab => 
+          tab.id === tabId 
+            ? { 
+                ...tab, 
+                splits: [...tab.splits, newSplit],
+                activeSplitId: newSplit.id
+              }
+            : tab
+        )
       }));
     },
 
-    removeSplit: (splitId) => {
-      set((state) => {
-        const updatedSplits = state.splits.filter(split => split.id !== splitId);
-        let newActiveSplitId = state.activeSplitId;
-        
-        // If removing active split, select another one
-        if (state.activeSplitId === splitId) {
-          newActiveSplitId = updatedSplits.length > 0 ? updatedSplits[0].id : null;
-        }
-        
-        return {
-          splits: updatedSplits,
-          activeSplitId: newActiveSplitId
-        };
-      });
-    },
-
-    setActiveSplit: (splitId) => {
-      set({ activeSplitId: splitId });
-    },
-
-    updateSplit: (splitId, updates) => {
+    removeSplit: (tabId, splitId) => {
       set((state) => ({
-        splits: state.splits.map(split => 
-          split.id === splitId ? { ...split, ...updates } : split
+        tabs: state.tabs.map(tab => {
+          if (tab.id !== tabId) return tab;
+          
+          const updatedSplits = tab.splits.filter(split => split.id !== splitId);
+          let newActiveSplitId = tab.activeSplitId;
+          
+          // If removing active split, select another one
+          if (tab.activeSplitId === splitId) {
+            newActiveSplitId = updatedSplits.length > 0 ? updatedSplits[0].id : null;
+          }
+          
+          return {
+            ...tab,
+            splits: updatedSplits,
+            activeSplitId: newActiveSplitId
+          };
+        })
+      }));
+    },
+
+    setActiveSplit: (tabId, splitId) => {
+      set((state) => ({
+        tabs: state.tabs.map(tab => 
+          tab.id === tabId 
+            ? { ...tab, activeSplitId: splitId }
+            : tab
+        )
+      }));
+    },
+
+    updateSplit: (tabId, splitId, updates) => {
+      set((state) => ({
+        tabs: state.tabs.map(tab => 
+          tab.id === tabId 
+            ? {
+                ...tab,
+                splits: tab.splits.map(split => 
+                  split.id === splitId ? { ...split, ...updates } : split
+                )
+              }
+            : tab
         )
       }));
     },
@@ -188,17 +204,21 @@ export const useTerminalStore = create<TerminalState>()(
       set({ height });
     },
 
-    getActiveSplits: () => {
+    getTabSplits: (tabId) => {
       const state = get();
-      return state.splits;
+      const tab = state.tabs.find(t => t.id === tabId);
+      return tab?.splits || [];
+    },
+
+    getActiveTab: () => {
+      const state = get();
+      return state.tabs.find(tab => tab.isActive) || null;
     },
 
     cleanup: () => {
       set({
         tabs: [],
         activeTabId: null,
-        splits: [],
-        activeSplitId: null,
         isVisible: false
       });
     }

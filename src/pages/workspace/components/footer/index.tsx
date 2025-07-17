@@ -3,7 +3,7 @@ import { useProjectStore } from "@/stores/project";
 import { useTerminalStore } from "@/stores/terminal";
 import { detectLineEnding, detectIndentation, detectEncoding, getLanguageFromExtension } from "@/stores/buffers/utils";
 import { Button } from "@/components/ui/button";
-import { Terminal } from "lucide-react";
+import { BotIcon, CodeIcon, Sparkles, Terminal } from "lucide-react";
 import React from "react";
 import { GitBranchSwitcher } from "./git-branch-switcher";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -61,8 +61,24 @@ export function WorkspaceFooter() {
 
                 <div className="flex items-center gap-4">
                     <ToggleGroup type="single" size="sm" className="py-0.5 px-0.5" value={view} onValueChange={setView}>
-                        <ToggleGroupItem value="code" className="text-xs">Code</ToggleGroupItem>
-                        <ToggleGroupItem value="agents" className="text-xs">Agents</ToggleGroupItem>
+                        <ToggleGroupItem value="code" className="text-xs ">
+                            <div className="flex flex-row gap-0.5">
+                                <CodeIcon className="h-3 w-3" />
+                                <span>Code</span>
+                            </div>
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="agents" className="text-xs">
+                            <div className="flex flex-row gap-0.5">
+                                <BotIcon className="h-3 w-3" />
+                                <span>Agents</span>
+                            </div>
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="auto" className="text-xs">
+                            <div className="flex flex-row gap-0.5">
+                                <Sparkles className="h-3 w-3" />
+                                <span>Auto</span>
+                            </div>
+                        </ToggleGroupItem>
                     </ToggleGroup>
                 </div>
 

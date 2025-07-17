@@ -440,7 +440,23 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
       const terminalStore = useTerminalStore.getState();
       if (terminalStore.activeTabId) {
         try {
+          const activeTab = terminalStore.getActiveTab();
+          
+          // Kill the main terminal process
           await window.terminalApi.kill(terminalStore.activeTabId);
+          
+          // Kill all split terminal processes
+          if (activeTab) {
+            const tabSplits = terminalStore.getTabSplits(activeTab.id);
+            for (const split of tabSplits) {
+              try {
+                await window.terminalApi.kill(split.terminalId);
+              } catch (error) {
+                console.error('Failed to kill split terminal:', split.terminalId, error);
+              }
+            }
+          }
+          
           terminalStore.removeTab(terminalStore.activeTabId);
         } catch (error) {
           console.error('Failed to kill terminal:', error);
@@ -459,8 +475,11 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
       const projectStore = useProjectStore.getState();
       if (terminalStore.activeTabId) {
         try {
+          const activeTab = terminalStore.getActiveTab();
+          const currentSplits = activeTab ? terminalStore.getTabSplits(activeTab.id) : [];
+          
           const terminalInfo = await window.terminalApi.create({
-            title: `Split ${terminalStore.splits.length + 1}`,
+            title: `Split ${currentSplits.length + 1}`,
             cwd: projectStore.currentProject || undefined
           });
           terminalStore.createSplit(terminalStore.activeTabId, terminalInfo);

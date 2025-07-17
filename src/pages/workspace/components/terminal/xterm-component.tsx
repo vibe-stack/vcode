@@ -3,6 +3,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Unicode11Addon } from '@xterm/addon-unicode11';
+import { useTerminalStore } from '@/stores/terminal';
 import 'xterm/css/xterm.css';
 
 interface XTerminalProps {
@@ -10,13 +11,16 @@ interface XTerminalProps {
   isActive: boolean;
   onWrite: (data: string) => void;
   className?: string;
+  layoutVersion?: number; // Used to trigger refit when layout changes
 }
 
-export function XTerminal({ terminalId, isActive, onWrite, className }: XTerminalProps) {
+export function XTerminal({ terminalId, isActive, onWrite, className, layoutVersion }: XTerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  const { removeTab, removeSplit, getActiveTab, getTabSplits } = useTerminalStore();
 
   // Initialize terminal only once per terminalId
   useEffect(() => {
@@ -127,6 +131,27 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
     const unsubscribeExit = window.terminalApi.onExit((data) => {
       if (data.terminalId === terminalId && xtermRef.current) {
         xtermRef.current.write(`\r\n\x1b[31m[Process exited with code ${data.exitCode}]\x1b[0m\r\n`);
+        
+        // Clean up terminal from store
+        // First check if this is a main tab terminal
+        const activeTab = getActiveTab();
+        const isMainTerminal = activeTab?.id === terminalId;
+        
+        if (isMainTerminal) {
+          // This is a main tab terminal, remove the entire tab
+          removeTab(terminalId);
+        } else {
+          // This might be a split terminal, find which tab it belongs to
+          const allTabs = useTerminalStore.getState().tabs;
+          for (const tab of allTabs) {
+            const splits = getTabSplits(tab.id);
+            const split = splits.find(s => s.terminalId === terminalId);
+            if (split) {
+              removeSplit(tab.id, split.id);
+              break;
+            }
+          }
+        }
       }
     });
 
@@ -134,14 +159,14 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
       unsubscribeData();
       unsubscribeExit();
     };
-  }, [terminalId]);
+  }, [terminalId, removeTab, removeSplit, getActiveTab, getTabSplits]);
 
   // Handle resize when container size changes or when becoming active
   useEffect(() => {
     if (!isInitialized || !fitAddonRef.current) return;
 
     const handleResize = () => {
-      if (fitAddonRef.current && isActive) {
+      if (fitAddonRef.current) {
         // Small delay to ensure container has finished resizing
         setTimeout(() => {
           try {
@@ -153,10 +178,17 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
       }
     };
 
+    // Create a ResizeObserver to watch the terminal container
+    let resizeObserver: ResizeObserver | null = null;
+    if (terminalRef.current) {
+      resizeObserver = new ResizeObserver(handleResize);
+      resizeObserver.observe(terminalRef.current);
+    }
+
     window.addEventListener('resize', handleResize);
     
-    // Also fit when becoming active
-    if (isActive) {
+    // Also fit when becoming active or when initialized
+    if (isActive || isInitialized) {
       setTimeout(() => {
         try {
           fitAddonRef.current?.fit();
@@ -168,6 +200,9 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, [isActive, isInitialized]);
 
@@ -178,13 +213,28 @@ export function XTerminal({ terminalId, isActive, onWrite, className }: XTermina
     }
   }, [isActive, isInitialized]);
 
+  // Fit terminal when layout might have changed
+  useEffect(() => {
+    if (isInitialized && fitAddonRef.current) {
+      const timer = setTimeout(() => {
+        try {
+          fitAddonRef.current?.fit();
+        } catch (error) {
+          console.warn('Failed to fit terminal on layout change:', error);
+        }
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialized, layoutVersion]);
+
   return (
     <div 
       ref={terminalRef} 
       className={`h-full w-full ${className || ''}`}
       style={{ 
         backgroundColor: '#1e1e1e', // Match terminal background
-        display: isActive ? 'block' : 'none'
+        overflow: 'hidden' // Prevent scrollbars
       }}
     />
   );

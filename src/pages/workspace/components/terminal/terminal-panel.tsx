@@ -1,8 +1,8 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, useEffect, memo } from 'react';
 import { useTerminalStore } from '@/stores/terminal';
 import { useProjectStore } from '@/stores/project';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Split, Trash2 } from 'lucide-react';
+import { X, Plus, Split, Trash2, SquareSplitHorizontalIcon } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { XTerminal } from './xterm-component';
 
@@ -11,15 +11,17 @@ interface TerminalViewProps {
   terminalId: string;
   isActive: boolean;
   onWrite: (data: string) => void;
+  layoutVersion?: number;
 }
 
-const TerminalView = memo(function TerminalView({ terminalId, isActive, onWrite }: TerminalViewProps) {
+const TerminalView = memo(function TerminalView({ terminalId, isActive, onWrite, layoutVersion }: TerminalViewProps) {
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full overflow-hidden">
       <XTerminal
         terminalId={terminalId}
         isActive={isActive}
         onWrite={onWrite}
+        layoutVersion={layoutVersion}
       />
     </div>
   );
@@ -30,8 +32,6 @@ export function TerminalPanel() {
   const {
     tabs,
     activeTabId,
-    splits,
-    activeSplitId,
     isVisible,
     height,
     createTab,
@@ -42,10 +42,41 @@ export function TerminalPanel() {
     setActiveSplit,
     setVisible,
     setHeight,
-    getActiveSplits
+    getTabSplits,
+    getActiveTab,
+    cleanup
   } = useTerminalStore();
 
   const [isCreating, setIsCreating] = useState(false);
+
+  // Get current active tab and its splits
+  const activeTab = getActiveTab();
+  const activeSplits = activeTab ? getTabSplits(activeTab.id) : [];
+  
+  // Generate layout version for forcing terminal refit when splits change
+  const layoutVersion = tabs.reduce((version, tab) => {
+    const tabSplits = getTabSplits(tab.id);
+    return version + tabSplits.length;
+  }, tabs.length);
+
+  // Cleanup all terminals when component unmounts
+  useEffect(() => {
+    return () => {
+      // Kill all terminals on cleanup
+      const allTabs = useTerminalStore.getState().tabs;
+      for (const tab of allTabs) {
+        try {
+          window.terminalApi?.kill(tab.id);
+          const splits = useTerminalStore.getState().getTabSplits(tab.id);
+          for (const split of splits) {
+            window.terminalApi?.kill(split.terminalId);
+          }
+        } catch (error) {
+          console.error('Failed to cleanup terminal:', error);
+        }
+      }
+    };
+  }, []);
 
   const handleCreateTerminal = async () => {
     if (isCreating) return;
@@ -71,7 +102,7 @@ export function TerminalPanel() {
     setIsCreating(true);
     try {
       const terminalInfo = await window.terminalApi.create({
-        title: `Split ${splits.length + 1}`,
+        title: `Split ${activeSplits.length + 1}`,
         cwd: currentProject || undefined
       });
       
@@ -84,8 +115,23 @@ export function TerminalPanel() {
   };
 
   const handleCloseTab = async (tabId: string) => {
+    const tabToClose = tabs.find(t => t.id === tabId);
+    if (!tabToClose) return;
+    
     try {
+      // Kill the main terminal process
       await window.terminalApi.kill(tabId);
+      
+      // Kill all split terminal processes
+      const tabSplits = getTabSplits(tabId);
+      for (const split of tabSplits) {
+        try {
+          await window.terminalApi.kill(split.terminalId);
+        } catch (error) {
+          console.error('Failed to kill split terminal:', split.terminalId, error);
+        }
+      }
+      
       removeTab(tabId);
     } catch (error) {
       console.error('Failed to close terminal:', error);
@@ -93,12 +139,14 @@ export function TerminalPanel() {
   };
 
   const handleCloseSplit = async (splitId: string) => {
-    const split = splits.find(s => s.id === splitId);
+    if (!activeTabId) return;
+    
+    const split = activeSplits.find(s => s.id === splitId);
     if (!split) return;
     
     try {
       await window.terminalApi.kill(split.terminalId);
-      removeSplit(splitId);
+      removeSplit(activeTabId, splitId);
     } catch (error) {
       console.error('Failed to close split:', error);
     }
@@ -115,8 +163,6 @@ export function TerminalPanel() {
   if (!isVisible) {
     return null;
   }
-
-  const activeSplits = getActiveSplits();
 
   return (
     <div className="flex flex-col bg-background border-t border-gray-800" style={{ height }}>
@@ -142,27 +188,33 @@ export function TerminalPanel() {
                   {activeSplits.map((split) => (
                     <div
                       key={split.id}
-                      className={cn(
-                        "w-2 h-2 rounded-full cursor-pointer",
-                        split.id === activeSplitId ? "bg-blue-500" : "bg-gray-400"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveSplit(split.id);
-                      }}
-                    />
+                      className="group/split flex items-center"
+                    >
+                      <div
+                        className={cn(
+                          "w-2 h-2 rounded-full cursor-pointer",
+                          split.id === activeTab?.activeSplitId ? "bg-blue-500" : "bg-gray-400"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (activeTabId) {
+                            setActiveSplit(activeTabId, split.id);
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-3 w-3 p-0 ml-1 opacity-0 group-hover/split:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseSplit(split.id);
+                        }}
+                      >
+                        <X className="h-2 w-2" />
+                      </Button>
+                    </div>
                   ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Show split context menu or handle split actions
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
                 </div>
               )}
               
@@ -189,7 +241,7 @@ export function TerminalPanel() {
             disabled={!activeTabId || isCreating}
             className="h-6 w-6 p-0"
           >
-            <Split className="h-3 w-3" />
+            <SquareSplitHorizontalIcon className="h-3 w-3" />
           </Button>
           <Button
             variant="ghost"
@@ -213,51 +265,74 @@ export function TerminalPanel() {
 
       {/* Terminal Content */}
       <div className="flex-1 relative overflow-hidden">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={cn(
-              "absolute inset-0",
-              !tab.isActive && "hidden"
-            )}
-          >
-            {activeSplits.length === 0 ? (
-              <TerminalView
-                terminalId={tab.id}
-                isActive={tab.isActive}
-                onWrite={(data) => handleWrite(tab.id, data)}
-              />
-            ) : (
-              <div className="flex h-full">
-                <div className="flex-1">
-                  <TerminalView
-                    terminalId={tab.id}
-                    isActive={tab.isActive}
-                    onWrite={(data) => handleWrite(tab.id, data)}
-                  />
+        {tabs.map((tab) => {
+          const tabSplits = getTabSplits(tab.id);
+          
+          return (
+            <div
+              key={tab.id}
+              className={cn(
+                "absolute inset-0",
+                !tab.isActive && "hidden"
+              )}
+            >
+              {tabSplits.length === 0 ? (
+                <TerminalView
+                  terminalId={tab.id}
+                  isActive={tab.isActive}
+                  onWrite={(data) => handleWrite(tab.id, data)}
+                  layoutVersion={layoutVersion}
+                />
+              ) : (
+                <div className="flex h-full">
+                  <div 
+                    className={cn(
+                      "flex-1 cursor-pointer",
+                      tab.activeSplitId !== null && "opacity-70 hover:opacity-90"
+                    )}
+                    onClick={() => {
+                      if (activeTabId) {
+                        setActiveSplit(activeTabId, null);
+                      }
+                    }}
+                  >
+                    <TerminalView
+                      terminalId={tab.id}
+                      isActive={tab.isActive && tab.activeSplitId === null}
+                      onWrite={(data) => handleWrite(tab.id, data)}
+                      layoutVersion={layoutVersion}
+                    />
+                  </div>
+                  <div className="w-px bg-[#3e3e42]" />
+                  <div className="flex-1">
+                    {tabSplits.map((split) => (
+                      <div
+                        key={split.id}
+                        className={cn(
+                          "h-full cursor-pointer",
+                          split.id !== tab.activeSplitId && "hidden",
+                          split.id !== tab.activeSplitId && "opacity-70 hover:opacity-90"
+                        )}
+                        onClick={() => {
+                          if (activeTabId) {
+                            setActiveSplit(activeTabId, split.id);
+                          }
+                        }}
+                      >
+                        <TerminalView
+                          terminalId={split.terminalId}
+                          isActive={tab.isActive && split.id === tab.activeSplitId}
+                          onWrite={(data) => handleWrite(split.terminalId, data)}
+                          layoutVersion={layoutVersion}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="w-px bg-[#3e3e42]" />
-                <div className="flex-1">
-                  {activeSplits.map((split) => (
-                    <div
-                      key={split.id}
-                      className={cn(
-                        "h-full",
-                        split.id !== activeSplitId && "hidden"
-                      )}
-                    >
-                      <TerminalView
-                        terminalId={split.terminalId}
-                        isActive={split.id === activeSplitId}
-                        onWrite={(data) => handleWrite(split.terminalId, data)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
         
         {tabs.length === 0 && (
           <div className="flex items-center justify-center h-full text-gray-500">
