@@ -16,9 +16,11 @@ import {
   GitBranch,
   FileText,
   FolderPlus,
+  Server,
 } from "lucide-react";
 import { FileTreeNode } from "./file-tree-node";
 import { GitPanel } from "./git-panel";
+import { MCPPanel } from "./mcp-panel";
 import { CreateFilePopover } from "./create-file-popover";
 import { cn } from "@/utils/tailwind";
 import { useSettingsStore } from "@/stores/settings";
@@ -35,7 +37,7 @@ export function FileExplorer() {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(),
   );
-  const [activeTab, setActiveTab] = useState<"files" | "git">("files");
+  const [activeTab, setActiveTab] = useState<"files" | "git" | "mcp">("files");
 
   const handleFileClick = useCallback(
     async (filePath: string) => {
@@ -142,7 +144,7 @@ export function FileExplorer() {
     <div className="flex h-full max-h-full flex-col border-r overflow-hidden">
       <Tabs
         value={activeTab}
-        onValueChange={(value) => setActiveTab(value as "files" | "git")}
+        onValueChange={(value) => setActiveTab(value as "files" | "git" | "mcp")}
         className="flex h-full max-h-full flex-col overflow-hidden"
       >
         <div className="border-b px-2 py-2 flex-shrink-0">
@@ -173,6 +175,19 @@ export function FileExplorer() {
             >
               <GitBranch className="h-3.5 w-3.5" />
               Git
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 flex-1 gap-1.5 rounded-md px-4 text-xs transition-all",
+                activeTab === "mcp" &&
+                  getActiveAccentClasses(accentColor, useGradient),
+              )}
+              onClick={() => setActiveTab("mcp")}
+            >
+              <Server className="h-3.5 w-3.5" />
+              MCP
             </Button>
           </div>
         </div>
@@ -263,6 +278,16 @@ export function FileExplorer() {
           className="m-0 flex flex-1 flex-col overflow-hidden p-0"
         >
           <GitPanel />
+        </TabsContent>
+
+        {/* MCP Tab */}
+        <TabsContent
+          value="mcp"
+          className="m-0 flex flex-1 flex-col overflow-hidden p-0"
+        >
+          <div className="p-2">
+            <MCPPanel />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

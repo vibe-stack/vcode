@@ -124,8 +124,7 @@ export function TerminalPanel() {
 
   return (
     <div
-      className="bg-background flex flex-col border-t border-gray-800"
-      style={{ height }}
+      className="bg-background flex flex-col border-t border-gray-800 h-full"
     >
       {/* Tab Bar */}
       <div className="bg-muted/30 flex items-center justify-between border-b px-2 py-1">

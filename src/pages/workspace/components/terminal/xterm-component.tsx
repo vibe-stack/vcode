@@ -204,14 +204,27 @@ export function XTerminal({
 
   // Handle resize when container size changes or when becoming active
   useEffect(() => {
-    if (!isInitialized || !fitAddonRef.current) return;
+    if (!isInitialized || !fitAddonRef.current || !terminalRef.current) return;
+
+    let resizeTimeout: NodeJS.Timeout;
 
     const handleResize = () => {
       if (fitAddonRef.current && isActive) {
+        // Clear any existing timeout to debounce resize calls
+        if (resizeTimeout) {
+          clearTimeout(resizeTimeout);
+        }
+        
         // Small delay to ensure container has finished resizing
-        setTimeout(() => {
+        resizeTimeout = setTimeout(() => {
           try {
-            fitAddonRef.current?.fit();
+            // Ensure the terminal container has valid dimensions before fitting
+            if (terminalRef.current) {
+              const rect = terminalRef.current.getBoundingClientRect();
+              if (rect.width > 0 && rect.height > 0) {
+                fitAddonRef.current?.fit();
+              }
+            }
           } catch (error) {
             console.warn("Failed to fit terminal on resize:", error);
           }
@@ -219,21 +232,32 @@ export function XTerminal({
       }
     };
 
+    // Listen for window resize events
     window.addEventListener("resize", handleResize);
+
+    // Use ResizeObserver to detect when the terminal container itself is resized
+    // This catches panel resizing that doesn't trigger window resize events
+    const resizeObserver = new ResizeObserver(() => {
+      if (isActive) {
+        handleResize();
+      }
+    });
+
+    if (terminalRef.current) {
+      resizeObserver.observe(terminalRef.current);
+    }
 
     // Also fit when becoming active
     if (isActive) {
-      setTimeout(() => {
-        try {
-          fitAddonRef.current?.fit();
-        } catch (error) {
-          console.warn("Failed to fit terminal on activate:", error);
-        }
-      }, 100);
+      handleResize();
     }
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
     };
   }, [isActive, isInitialized]);
 

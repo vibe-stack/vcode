@@ -8,6 +8,7 @@ import { addSettingsEventListeners } from "./settings/settings-listeners";
 import { addGitEventListeners } from "./git/git-listeners";
 import { addTerminalEventListeners } from "./terminal/terminal-listeners";
 import registerShellListeners from "./shell/shell-listeners";
+import { registerMCPListeners } from "./mcp/mcp-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   addWindowEventListeners(mainWindow);
@@ -19,4 +20,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addGitEventListeners(mainWindow);
   addTerminalEventListeners(mainWindow);
   registerShellListeners();
+  registerMCPListeners(mainWindow);
 }
