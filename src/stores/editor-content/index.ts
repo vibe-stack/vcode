@@ -5,8 +5,20 @@ import { persist } from "zustand/middleware";
 export type EditorContentView = "code" | "agents" | "kanban";
 
 export interface EditorContentState {
+  // Individual panel toggles
+  codeVisible: boolean;
+  agentsVisible: boolean;
+  kanbanVisible: boolean;
+  
+  // Toggle functions
+  toggleCode: () => void;
+  toggleAgents: () => void;
+  toggleKanban: () => void;
+  
+  // Legacy view property for backward compatibility
   view: EditorContentView;
   setView: (view: EditorContentView) => void;
+  
   leftPanelSize: number; // Optional size for left panel
   rightPanelSize: number; // Optional size for right panel
   onResizeLeftPanel: (size: number) => void; // Callback for resizing left panel
@@ -16,11 +28,46 @@ export interface EditorContentState {
 export const useEditorContentStore = create<EditorContentState>()(
   persist(
     immer((set) => ({
+      // Individual panel toggles - default: code and agents on, kanban off
+      codeVisible: true,
+      agentsVisible: true,
+      kanbanVisible: false,
+      
+      // Toggle functions
+      toggleCode: () =>
+        set((state) => {
+          state.codeVisible = !state.codeVisible;
+        }),
+      toggleAgents: () =>
+        set((state) => {
+          state.agentsVisible = !state.agentsVisible;
+        }),
+      toggleKanban: () =>
+        set((state) => {
+          state.kanbanVisible = !state.kanbanVisible;
+        }),
+      
+      // Legacy view property for backward compatibility
       view: "code",
       setView: (view) =>
         set((state) => {
           state.view = view;
+          // Update individual toggles based on view for backward compatibility
+          if (view === "code") {
+            state.codeVisible = true;
+            state.agentsVisible = true;
+            state.kanbanVisible = false;
+          } else if (view === "agents") {
+            state.codeVisible = false;
+            state.agentsVisible = true;
+            state.kanbanVisible = false;
+          } else if (view === "kanban") {
+            state.codeVisible = true;
+            state.agentsVisible = false;
+            state.kanbanVisible = true;
+          }
         }),
+      
       leftPanelSize: 20, // Default size for left panel
       rightPanelSize: 20, // Default size for right panel
       onResizeLeftPanel: (size) =>
@@ -35,10 +82,13 @@ export const useEditorContentStore = create<EditorContentState>()(
     {
       name: "editor-content-store", // unique name in storage
       partialize: (state) => ({
+        codeVisible: state.codeVisible,
+        agentsVisible: state.agentsVisible,
+        kanbanVisible: state.kanbanVisible,
         view: state.view,
         leftPanelSize: state.leftPanelSize,
         rightPanelSize: state.rightPanelSize,
-      }), // only persist 'view'
+      }),
     },
   ),
 );

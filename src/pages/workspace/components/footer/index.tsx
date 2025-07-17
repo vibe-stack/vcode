@@ -26,17 +26,29 @@ import { GitBranchSwitcher } from "./git-branch-switcher";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useEditorContentStore } from "@/stores/editor-content";
 import { cn } from "@/utils/tailwind";
+import { useSettingsStore } from "@/stores/settings";
+import { getActiveAccentClasses } from "@/utils/accent-colors";
 
 export function WorkspaceFooter() {
   const { currentProject } = useProjectStore();
   const { buffers, activeBufferId } = useBufferStore();
-  const { view, setView } = useEditorContentStore();
+  const { 
+    codeVisible, 
+    agentsVisible, 
+    kanbanVisible, 
+    toggleCode, 
+    toggleAgents, 
+    toggleKanban 
+  } = useEditorContentStore();
   const {
     isVisible: isTerminalVisible,
     setVisible: setTerminalVisible,
     createTab,
   } = useTerminalStore();
   const { currentBranch, isGitRepo } = useGitStore();
+  const { settings } = useSettingsStore();
+  const accentColor = settings.appearance?.accentColor || "blue";
+  const useGradient = settings.appearance?.accentGradient ?? true;
 
   const handleCreateTerminal = async () => {
     try {
@@ -124,23 +136,44 @@ export function WorkspaceFooter() {
 
         {/* View Toggle */}
         <div className="flex items-center gap-1">
-          <ToggleGroup
-            type="single"
-            size="sm"
-            className="px-0.5 py-0.5"
-            value={view}
-            onValueChange={setView}
-          >
-            <ToggleGroupItem value="code" className="text-xs">
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-md p-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleCode}
+              className={cn(
+                "h-5 px-2 py-0 text-xs rounded-sm transition-all",
+                codeVisible && getActiveAccentClasses(accentColor, useGradient)
+              )}
+              title="Toggle Code Editor"
+            >
               Code
-            </ToggleGroupItem>
-            <ToggleGroupItem value="agents" className="text-xs">
-              Agents
-            </ToggleGroupItem>
-            <ToggleGroupItem value="kanban" className="text-xs">
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleKanban}
+              className={cn(
+                "h-5 px-2 py-0 text-xs rounded-sm transition-all",
+                kanbanVisible && getActiveAccentClasses(accentColor, useGradient)
+              )}
+              title="Toggle Kanban Panel"
+            >
               Kanban
-            </ToggleGroupItem>
-          </ToggleGroup>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleAgents}
+              className={cn(
+                "h-5 px-2 py-0 text-xs rounded-sm transition-all",
+                agentsVisible && getActiveAccentClasses(accentColor, useGradient)
+              )}
+              title="Toggle Agents Panel"
+            >
+              Agent
+            </Button>
+          </div>
         </div>
 
         {/* Status Indicator */}

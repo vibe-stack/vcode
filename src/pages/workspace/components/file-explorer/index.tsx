@@ -139,13 +139,13 @@ export function FileExplorer() {
   const displayTree = filteredTree(fileTree);
 
   return (
-    <div className="flex h-full flex-col border-r">
+    <div className="flex h-full max-h-full flex-col border-r overflow-hidden">
       <Tabs
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as "files" | "git")}
-        className="flex h-full flex-col"
+        className="flex h-full max-h-full flex-col overflow-hidden"
       >
-        <div className="border-b px-2 py-2">
+        <div className="border-b px-2 py-2 flex-shrink-0">
           <div className="bg-muted/50 flex items-center gap-0 rounded-md p-0.5">
             <Button
               variant="ghost"
@@ -180,10 +180,10 @@ export function FileExplorer() {
         {/* Files Tab */}
         <TabsContent
           value="files"
-          className="m-0 flex flex-1 flex-col overflow-y-auto p-0"
+          className="m-0 flex flex-1 flex-col overflow-hidden p-0"
         >
           {/* Search Header */}
-          <div className="from-background to-background/80 flex flex-row gap-2 border-b bg-gradient-to-b px-3 py-2.5">
+          <div className="from-background to-background/80 flex flex-row gap-2 border-b bg-gradient-to-b px-3 py-2.5 flex-shrink-0">
             <div className="relative grow">
               <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 transform" />
               <Input
@@ -233,7 +233,7 @@ export function FileExplorer() {
           </div>
 
           {/* File Tree */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 overflow-hidden">
             <div className="p-1">
               {displayTree ? (
                 <FileTreeNode
@@ -260,7 +260,7 @@ export function FileExplorer() {
         {/* Git Tab */}
         <TabsContent
           value="git"
-          className="m-0 flex flex-1 flex-col overflow-y-auto p-0"
+          className="m-0 flex flex-1 flex-col overflow-hidden p-0"
         >
           <GitPanel />
         </TabsContent>

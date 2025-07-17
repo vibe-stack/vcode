@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, screen } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import { cleanupTerminals } from "./helpers/ipc/terminal/terminal-listeners";
 // "electron-squirrel-startup" seems broken when packaging with vite
@@ -13,9 +13,15 @@ const inDevelopment = process.env.NODE_ENV === "development";
 
 function createWindow() {
   const preload = path.join(__dirname, "preload.js");
+  
+  // Get the primary display and calculate 60% width and 80% height
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+  const windowWidth = Math.floor(screenWidth * 0.6);
+  const windowHeight = Math.floor(screenHeight * 0.8);
+  
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: windowWidth,
+    height: windowHeight,
     webPreferences: {
       devTools: inDevelopment,
       contextIsolation: true,

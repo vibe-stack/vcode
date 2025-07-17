@@ -1,10 +1,10 @@
 import React from "react";
-import { KanbanBoard } from "./kanban-board";
+import { ChatPanel } from "../chat";
 
 export const AgentsView = () => {
   return (
     <div className="h-full w-full">
-      <KanbanBoard />
+      <ChatPanel isAgentMode={true} />
     </div>
   );
 };

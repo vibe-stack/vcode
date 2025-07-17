@@ -186,10 +186,12 @@
   body {
     height: 100%;
     overflow: hidden;
+    background-color: #0f0f0f;
   }
   
   #app {
     height: 100%;
+    background-color: #0f0f0f;
   }
   
   /* DISABLE h-screen and w-screen classes entirely */

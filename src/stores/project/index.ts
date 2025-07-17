@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import {
   DirectoryNode,
   RecentProject,
@@ -50,7 +51,8 @@ export interface ProjectState {
 }
 
 export const useProjectStore = create(
-  immer<ProjectState>((set, get) => ({
+  persist(
+    immer<ProjectState>((set, get) => ({
     // Initial state
     currentProject: null,
     projectName: null,
@@ -289,5 +291,14 @@ export const useProjectStore = create(
       // In a more sophisticated implementation, you could update specific nodes
       get().refreshFileTree();
     },
-  })),
+    })),
+    {
+      name: "project-store",
+      partialize: (state) => ({
+        currentProject: state.currentProject,
+        projectName: state.projectName,
+        recentProjects: state.recentProjects,
+      }),
+    },
+  ),
 );

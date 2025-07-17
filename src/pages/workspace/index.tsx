@@ -4,11 +4,10 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { FileExplorer, EditorWithTerminal, ChatPanel } from "./components";
+import { FileExplorer, EditorWithTerminal, ChatPanel, KanbanView } from "./components";
 import { useProjectStore } from "@/stores/project";
 import { WorkspaceFooter } from "./components/footer";
 import { useEditorContentStore } from "@/stores/editor-content";
-import { AgentsView } from "./components/agents-view";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalCommands from "@/components/global-commands";
@@ -18,13 +17,45 @@ import { Link } from "@tanstack/react-router";
 export default function WorkspacePage() {
   const { currentProject } = useProjectStore();
   const {
-    view,
+    codeVisible,
+    agentsVisible,
+    kanbanVisible,
     leftPanelSize,
     rightPanelSize,
     onResizeLeftPanel,
-    onResizeRightPanel,
   } = useEditorContentStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Calculate layout based on visible panels - COLUMN VIEWS
+  const calculateLayout = () => {
+    // Each toggle controls an entire column
+    const columns = [];
+    
+    // Code Column (File Explorer + Editor)
+    if (codeVisible) {
+      columns.push('code');
+    }
+    
+    // Kanban Column
+    if (kanbanVisible) {
+      columns.push('kanban');
+    }
+    
+    // Agent Column (Chat)
+    if (agentsVisible) {
+      columns.push('agent');
+    }
+    
+    return {
+      showCodeColumn: codeVisible,
+      showKanbanColumn: kanbanVisible,
+      showAgentColumn: agentsVisible,
+      totalColumns: columns.length,
+      columns: columns
+    };
+  };
+
+  const layout = calculateLayout();
 
   useEffect(() => {
     // Ensure we have a project loaded
@@ -40,7 +71,7 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="bg-background relative flex h-full w-full flex-col">
+    <div className="bg-background relative flex h-full max-h-full w-full flex-col overflow-hidden">
       {/* Custom title bar */}
       <div className="draglayer bg-background/95 flex h-12 flex-shrink-0 items-center border-b px-4 backdrop-blur-md">
         {/* Left section - Logo/Home */}
@@ -86,59 +117,83 @@ export default function WorkspacePage() {
       </div>
 
       {/* Main content area */}
-      <div className="flex-1">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Left Panel - File Explorer (only show in code and kanban views) */}
-          {view !== "agents" && (
-            <>
-              <ResizablePanel
-                defaultSize={leftPanelSize}
-                onResize={onResizeLeftPanel}
-              >
-                <div className="h-full w-full">
-                  <FileExplorer />
-                </div>
-              </ResizablePanel>
-              <ResizableHandle />
-            </>
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup 
+          direction="horizontal" 
+          className="h-full overflow-hidden"
+          key={`layout-${layout.columns.join('-')}`}
+        >
+          {/* Code Column (File Explorer + Editor) */}
+          {layout.showCodeColumn && (
+            <ResizablePanel
+              id="code-column"
+              defaultSize={layout.totalColumns === 1 ? 100 : layout.totalColumns === 2 ? 50 : 33}
+              minSize={25}
+              maxSize={75}
+            >
+              <ResizablePanelGroup direction="horizontal" className="h-full">
+                {/* File Explorer */}
+                <ResizablePanel
+                  id="file-explorer"
+                  defaultSize={leftPanelSize}
+                  onResize={onResizeLeftPanel}
+                  minSize={15}
+                >
+                  <div className="h-full max-h-full w-full overflow-hidden">
+                    <FileExplorer />
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle />
+                {/* Code Editor */}
+                <ResizablePanel id="code-editor" defaultSize={100 - leftPanelSize} minSize={30}>
+                  <div className="h-full max-h-full w-full overflow-hidden">
+                    <EditorWithTerminal />
+                  </div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
           )}
 
-          {/* Center Panel - Main Content */}
-          <ResizablePanel defaultSize={view === "agents" ? 100 : 60} minSize={30}>
-            {view === "code" && <EditorWithTerminal />}
-            {view === "agents" && <AgentsView />}
-            {view === "kanban" && <EditorWithTerminal />}
-          </ResizablePanel>
+          {/* Resizable handle between Code and Kanban columns */}
+          {layout.showCodeColumn && layout.showKanbanColumn && <ResizableHandle />}
 
-          {/* Right Panel - Chat or Kanban */}
-          {view === "code" && (
-            <>
-              <ResizableHandle />
-              <ResizablePanel
-                defaultSize={rightPanelSize}
-                onResize={onResizeRightPanel}
-                minSize={15}
-              >
-                <div className="h-full w-full">
+          {/* Kanban Column */}
+          {layout.showKanbanColumn && (
+            <ResizablePanel
+              id="kanban-column"
+              defaultSize={layout.totalColumns === 1 ? 100 : layout.totalColumns === 2 ? 50 : 33}
+              minSize={25}
+            >
+              <div className="h-full max-h-full w-full overflow-hidden">
+                <KanbanView />
+              </div>
+            </ResizablePanel>
+          )}
+
+          {/* Resizable handle between Kanban and Agent columns */}
+          {layout.showKanbanColumn && layout.showAgentColumn && <ResizableHandle />}
+          {/* Resizable handle between Code and Agent columns (when Kanban is not visible) */}
+          {layout.showCodeColumn && !layout.showKanbanColumn && layout.showAgentColumn && <ResizableHandle />}
+
+          {/* Agent Column (Chat) */}
+          {layout.showAgentColumn && (
+            <ResizablePanel
+              id="agent-column"
+              defaultSize={layout.totalColumns === 1 ? 100 : layout.totalColumns === 2 ? 50 : 33}
+              minSize={25}
+            >
+              <div className="h-full max-h-full w-full overflow-hidden">
+                {layout.totalColumns === 1 ? (
+                  <div className="flex justify-center w-full h-full">
+                    <div className="w-[70%] h-full">
+                      <ChatPanel isAgentMode={true} />
+                    </div>
+                  </div>
+                ) : (
                   <ChatPanel />
-                </div>
-              </ResizablePanel>
-            </>
-          )}
-          
-          {view === "kanban" && (
-            <>
-              <ResizableHandle />
-              <ResizablePanel
-                defaultSize={rightPanelSize}
-                onResize={onResizeRightPanel}
-                minSize={15}
-              >
-                <div className="h-full w-full">
-                  <AgentsView />
-                </div>
-              </ResizablePanel>
-            </>
+                )}
+              </div>
+            </ResizablePanel>
           )}
         </ResizablePanelGroup>
       </div>

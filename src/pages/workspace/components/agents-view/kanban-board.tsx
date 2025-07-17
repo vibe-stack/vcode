@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useKanbanStore } from "@/stores/kanban";
 import { useProjectStore } from "@/stores/project";
 import { KanbanTask, TaskStatus } from "@/stores/kanban/types";
@@ -13,8 +13,48 @@ export const KanbanBoard: React.FC = () => {
   const [editingTask, setEditingTask] = useState<KanbanTask | undefined>();
   const [modalInitialStatus, setModalInitialStatus] =
     useState<TaskStatus>("ideas");
+  const [containerWidth, setContainerWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const board = getBoard(currentProject || "");
+
+  // Track container width for responsive layout
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  // Calculate wrapping layout - fixed width columns that wrap
+  const getColumnLayout = () => {
+    const columnWidth = 320; // Fixed width
+    const gap = 16; // 4 * 4px
+    const padding = 16; // 2 * 8px
+    
+    const availableWidth = containerWidth - padding;
+    const columnsCount = board.columns.length;
+    
+    if (columnsCount === 0) {
+      return { columnWidth, columnsPerRow: 1 };
+    }
+    
+    // Calculate how many columns fit per row
+    const columnsPerRow = Math.floor((availableWidth + gap) / (columnWidth + gap));
+    const actualColumnsPerRow = Math.max(1, Math.min(columnsPerRow, columnsCount));
+    
+    return {
+      columnWidth,
+      columnsPerRow: actualColumnsPerRow
+    };
+  };
+
+  const layout = getColumnLayout();
 
   const handleCreateTask = (status: TaskStatus) => {
     setModalInitialStatus(status);
@@ -59,17 +99,24 @@ export const KanbanBoard: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full w-full flex-col">
-      <div className="flex-1 overflow-x-auto">
-        <div className="flex min-w-fit gap-6 p-2">
+    <div ref={containerRef} className="flex h-full w-full flex-col">
+      <div className="flex-1 overflow-y-auto">
+        <div 
+          className="grid gap-4 p-2"
+          style={{
+            gridTemplateColumns: `repeat(${layout.columnsPerRow}, ${layout.columnWidth}px)`,
+            justifyContent: 'center'
+          }}
+        >
           {board.columns.map((column) => (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              onCreateTask={() => handleCreateTask(column.id)}
-              onEditTask={handleEditTask}
-              onTaskClick={handleTaskClick}
-            />
+            <div key={column.id} className="h-fit">
+              <KanbanColumn
+                column={column}
+                onCreateTask={() => handleCreateTask(column.id)}
+                onEditTask={handleEditTask}
+                onTaskClick={handleTaskClick}
+              />
+            </div>
           ))}
         </div>
       </div>
