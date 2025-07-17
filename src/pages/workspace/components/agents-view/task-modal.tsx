@@ -26,6 +26,9 @@ import {
 import { FileAttachmentEditor } from "./file-attachment-editor";
 import { AgentComments } from "./agent-comments";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSettingsStore } from "@/stores/settings";
+import { getActiveAccentClasses } from "@/utils/accent-colors";
+import { cn } from "@/utils/tailwind";
 
 interface TaskModalProps {
   open: boolean;
@@ -73,6 +76,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     task?.status === "rejected";
   const canEditTask = !isTaskStarted;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const { settings } = useSettingsStore();
+  const accentColor = settings.appearance?.accentColor || "blue";
+  const useGradient = settings.appearance?.useGradient || false;
 
   useEffect(() => {
     if (task) {
@@ -131,6 +138,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     setErrors({});
     onClose();
   };
+
 
   return (
     <Sheet modal open={open} onOpenChange={handleClose}>
@@ -274,7 +282,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 Cancel
               </Button>
               {canEditTask && (
-                <Button type="submit">
+                <Button 
+                  type="submit" 
+                  className={cn(
+                    "bg-primary hover:bg-primary/90 rounded-sm",
+                    getActiveAccentClasses(accentColor, useGradient)
+                  )}
+                >
                   {task ? "Update Task" : "Create Task"}
                 </Button>
               )}
@@ -283,10 +297,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           {/* Agent Comments Section */}
           {task && (
-            <div className="overflow-hidden rounded-lg bg-white/80 shadow dark:bg-neutral-900/80">
-              <div className="border-b p-4">
+            <div className="overflow-hidden rounded-lg border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 shadow">
+              <div className="border-b border-blue-200 dark:border-blue-800 p-4">
                 <h3 className="text-lg font-medium">Agent Communication</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-blue-600 dark:text-blue-400">
                   {isTaskStarted
                     ? "Agent execution logs and user comments"
                     : "Prepare messages for the agent. Use 'Run' in the kanban board to execute."}
@@ -299,6 +313,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               />
             </div>
           )}
+          
         </div>
       </SheetContent>
     </Sheet>

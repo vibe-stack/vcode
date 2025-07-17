@@ -4,8 +4,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useKanbanStore } from "@/stores/kanban";
 import { useProjectStore } from "@/stores/project";
+import { useSettingsStore } from "@/stores/settings";
+import { getActiveAccentClasses } from "@/utils/accent-colors";
+import { cn } from "@/utils/tailwind";
 import { Edit2, Trash2, Plus, Bot, User, Clock, Settings } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { markdownComponents } from "../chat/markdown-components";
@@ -39,6 +41,10 @@ export function AgentComments({
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { settings } = useSettingsStore();
+  const accentColor = settings.appearance?.accentColor || "blue";
+  const useGradient = settings.appearance?.useGradient || false;
 
   // Get messages from the kanban store
   const messages = currentProject
@@ -135,18 +141,6 @@ export function AgentComments({
     }
   };
 
-  const getMessageColor = (message: MessageDisplay) => {
-    switch (message.role) {
-      case "user":
-        return "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950";
-      case "assistant":
-        return "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950";
-      case "system":
-        return "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900";
-      default:
-        return "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900";
-    }
-  };
 
   return (
     <div className={`flex h-full flex-col ${className}`}>
@@ -164,78 +158,96 @@ export function AgentComments({
           </div>
         ) : (
           messages.map((message) => (
-            <Card
+            <div
               key={message.id}
-              className={`${getMessageColor(message)} border`}
+              className={cn(
+                "flex min-w-0 gap-3 rounded-lg p-3",
+                message.role === "user" ? "bg-primary/5" : "",
+              )}
             >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 flex-shrink-0">
-                    {getMessageIcon(message)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {message.role}
-                      </Badge>
-                      <span className="text-xs text-gray-500">
-                        {new Date(message.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-
-                    {editingMessageId === message.id ? (
-                      <div className="space-y-2">
-                        <Textarea
-                          value={editingContent}
-                          onChange={(e) => setEditingContent(e.target.value)}
-                          rows={3}
-                          className="w-full"
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={handleSaveEdit}>
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleCancelEdit}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="min-w-0 text-sm">
-                          <MarkdownRenderer content={message.content} />
-                        </div>
-
-                        {message.role === "user" && canAddMessages && (
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                handleEditMessage(message.id, message.content)
-                              }
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteMessage(message.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+              {/* Avatar Icon */}
+              <div className="flex-shrink-0">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full",
+                    message.role === "user" 
+                      ? getActiveAccentClasses(accentColor, useGradient) || "bg-primary text-primary-foreground"
+                      : "bg-green-500 text-white"
+                  )}
+                >
+                  {getMessageIcon(message)}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              
+              <div className="min-w-0 flex-1">
+                <div className="min-w-0 space-y-2">
+                  {editingMessageId === message.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        rows={3}
+                        className={cn(
+                          "w-full",
+                          "focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        )}
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={handleSaveEdit}
+                          className="rounded-md"
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                          className="rounded-md"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="min-w-0 text-sm">
+                        <MarkdownRenderer content={message.content} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-2 flex items-end justify-between gap-2">
+                  <span className="text-muted-foreground flex-shrink-0 text-xs">
+                    {new Date(message.timestamp).toLocaleString()}
+                  </span>
+                  {message.role === "user" && canAddMessages && (
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          handleEditMessage(message.id, message.content)
+                        }
+                        className="h-6 w-6 p-0 rounded-md"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteMessage(message.id)}
+                        className="h-6 w-6 p-0 rounded-md"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           ))
         )}
 
@@ -252,7 +264,10 @@ export function AgentComments({
               onKeyPress={handleKeyPress}
               placeholder="Write a message for the agent... (Cmd+Enter to add)"
               rows={3}
-              className="w-full"
+              className={cn(
+                "w-full",
+                "focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              )}
             />
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-500">
@@ -263,6 +278,10 @@ export function AgentComments({
                 onClick={handleAddMessage}
                 disabled={!newMessage.trim()}
                 size="sm"
+                className={cn(
+                  "bg-primary hover:bg-primary/90 rounded-md",
+                  getActiveAccentClasses(accentColor, useGradient)
+                )}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Message

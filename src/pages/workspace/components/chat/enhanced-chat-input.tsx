@@ -157,6 +157,7 @@ export const EnhancedChatInput: React.FC<EnhancedChatInputProps> = ({
             "prose prose-sm dark:prose-invert max-w-none",
             "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:rounded [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:text-xs",
             disabled && "cursor-not-allowed opacity-50",
+            isEmpty && "[&_.ProseMirror]:caret-transparent",
           )}
           onKeyDown={handleKeyDown}
         />

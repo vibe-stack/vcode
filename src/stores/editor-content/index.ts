@@ -61,7 +61,9 @@ export const useEditorContentStore = create<EditorContentState>()(
             state.codeVisible = false;
             state.agentsVisible = true;
             state.kanbanVisible = false;
-          } else if (view === "kanban") {
+          } else if (view === /* In the TypeScript code snippet provided, `"kanban"` is being used as a
+          type in the `EditorContentView` type alias. */
+            "kanban") {
             state.codeVisible = true;
             state.agentsVisible = false;
             state.kanbanVisible = true;

@@ -266,6 +266,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </div>
           )}
 
+
           {/* Agent & Attachments */}
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">

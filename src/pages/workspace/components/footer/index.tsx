@@ -104,7 +104,7 @@ export function WorkspaceFooter() {
 
   return (
     <footer
-      className="workspace-footer bg-background flex h-7 w-full items-center justify-between border-t px-2 text-[11px] flex-shrink-0"
+      className="workspace-footer bg-background flex h-10 w-full items-center justify-between border-t px-2 text-[11px] flex-shrink-0"
       data-status-bar
     >
       <div className="flex items-center gap-1">
@@ -116,7 +116,7 @@ export function WorkspaceFooter() {
           variant="ghost"
           size="sm"
           onClick={handleToggleTerminal}
-          className="hover:bg-accent/50 flex h-5 items-center gap-1 rounded-sm px-2 py-0"
+          className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
           title="Toggle terminal"
         >
           <Terminal className="h-3 w-3 text-blue-400" />
@@ -127,7 +127,7 @@ export function WorkspaceFooter() {
           variant="ghost"
           size="sm"
           onClick={handleCreateTerminal}
-          className="hover:bg-accent/50 flex h-5 items-center gap-1 rounded-sm px-2 py-0"
+          className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
           title="Create new terminal"
         >
           <Terminal className="h-3 w-3 text-green-400" />
@@ -136,13 +136,13 @@ export function WorkspaceFooter() {
 
         {/* View Toggle */}
         <div className="flex items-center gap-1">
-          <div className="flex items-center gap-0.5 bg-muted/50 rounded-md p-0.5">
+          <div className="flex items-center bg-muted/50 rounded-md p-0.5">
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleCode}
               className={cn(
-                "h-5 px-2 py-0 text-xs rounded-sm transition-all",
+                "h-7 px-2 py-0 text-xs rounded-l-sm rounded-r-none transition-all",
                 codeVisible && getActiveAccentClasses(accentColor, useGradient)
               )}
               title="Toggle Code Editor"
@@ -154,7 +154,7 @@ export function WorkspaceFooter() {
               size="sm"
               onClick={toggleKanban}
               className={cn(
-                "h-5 px-2 py-0 text-xs rounded-sm transition-all",
+                "h-7 px-2 py-0 text-xs rounded-none transition-all",
                 kanbanVisible && getActiveAccentClasses(accentColor, useGradient)
               )}
               title="Toggle Kanban Panel"
@@ -166,7 +166,7 @@ export function WorkspaceFooter() {
               size="sm"
               onClick={toggleAgents}
               className={cn(
-                "h-5 px-2 py-0 text-xs rounded-sm transition-all",
+                "h-7 px-2 py-0 text-xs rounded-r-sm rounded-l-none transition-all",
                 agentsVisible && getActiveAccentClasses(accentColor, useGradient)
               )}
               title="Toggle Agents Panel"
@@ -209,7 +209,7 @@ export function WorkspaceFooter() {
           <Button
             variant="ghost"
             size="sm"
-            className="hover:bg-accent/50 flex h-5 items-center gap-1 rounded-sm px-2 py-0"
+            className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
           >
             <FileCode2 className="h-3 w-3 text-orange-400" />
             <span className="text-muted-foreground">{editorInfo.language}</span>
@@ -221,7 +221,7 @@ export function WorkspaceFooter() {
           <Button
             variant="ghost"
             size="sm"
-            className="hover:bg-accent/50 flex h-5 items-center gap-1 rounded-sm px-2 py-0"
+            className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
           >
             <Database className="h-3 w-3 text-teal-400" />
             <span className="text-muted-foreground">{editorInfo.encoding}</span>
@@ -233,7 +233,7 @@ export function WorkspaceFooter() {
           <Button
             variant="ghost"
             size="sm"
-            className="hover:bg-accent/50 flex h-5 items-center gap-1 rounded-sm px-2 py-0"
+            className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
           >
             <Zap className="h-3 w-3 text-pink-400" />
             <span className="text-muted-foreground">

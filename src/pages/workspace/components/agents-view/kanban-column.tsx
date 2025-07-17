@@ -21,8 +21,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onTaskClick,
 }) => {
   return (
-    <div className="bg-accent/10 flex w-full flex-col rounded-lg flex-shrink-0 min-h-[300px] max-h-[600px]">
-      <div className="bg-accent/20 rounded-t-lg border-b p-4 flex-shrink-0">
+    <div className="bg-accent/2 flex w-full flex-col rounded-lg flex-shrink-0 min-h-[300px] max-h-[600px] border border-accent/10 shadow-sm">
+      <div className="bg-accent/5 rounded-t-lg border-b border-accent/10 p-4 flex-shrink-0">
         <div className="flex items-center justify-between select-none">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold">{column.title}</h3>
