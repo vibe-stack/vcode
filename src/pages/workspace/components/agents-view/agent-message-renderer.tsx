@@ -4,9 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, Trash2, User, Bot, Settings, Wrench } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { AgentMessage } from './types';
-import { AgentToolCallHandler } from './agent-tool-call-handler';
-import { AgentMarkdownRenderer } from './agent-markdown-renderer';
 import { format } from 'date-fns';
+import { AgentMarkdownRenderer } from './agent-markdown-renderer';
+import { AgentToolCallHandler } from './agent-tool-call-handler';
 
 interface AgentMessageRendererProps {
     message: AgentMessage;
@@ -67,13 +67,26 @@ export function AgentMessageRenderer({ message, onCopy, onDelete }: AgentMessage
         try {
             const parsed = JSON.parse(message.content);
             
-            // If it's a tool call result
-            if (parsed.type === 'tool_call' || parsed.toolName) {
+            // If it's a tool call or tool result with our new structure
+            if (parsed.type === 'tool_call' || parsed.type === 'tool_result') {
+                return (
+                    <AgentToolCallHandler
+                        toolCallId={parsed.toolCallId}
+                        toolName={parsed.toolName}
+                        args={parsed.args || {}}
+                        state={parsed.state || 'result'}
+                        result={parsed.result}
+                    />
+                );
+            }
+            
+            // Legacy support for old tool call format
+            if (parsed.toolName || parsed.tool) {
                 return (
                     <AgentToolCallHandler
                         toolCallId={parsed.toolCallId || message.id}
                         toolName={parsed.toolName || parsed.tool}
-                        args={parsed.args || parsed.arguments}
+                        args={parsed.args || parsed.arguments || {}}
                         state={parsed.state || 'result'}
                         result={parsed.result}
                     />
@@ -88,22 +101,21 @@ export function AgentMessageRenderer({ message, onCopy, onDelete }: AgentMessage
             // If parsing fails, treat as regular text
         }
 
-        // For tool role messages, try to format them better
+        // For tool role messages, try to parse as tool data first
         if (message.role === 'tool') {
             try {
                 const toolData = JSON.parse(message.content);
                 return (
-                    <div className="space-y-2">
-                        <div className="text-xs text-muted-foreground font-mono">
-                            Tool Response
-                        </div>
-                        <pre className="text-xs bg-muted/50 rounded p-2 overflow-x-auto">
-                            {JSON.stringify(toolData, null, 2)}
-                        </pre>
-                    </div>
+                    <AgentToolCallHandler
+                        toolCallId={toolData.toolCallId || message.id}
+                        toolName={toolData.toolName || toolData.tool || 'unknown'}
+                        args={toolData.args || toolData.arguments || {}}
+                        state={toolData.state || 'result'}
+                        result={toolData.result || toolData}
+                    />
                 );
             } catch (e) {
-                // Fall back to regular rendering
+                // Fall back to regular rendering if parsing fails
             }
         }
 
@@ -117,8 +129,8 @@ export function AgentMessageRenderer({ message, onCopy, onDelete }: AgentMessage
                 "flex gap-3 p-3 rounded-lg min-w-0 group",
                 message.role === 'user' && "bg-blue-50/50 dark:bg-blue-950/20",
                 message.role === 'assistant' && "bg-green-50/50 dark:bg-green-950/20",
-                message.role === 'tool' && "bg-orange-50/50 dark:bg-orange-950/20",
                 message.role === 'system' && "bg-purple-50/50 dark:bg-purple-950/20"
+                // Removed background for tool messages to make them more subtle
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

@@ -94,7 +94,7 @@ export const AgentDetailsSheet: React.FC<AgentDetailsSheetProps> = ({
 
   return (
     <Sheet modal open={open} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-[700px] sm:max-w-[700px] flex flex-col">
+      <SheetContent side="right" className="w-[700px] sm:max-w-[700px] flex flex-col p-4">
         <SheetHeader className="pb-6">
           <div className="flex items-center gap-3">
             <SheetTitle className="flex-1 text-lg">{agent.name}</SheetTitle>
@@ -140,32 +140,6 @@ export const AgentDetailsSheet: React.FC<AgentDetailsSheetProps> = ({
                   </div>
                 </CardContent>
               </Card>
-
-              {agent.progress && (
-                <Card className="col-span-2">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="h-5 w-5 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Progress</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex-1 bg-secondary rounded-full h-2">
-                            <div 
-                              className="bg-primary h-2 rounded-full transition-all"
-                              style={{ 
-                                width: `${agent.progress && agent.progress.completedSteps !== undefined && agent.progress.totalSteps ? (agent.progress.completedSteps / agent.progress.totalSteps) * 100 : 0}%` 
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {agent.progress?.completedSteps || 0}/{agent.progress?.totalSteps || 0}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             {/* Progress Timeline */}

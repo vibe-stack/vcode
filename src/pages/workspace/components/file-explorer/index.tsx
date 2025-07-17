@@ -20,11 +20,13 @@ import {
 import { FileTreeNode } from './file-tree-node';
 import { GitPanel } from './git-panel';
 import { CreateFilePopover } from './create-file-popover';
+import { useEditorContentStore } from '@/stores/editor-content';
 
 export function FileExplorer() {
     const { fileTree, projectName, currentProject } = useProjectStore();
     const { isGitRepo } = useGitStore();
     const { openFile: openFileInSplit, startDrag } = useEditorSplitStore();
+    const setView = useEditorContentStore((s) => s.setView);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<'files' | 'git'>('files');
@@ -32,6 +34,7 @@ export function FileExplorer() {
     const handleFileClick = useCallback(async (filePath: string) => {
         try {
             // Use the split store to open the file
+            setView('code');
             await openFileInSplit(filePath);
         } catch (error) {
             console.error('Failed to open file:', error);

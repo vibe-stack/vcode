@@ -5,6 +5,7 @@ import { AgentActions } from './agent-actions';
 import { AgentProgress } from './agent-progress';
 import { Agent } from './types';
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/utils/tailwind';
 
 interface AgentCardProps {
   agent: Agent;
@@ -17,6 +18,7 @@ interface AgentCardProps {
   onViewDetails: (agentId: string) => void;
   onAddMessage: (agentId: string) => void;
   isLoading?: boolean;
+  compact?: boolean;
 }
 
 export const AgentCard: React.FC<AgentCardProps> = ({
@@ -29,32 +31,31 @@ export const AgentCard: React.FC<AgentCardProps> = ({
   onDelete,
   onViewDetails,
   onAddMessage,
-  isLoading = false
+  isLoading = false,
+  compact = false
 }) => {
   const lastUpdated = formatDistanceToNow(new Date(agent.updatedAt), { addSuffix: true });
 
   return (
-    <Card className="transition-shadow hover:shadow-md">
-      <CardHeader className="pb-3">
+    <Card onClick={() => onViewDetails(agent.id)} className={cn("transition-shadow hover:shadow-md bg-accent/20 cursor-pointer", compact ? "h-auto" : "h-auto")}>
+      <CardHeader className={compact ? "pb-2" : "pb-4"}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base font-medium truncate">
+            <CardTitle className={`font-medium truncate ${compact ? "text-sm" : "text-base"}`}>
               {agent.name}
             </CardTitle>
-            <CardDescription className="text-sm mt-1">
+            <CardDescription className={`mt-1 ${compact ? "text-xs" : "text-sm"} line-clamp-2`}>
               {agent.description}
             </CardDescription>
           </div>
-          <AgentStatusBadge status={agent.status} />
+          {!compact && <AgentStatusBadge status={agent.status} />}
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0 space-y-3">
-        <AgentProgress agent={agent} />
-        
+      <CardContent className={`${compact ? "pt-0 pb-3" : "pt-0 pb-4"}`}>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
-            Updated {lastUpdated}
+            {`${lastUpdated}`}
           </span>
           
           <AgentActions
@@ -68,6 +69,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
             onViewDetails={onViewDetails}
             onAddMessage={onAddMessage}
             isLoading={isLoading}
+            compact={compact}
           />
         </div>
       </CardContent>

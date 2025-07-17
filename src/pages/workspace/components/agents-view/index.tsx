@@ -19,6 +19,7 @@ export const AgentsView = () => {
         agents,
         loading,
         error,
+        isPolling,
         createAgent,
         startAgent,
         stopAgent,
@@ -58,17 +59,20 @@ export const AgentsView = () => {
                 <div className="flex items-center gap-3">
                     <Bot className="h-5 w-5" />
                     <div>
-                        <h1 className="text-lg font-semibold">AI Agents</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {projectName || currentProject}
-                        </p>
+                        <h1 className="text-lg font-semibold">Grok Agents</h1>
+                        {isPolling && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                Real-time updates active
+                            </p>
+                        )}
                     </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
-                        onClick={reload}
+                        onClick={() => reload()}
                         disabled={loading}
                         className="gap-2"
                     >

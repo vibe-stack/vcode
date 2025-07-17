@@ -31,6 +31,7 @@ interface AgentActionsProps {
   onViewDetails: (agentId: string) => void;
   onAddMessage: (agentId: string) => void;
   isLoading?: boolean;
+  compact?: boolean;
 }
 
 export const AgentActions: React.FC<AgentActionsProps> = ({
@@ -43,7 +44,8 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
   onDelete,
   onViewDetails,
   onAddMessage,
-  isLoading = false
+  isLoading = false,
+  compact = false
 }) => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -149,7 +151,7 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
 
   return (
     <div className="flex items-center gap-2">
-      {getPrimaryAction()}
+      {!compact && getPrimaryAction()}
       
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -163,6 +165,66 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
               <Eye className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
+          )}
+          
+          {compact && getPrimaryAction() && (
+            <DropdownMenuItem 
+              onClick={() => {
+                // Handle compact primary actions through dropdown
+                switch (agent.status) {
+                  case 'ideas':
+                    handleAction('promote', () => onPromoteToTodo(agent.id));
+                    break;
+                  case 'todo':
+                    handleAction('start', () => onStart(agent.id));
+                    break;
+                  case 'doing':
+                    handleAction('stop', () => onStop(agent.id));
+                    break;
+                  case 'need_clarification':
+                    onAddMessage(agent.id);
+                    break;
+                }
+              }}
+            >
+              {agent.status === 'ideas' && (
+                <>
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Promote to Todo
+                </>
+              )}
+              {agent.status === 'todo' && (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Start
+                </>
+              )}
+              {agent.status === 'doing' && (
+                <>
+                  <Square className="mr-2 h-4 w-4" />
+                  Stop
+                </>
+              )}
+              {agent.status === 'need_clarification' && (
+                <>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Clarify
+                </>
+              )}
+            </DropdownMenuItem>
+          )}
+          
+          {compact && agent.status === 'review' && (
+            <>
+              <DropdownMenuItem onClick={() => handleAction('accept', () => onAccept(agent.id))}>
+                <Check className="mr-2 h-4 w-4" />
+                Accept
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAction('reject', () => onReject(agent.id))}>
+                <X className="mr-2 h-4 w-4" />
+                Reject
+              </DropdownMenuItem>
+            </>
           )}
           
           {canAddMessage && (

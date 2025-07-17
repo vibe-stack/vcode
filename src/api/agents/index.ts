@@ -53,24 +53,46 @@ export async function agentApi({
                         });
                     }
 
-                    // Store tool results
-                    if (toolResults && toolResults.length > 0) {
-                        // Create formatted content with tool names
-                        const formattedContent = toolResults.map((result, index) => {
-                            const toolCall = toolCalls?.[index];
-                            const toolName = toolCall?.toolName || 'unknown_tool';
-                            const resultContent = typeof result.result === 'string' 
-                                ? result.result 
-                                : JSON.stringify(result.result, null, 2);
-                            return `**${toolName}**:\n${resultContent}`;
-                        }).join('\n\n');
+                    // Store tool calls if they exist
+                    if (toolCalls && toolCalls.length > 0) {
+                        toolCalls.forEach((toolCall, index) => {
+                            // Store each tool call as a separate message to preserve all details
+                            agentDB.addMessage({
+                                sessionId,
+                                role: 'tool',
+                                content: JSON.stringify({
+                                    type: 'tool_call',
+                                    toolCallId: toolCall.toolCallId,
+                                    toolName: toolCall.toolName,
+                                    args: toolCall.args,
+                                    state: 'call'
+                                }, null, 2),
+                                stepIndex: currentStepIndex,
+                                toolCalls: JSON.stringify([toolCall]),
+                            });
+                        });
+                    }
 
-                        agentDB.addMessage({
-                            sessionId,
-                            role: 'tool',
-                            content: formattedContent,
-                            stepIndex: currentStepIndex,
-                            toolResults: JSON.stringify(toolResults),
+                    // Store tool results if they exist
+                    if (toolResults && toolResults.length > 0) {
+                        toolResults.forEach((result, index) => {
+                            const toolCall = toolCalls?.[index];
+                            
+                            // Store each tool result as a separate message with full context
+                            agentDB.addMessage({
+                                sessionId,
+                                role: 'tool',
+                                content: JSON.stringify({
+                                    type: 'tool_result', 
+                                    toolCallId: toolCall?.toolCallId || `result-${index}`,
+                                    toolName: toolCall?.toolName || 'unknown_tool',
+                                    args: toolCall?.args || {},
+                                    state: 'result',
+                                    result: result.result
+                                }, null, 2),
+                                stepIndex: currentStepIndex,
+                                toolResults: JSON.stringify([result]),
+                            });
                         });
                     }
 

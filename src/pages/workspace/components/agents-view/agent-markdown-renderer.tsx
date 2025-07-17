@@ -81,9 +81,9 @@ const agentMarkdownComponents = {
     },
     pre: ({ children }: any) => children,
     p: ({ children, ...props }: any) => (
-        <p className="mb-2 last:mb-0 text-sm leading-relaxed" {...props}>
+        <div className="mb-2 block last:mb-0 text-sm leading-relaxed" {...props}>
             {children}
-        </p>
+        </div>
     ),
     h1: ({ children }: any) => (
         <h1 className="text-base font-semibold mb-2 text-foreground border-b border-border pb-1">

@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
-    Play, 
     Check, 
     AlertTriangle, 
     FileText, 
     Folder, 
     Search,
     ChevronDown,
-    ChevronRight,
     Loader2,
     Terminal,
     Code,
-    Database
+    Database,
+    MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 
@@ -32,7 +30,7 @@ export function AgentToolCallHandler({
     state, 
     result 
 }: AgentToolCallHandlerProps) {
-    const [expanded, setExpanded] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
 
     // Helper to get filename from path
     const getFileName = (filePath: string): string => {
@@ -76,7 +74,7 @@ export function AgentToolCallHandler({
     };
 
     const getToolIcon = () => {
-        const iconClass = "h-3 w-3";
+        const iconClass = "h-3.5 w-3.5";
         switch (toolName) {
             case 'readFile':
             case 'writeFile':
@@ -104,120 +102,106 @@ export function AgentToolCallHandler({
         }
     };
 
-    const getStateColor = () => {
+    const getStatusIcon = () => {
+        const iconClass = "h-3.5 w-3.5";
         switch (state) {
             case 'result':
-                return 'text-green-600 dark:text-green-400';
+                return <Check className={cn(iconClass, "text-green-600 dark:text-green-400")} />;
             case 'running':
             case 'call':
-                return 'text-blue-600 dark:text-blue-400';
+                return <Loader2 className={cn(iconClass, "animate-spin text-blue-600 dark:text-blue-400")} />;
             case 'error':
-                return 'text-red-600 dark:text-red-400';
+                return <AlertTriangle className={cn(iconClass, "text-red-600 dark:text-red-400")} />;
             default:
-                return 'text-amber-600 dark:text-amber-400';
+                return <Check className={cn(iconClass, "text-amber-600 dark:text-amber-400")} />;
         }
     };
 
-    const getStateIcon = () => {
-        const iconClass = "h-3 w-3";
-        switch (state) {
-            case 'result':
-                return <Check className={iconClass} />;
-            case 'running':
-            case 'call':
-                return <Loader2 className={cn(iconClass, "animate-spin")} />;
-            case 'error':
-                return <AlertTriangle className={iconClass} />;
-            default:
-                return <Play className={iconClass} />;
-        }
-    };
-
-    // Render tool arguments in a readable way
-    const renderArgs = () => {
-        if (!args || Object.keys(args).length === 0) return null;
+    // Render details section with comprehensive tool call data
+    const renderDetails = () => {
+        const detailsData = {
+            toolCallId,
+            toolName,
+            state,
+            args: args || {},
+            ...(result && { result }),
+            timestamp: new Date().toISOString()
+        };
 
         return (
-            <div className="mt-2 space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">Arguments:</div>
-                <div className="text-xs bg-muted/50 rounded p-2 font-mono">
-                    {Object.entries(args).map(([key, value]) => (
-                        <div key={key} className="truncate">
-                            <span className="text-blue-600 dark:text-blue-400">{key}:</span>{' '}
-                            <span className="text-foreground">
-                                {typeof value === 'string' ? value : JSON.stringify(value)}
-                            </span>
+            <div className="mt-2 pl-8 border-l border-border/30">
+                <div className="bg-muted/30 rounded-md p-3 text-xs space-y-3">
+                    {/* Tool Call ID */}
+                    <div>
+                        <span className="font-semibold text-muted-foreground">Call ID:</span>
+                        <pre className="font-mono text-muted-foreground mt-1">{toolCallId}</pre>
+                    </div>
+                    
+                    {/* Arguments */}
+                    {args && Object.keys(args).length > 0 && (
+                        <div>
+                            <span className="font-semibold text-muted-foreground">Arguments:</span>
+                            <pre className="font-mono text-muted-foreground overflow-x-auto mt-1">
+                                {JSON.stringify(args, null, 2)}
+                            </pre>
                         </div>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
-    // Render tool result in a readable way
-    const renderResult = () => {
-        if (!result) return null;
-
-        let displayResult = result;
-        if (typeof result === 'object') {
-            displayResult = JSON.stringify(result, null, 2);
-        }
-
-        return (
-            <div className="mt-2 space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">Result:</div>
-                <div className="text-xs bg-muted/30 rounded p-2 font-mono max-h-32 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-foreground">
-                        {displayResult}
-                    </pre>
+                    )}
+                    
+                    {/* Result */}
+                    {result && (
+                        <div>
+                            <span className="font-semibold text-muted-foreground">Result:</span>
+                            <pre className="font-mono text-muted-foreground overflow-x-auto mt-1">
+                                {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
+                            </pre>
+                        </div>
+                    )}
+                    
+                    {/* Full JSON (for debugging) */}
+                    <details className="border-t border-border/20 pt-2">
+                        <summary className="text-muted-foreground cursor-pointer hover:text-foreground text-xs">
+                            Raw JSON Data
+                        </summary>
+                        <pre className="font-mono text-muted-foreground overflow-x-auto mt-2 text-xs">
+                            {JSON.stringify(detailsData, null, 2)}
+                        </pre>
+                    </details>
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="space-y-2 border border-border/50 rounded-lg p-3 bg-muted/20">
-            <div 
-                className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded p-1 -m-1 transition-colors"
-                onClick={() => setExpanded(!expanded)}
-            >
-                <div className={cn("flex items-center gap-1", getStateColor())}>
-                    {getStateIcon()}
+        <div className="space-y-0">
+            {/* Main tool call line */}
+            <div className="flex items-center gap-2 py-1">
+                {/* Status icon */}
+                {getStatusIcon()}
+                
+                {/* Tool icon */}
+                <div className="text-muted-foreground">
                     {getToolIcon()}
                 </div>
                 
-                <span className="text-sm font-medium flex-1">
+                {/* Tool label */}
+                <span className="text-sm text-muted-foreground flex-1 truncate">
                     {getToolLabel()}
                 </span>
 
-                <Badge 
-                    variant={state === 'result' ? 'default' : state === 'error' ? 'destructive' : 'secondary'}
-                    className="text-xs"
+                {/* More details button */}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowDetails(!showDetails)}
                 >
-                    {state}
-                </Badge>
-
-                {expanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                )}
+                    <MoreHorizontal className="h-3 w-3 mr-1" />
+                    {showDetails ? 'Hide' : 'Details'}
+                </Button>
             </div>
 
-            {expanded && (
-                <div className="space-y-2 pl-6 border-l-2 border-border/30">
-                    {renderArgs()}
-                    {state === 'result' && renderResult()}
-                    {state === 'error' && result && (
-                        <div className="mt-2 space-y-1">
-                            <div className="text-xs font-medium text-red-600 dark:text-red-400">Error:</div>
-                            <div className="text-xs bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded p-2">
-                                {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* Details section */}
+            {showDetails && renderDetails()}
         </div>
     );
 }
