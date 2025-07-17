@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import ToggleTheme from "@/components/ToggleTheme";
 import { useTranslation } from "react-i18next";
 import Footer from "@/components/template/Footer";
@@ -14,11 +14,15 @@ import {
   Clock,
   Plus,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Settings
 } from "lucide-react";
+import GlobalCommands from "@/components/global-commands";
+import { SettingsModal } from "@/components/SettingsModal";
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     recentProjects,
     isLoadingRecentProjects,
@@ -58,7 +62,38 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex h-full flex-col p-2">
+    <div className="flex h-full flex-col">
+      {/* Custom title bar */}
+      <div className="draglayer h-12 bg-background/95 backdrop-blur-md border-b flex items-center px-4 flex-shrink-0">
+        {/* Left section - Logo */}
+        <div className="flex items-center flex-1">
+          <img src="/src/assets/imgs/vcode_long.svg" className="h-5" alt="vCode" />
+        </div>
+        
+        {/* Center section - Title */}
+        <div className="flex items-center justify-center flex-1">
+          <span className="text-sm font-medium text-foreground/80 select-none">Welcome</span>
+        </div>
+        
+        {/* Right section - Commands and Settings */}
+        <div className="flex items-center justify-end gap-2 flex-1">
+          <div className="no-drag">
+            <GlobalCommands onOpenSettings={() => setSettingsOpen(true)} />
+          </div>
+          <div className="no-drag">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+      
       <div className="flex-1 p-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -189,6 +224,9 @@ export default function HomePage() {
           <Footer />
         </div>
       </div>
+      
+      {/* Settings Modal */}
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

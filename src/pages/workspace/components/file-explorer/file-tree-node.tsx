@@ -187,7 +187,7 @@ export const FileTreeNode = (({
                 <ContextMenuTrigger>
                     <div
                         className={cn(
-                            "flex items-center gap-1 px-2 py-1 cursor-default hover:bg-accent hover:text-accent-foreground rounded-sm group",
+                            "flex items-center gap-1 px-2 py-0.5 cursor-default hover:bg-accent hover:text-accent-foreground rounded-sm group",
                             "text-sm select-none relative",
                             gitColor
                         )}
@@ -214,12 +214,12 @@ export const FileTreeNode = (({
                         <div className="flex items-center justify-center w-4 h-4">
                             {isDirectory ? (
                                 isExpanded ? (
-                                    <FolderOpen className="h-4 w-4 text-emerald-500" />
+                                    <FolderOpen className="h-3.5 w-3.5 text-emerald-500" />
                                 ) : (
-                                    <Folder className="h-4 w-4 text-emerald-500" />
+                                    <Folder className="h-3.5 w-3.5 text-emerald-500" />
                                 )
                             ) : (
-                                <File className="h-4 w-4 text-muted-foreground" />
+                                <File className="h-3.5 w-3.5 text-muted-foreground" />
                             )}
                         </div>
 
@@ -240,7 +240,7 @@ export const FileTreeNode = (({
                         
                         {/* Git status indicator */}
                         {gitIcon && (
-                            <span className={cn("text-xs font-mono", gitColor)} title={gitTooltip}>
+                            <span className={cn("text-sm font-mono", gitColor)} title={gitTooltip}>
                                 {gitIcon}
                             </span>
                         )}

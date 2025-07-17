@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, Check } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import type { Components } from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer-continued';
 
 const CodeBlock = ({ children, className, ...props }: any) => {
     const [copied, setCopied] = useState(false);
@@ -21,6 +24,86 @@ const CodeBlock = ({ children, className, ...props }: any) => {
     };
 
     const codeContent = typeof children === 'string' ? children : String(children);
+    
+    // Check if this is a diff block
+    const isDiff = language === 'diff';
+    
+    if (isDiff) {
+        // Parse diff content for the diff viewer
+        const lines = codeContent.trim().split('\n');
+        let oldCode = '';
+        let newCode = '';
+        let inOld = false;
+        let inNew = false;
+        
+        lines.forEach(line => {
+            if (line.startsWith('---')) {
+                inOld = true;
+                inNew = false;
+            } else if (line.startsWith('+++')) {
+                inOld = false;
+                inNew = true;
+            } else if (line.startsWith('-') && !line.startsWith('---')) {
+                oldCode += line.substring(1) + '\n';
+            } else if (line.startsWith('+') && !line.startsWith('+++')) {
+                newCode += line.substring(1) + '\n';
+            } else if (!line.startsWith('@')) {
+                // Context lines (no prefix)
+                const content = line.startsWith(' ') ? line.substring(1) : line;
+                oldCode += content + '\n';
+                newCode += content + '\n';
+            }
+        });
+        
+        return (
+            <div className="relative group my-4 w-full max-w-full rounded-lg border border-border overflow-hidden">
+                <div className="flex items-center justify-between bg-muted/50 px-4 py-2 border-b border-border">
+                    <span className="text-xs text-muted-foreground font-mono capitalize">
+                        Diff View
+                    </span>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={handleCopy}
+                        title="Copy diff"
+                    >
+                        {copied ? (
+                            <Check className="h-3 w-3 text-green-500" />
+                        ) : (
+                            <Copy className="h-3 w-3" />
+                        )}
+                    </Button>
+                </div>
+                <div className="overflow-x-auto">
+                    <ReactDiffViewer
+                        oldValue={oldCode.trim()}
+                        newValue={newCode.trim()}
+                        splitView={false}
+                        compareMethod={DiffMethod.CHARS}
+                        useDarkTheme={true}
+                        hideLineNumbers={false}
+                        styles={{
+                            variables: {
+                                dark: {
+                                    diffViewerBackground: 'oklch(0.18 0.015 240)',
+                                    diffViewerColor: 'oklch(0.90 0.01 240)',
+                                    addedBackground: 'oklch(0.3 0.1 150)',
+                                    addedColor: 'oklch(0.95 0.1 150)',
+                                    removedBackground: 'oklch(0.3 0.1 20)',
+                                    removedColor: 'oklch(0.95 0.1 20)',
+                                    wordAddedBackground: 'oklch(0.4 0.15 150)',
+                                    wordRemovedBackground: 'oklch(0.4 0.15 20)',
+                                    codeFoldBackground: 'oklch(0.25 0.02 240)',
+                                    emptyLineBackground: 'oklch(0.20 0.02 240)',
+                                }
+                            }
+                        }}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="relative group my-4 w-full max-w-full rounded-lg border border-border overflow-hidden">
@@ -43,11 +126,32 @@ const CodeBlock = ({ children, className, ...props }: any) => {
                 </Button>
             </div>
             <div className="overflow-x-auto">
-                <pre className="p-4 text-sm bg-muted/20 m-0 font-mono leading-relaxed whitespace-pre">
-                    <code className={cn("block", className)} {...props}>
-                        {codeContent}
-                    </code>
-                </pre>
+                {language ? (
+                    <SyntaxHighlighter
+                        language={language}
+                        style={oneDark}
+                        customStyle={{
+                            margin: 0,
+                            padding: '1rem',
+                            backgroundColor: 'oklch(0.16 0.015 240)',
+                            fontSize: '0.875rem',
+                            lineHeight: '1.5',
+                        }}
+                        codeTagProps={{
+                            style: {
+                                fontFamily: 'SF Mono, Monaco, Consolas, "Courier New", monospace',
+                            }
+                        }}
+                    >
+                        {codeContent.trim()}
+                    </SyntaxHighlighter>
+                ) : (
+                    <pre className="p-4 text-sm bg-muted/20 m-0 font-mono leading-relaxed whitespace-pre">
+                        <code className={cn("block", className)} {...props}>
+                            {codeContent}
+                        </code>
+                    </pre>
+                )}
             </div>
         </div>
     );

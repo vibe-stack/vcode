@@ -4,6 +4,16 @@ import { persist } from 'zustand/middleware';
 interface SettingsState {
   // Regular settings
   settings: {
+    appearance: {
+      theme: 'light' | 'dark' | 'dimmed' | 'tinted';
+      accentColor: string;
+      accentGradient: boolean;
+      font: {
+        family: string;
+        size: number;
+        bold: boolean;
+      };
+    };
     ai: {
       providers: {
         xai: {
@@ -18,6 +28,18 @@ interface SettingsState {
       theme: string;
       tabSize: number;
       wordWrap: boolean;
+      font: {
+        family: string;
+        size: number;
+        bold: boolean;
+      };
+    };
+    terminal: {
+      font: {
+        family: string;
+        size: number;
+        bold: boolean;
+      };
     };
     general: {
       autoSave: boolean;
@@ -60,6 +82,16 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
       settings: {
+        appearance: {
+          theme: 'dark',
+          accentColor: 'blue',
+          accentGradient: true,
+          font: {
+            family: 'system',
+            size: 14,
+            bold: false,
+          },
+        },
         ai: {
           providers: {
             xai: {
@@ -69,11 +101,23 @@ export const useSettingsStore = create<SettingsState>()(
           },
         },
         editor: {
-          fontSize: 14,
-          fontFamily: "'Fira Code', Consolas, 'Courier New', monospace",
+          fontSize: 13,
+          fontFamily: "'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace",
           theme: "dark",
           tabSize: 2,
           wordWrap: false,
+          font: {
+            family: 'sf-mono',
+            size: 13,
+            bold: false,
+          },
+        },
+        terminal: {
+          font: {
+            family: 'sf-mono',
+            size: 13,
+            bold: false,
+          },
         },
         general: {
           autoSave: true,

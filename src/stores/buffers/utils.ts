@@ -156,16 +156,20 @@ export function isTextBuffer(buffer: Uint8Array, sampleSize = 8000): boolean {
 
 // Smarter file type detection: use extension if known, else content
 export function getFileType({ extension, buffer }: { extension?: string | null, buffer?: Uint8Array }): BufferType {
+    // First check extension if available - it's more reliable
+    if (extension) {
+        const extType = getFileTypeFromExtension(extension);
+        // If we have a definitive type from extension, use it
+        // This ensures .md files are always treated as text
+        if (extType !== 'unknown') return extType;
+    }
+
+    // Only check buffer content if extension is unknown or missing
     if (buffer) {
         const istext = isTextBuffer(buffer);
         if (istext) return 'text';
         // Could add more heuristics for image/pdf/archive here
         return 'binary';
-    }
-
-    if (extension) {
-        const extType = getFileTypeFromExtension(extension);
-        if (extType !== 'binary' && extType !== 'unknown') return extType;
     }
 
     return 'unknown';

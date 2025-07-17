@@ -170,6 +170,142 @@ export const registerCustomLanguages = () => {
             ],
         },
     });
+
+    // Register YAML files
+    monaco.languages.register({ id: 'yaml' });
+    monaco.languages.setMonarchTokensProvider('yaml', {
+        tokenizer: {
+            root: [
+                [/#.*/, 'comment'],
+                [/^\s*[\w-]+\s*:/, 'key'],
+                [/:\s*/, 'delimiter'],
+                [/^\s*-\s*/, 'operator'],
+                [/[|>][-+]?\s*$/, 'string.heredoc'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/\btrue\b|\bfalse\b|\bnull\b/, 'keyword'],
+                [/\d+/, 'number'],
+                [/.*/, 'text'],
+            ],
+        },
+    });
+
+    // Register TOML files
+    monaco.languages.register({ id: 'toml' });
+    monaco.languages.setMonarchTokensProvider('toml', {
+        tokenizer: {
+            root: [
+                [/#.*/, 'comment'],
+                [/^\s*\[.*\]\s*$/, 'tag'],
+                [/^\s*[\w-]+\s*=/, 'key'],
+                [/=/, 'delimiter'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/\btrue\b|\bfalse\b/, 'keyword'],
+                [/\d{4}-\d{2}-\d{2}/, 'number'],
+                [/\d+/, 'number'],
+                [/.*/, 'text'],
+            ],
+        },
+    });
+
+    // Register Dockerfile
+    monaco.languages.register({ id: 'dockerfile' });
+    monaco.languages.setMonarchTokensProvider('dockerfile', {
+        tokenizer: {
+            root: [
+                [/#.*/, 'comment'],
+                [/^\s*(FROM|RUN|CMD|LABEL|EXPOSE|ENV|ADD|COPY|ENTRYPOINT|VOLUME|USER|WORKDIR|ARG|ONBUILD|STOPSIGNAL|HEALTHCHECK|SHELL)\b/i, 'keyword'],
+                [/\$\{[^}]*\}/, 'variable'],
+                [/\$\w+/, 'variable'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/.*/, 'text'],
+            ],
+        },
+    });
+
+    // Register Makefile
+    monaco.languages.register({ id: 'makefile' });
+    monaco.languages.setMonarchTokensProvider('makefile', {
+        tokenizer: {
+            root: [
+                [/#.*/, 'comment'],
+                [/^[\w-]+\s*:/, 'tag'],
+                [/\$\([^)]*\)/, 'variable'],
+                [/\$\{[^}]*\}/, 'variable'],
+                [/\$[@<^+?*]/, 'variable'],
+                [/\$\w+/, 'variable'],
+                [/^\t/, 'delimiter'],
+                [/.*/, 'text'],
+            ],
+        },
+    });
+
+    // Register Apache config
+    monaco.languages.register({ id: 'apache' });
+    monaco.languages.setMonarchTokensProvider('apache', {
+        tokenizer: {
+            root: [
+                [/#.*/, 'comment'],
+                [/^\s*<\/?[^>]+>/, 'tag'],
+                [/^\s*\w+/, 'keyword'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/.*/, 'text'],
+            ],
+        },
+    });
+
+    // Register Nginx config
+    monaco.languages.register({ id: 'nginx' });
+    monaco.languages.setMonarchTokensProvider('nginx', {
+        tokenizer: {
+            root: [
+                [/#.*/, 'comment'],
+                [/^\s*\w+/, 'keyword'],
+                [/\{/, 'delimiter.curly'],
+                [/\}/, 'delimiter.curly'],
+                [/;/, 'delimiter'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/.*/, 'text'],
+            ],
+        },
+    });
+
+    // Register Properties files
+    monaco.languages.register({ id: 'properties' });
+    monaco.languages.setMonarchTokensProvider('properties', {
+        tokenizer: {
+            root: [
+                [/#.*/, 'comment'],
+                [/!.*/, 'comment'],
+                [/^\s*[\w.-]+\s*[=:]/, 'key'],
+                [/[=:]/, 'delimiter'],
+                [/\\$/, 'string.escape'],
+                [/.*/, 'value'],
+            ],
+        },
+    });
+
+    // Register Protocol Buffers
+    monaco.languages.register({ id: 'protobuf' });
+    monaco.languages.setMonarchTokensProvider('protobuf', {
+        tokenizer: {
+            root: [
+                [/\/\/.*/, 'comment'],
+                [/\/\*[\s\S]*?\*\//, 'comment'],
+                [/\b(syntax|package|import|message|service|rpc|enum|option|extend|oneof|reserved|returns)\b/, 'keyword'],
+                [/\b(double|float|int32|int64|uint32|uint64|sint32|sint64|fixed32|fixed64|sfixed32|sfixed64|bool|string|bytes)\b/, 'type'],
+                [/\b(optional|required|repeated)\b/, 'keyword'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/\d+/, 'number'],
+                [/.*/, 'text'],
+            ],
+        },
+    });
 };
 
 // Map common file extensions to custom languages
@@ -180,8 +316,58 @@ export const getCustomLanguageFromExtension = (extension: string): string | null
         'log': 'log',
         'conf': 'ini',
         'cfg': 'ini',
-        'toml': 'ini', // Use INI highlighting for TOML files as a fallback
+        'toml': 'toml',
+        'yml': 'yaml',
+        'yaml': 'yaml',
+        'dockerfile': 'dockerfile',
+        'makefile': 'makefile',
+        'mk': 'makefile',
+        'apache': 'apache',
+        'nginx': 'nginx',
+        'properties': 'properties',
+        'props': 'properties',
+        'proto': 'protobuf',
+        'protobuf': 'protobuf',
     };
 
     return customMappings[extension.toLowerCase()] || null;
+};
+
+// Enhanced language detection based on filename patterns
+export const detectLanguageFromFilename = (filename: string): string | null => {
+    const filenamePatterns: Record<string, string> = {
+        '.env': 'dotenv',
+        '.env.local': 'dotenv',
+        '.env.production': 'dotenv',
+        '.env.development': 'dotenv',
+        '.gitignore': 'gitignore',
+        '.gitattributes': 'gitignore',
+        'dockerfile': 'dockerfile',
+        'makefile': 'makefile',
+        'gnumakefile': 'makefile',
+        'package.json': 'json',
+        'tsconfig.json': 'json',
+        'composer.json': 'json',
+        '.eslintrc': 'json',
+        '.babelrc': 'json',
+        '.prettierrc': 'json',
+    };
+
+    const lowerFilename = filename.toLowerCase();
+    
+    // Check exact filename matches first
+    if (filenamePatterns[lowerFilename]) {
+        return filenamePatterns[lowerFilename];
+    }
+    
+    // Check for common patterns
+    if (lowerFilename.includes('dockerfile')) {
+        return 'dockerfile';
+    }
+    
+    if (lowerFilename.includes('makefile')) {
+        return 'makefile';
+    }
+    
+    return null;
 };

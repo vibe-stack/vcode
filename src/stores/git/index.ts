@@ -120,7 +120,7 @@ export const useGitStore = create(immer<GitState>((set, get) => ({
   },
 
   // Auto-refresh control
-  startAutoRefresh: (interval = 5000000) => {
+  startAutoRefresh: (interval = 5000) => {
     get().stopAutoRefresh(); // Clear any existing interval
     
     const intervalId = setInterval(() => {
