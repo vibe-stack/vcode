@@ -45,7 +45,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         </div>
       </div>
 
-      <div className="max-h-[calc(100vh-200px)] flex-1 space-y-3 overflow-y-auto p-4">
+      <div className="max-h-[calc(100%-200px)] flex-1 space-y-3 overflow-y-auto p-4">
         {column.tasks.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-500">
             {column.canCreateTasks ? (

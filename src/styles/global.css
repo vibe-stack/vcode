@@ -182,8 +182,20 @@
 }
 
 @layer base {
+  html,
   body {
-    @apply overflow-auto;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  #app {
+    height: 100%;
+  }
+  
+  /* DISABLE h-screen and w-screen classes entirely */
+  .h-screen,
+  .w-screen {
+    display: none !important;
   }
   .draglayer {
     @apply bg-background;

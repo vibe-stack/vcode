@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { persist } from "zustand/middleware";
 
-export type EditorContentView = "code" | "agents";
+export type EditorContentView = "code" | "agents" | "kanban";
 
 export interface EditorContentState {
   view: EditorContentView;

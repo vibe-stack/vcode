@@ -61,7 +61,7 @@ export const KanbanBoard: React.FC = () => {
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex-1 overflow-x-auto">
-        <div className="flex min-w-fit gap-6 p-6">
+        <div className="flex min-w-fit gap-6 p-2">
           {board.columns.map((column) => (
             <KanbanColumn
               key={column.id}

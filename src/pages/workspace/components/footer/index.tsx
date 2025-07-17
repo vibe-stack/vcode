@@ -92,7 +92,7 @@ export function WorkspaceFooter() {
 
   return (
     <footer
-      className="workspace-footer bg-background flex h-7 w-full items-center justify-between border-t px-2 text-[11px]"
+      className="workspace-footer bg-background flex h-7 w-full items-center justify-between border-t px-2 text-[11px] flex-shrink-0"
       data-status-bar
     >
       <div className="flex items-center gap-1">
@@ -136,6 +136,9 @@ export function WorkspaceFooter() {
             </ToggleGroupItem>
             <ToggleGroupItem value="agents" className="text-xs">
               Agents
+            </ToggleGroupItem>
+            <ToggleGroupItem value="kanban" className="text-xs">
+              Kanban
             </ToggleGroupItem>
           </ToggleGroup>
         </div>

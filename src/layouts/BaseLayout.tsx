@@ -6,7 +6,7 @@ export default function BaseLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="h-screen">
+    <div className="h-full">
       {children}
     </div>
   );

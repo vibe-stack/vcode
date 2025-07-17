@@ -18,7 +18,7 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
 
   return (
     <>
-      <div className="draglayer relative z-950 flex w-screen items-stretch border-b py-1">
+      <div className="draglayer relative z-950 flex  items-stretch border-b py-1">
         <div className="flex flex-1 items-center px-4">
           <div className="no-drag">
             <Link to="/">

@@ -925,7 +925,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </Card>
 
             {/* OpenAI Configuration */}
-            <Card className="border-muted">
+            {/* <Card className="border-muted">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center justify-between text-sm">
                   <span>OpenAI</span>
@@ -998,10 +998,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p>Coming soon</p>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Anthropic Configuration */}
-            <Card className="border-muted">
+            {/* <Card className="border-muted">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center justify-between text-sm">
                   <span>Anthropic (Claude)</span>
@@ -1078,7 +1078,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p>Coming soon</p>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         );
 
@@ -1145,7 +1145,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-background border-border/50 flex h-[75vh] w-full flex-col p-0 sm:max-w-[90vw] xl:max-w-7xl">
+      <DialogContent className="bg-background border-border/50 flex h-[75%] w-full flex-col p-0 sm:max-w-[90%] xl:max-w-7xl">
         <DialogHeader className="border-b px-6 py-4">
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
