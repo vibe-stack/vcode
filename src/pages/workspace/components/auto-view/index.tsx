@@ -3,8 +3,13 @@ import { PortSelector } from './port-selector';
 import { usePortDetector } from './port-detector';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Bug } from 'lucide-react';
+import { Loader2, AlertCircle, Bug, Target, Eye, EyeOff } from 'lucide-react';
 import { useTerminalContentTracker } from './terminal-content-tracker';
+import { NoServerState } from './no-server-state';
+import { useIframeInspector } from './use-iframe-inspector';
+import { ComponentInspectorPanel } from './component-inspector-panel';
+import { InspectorDebugPanel } from './inspector-debug-panel';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 
 export const AutoView: React.FC = () => {
   const { detectedPorts, selectedPort, selectPort, refreshPorts } = usePortDetector();
@@ -12,9 +17,31 @@ export const AutoView: React.FC = () => {
   const [customUrl, setCustomUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
+  const [showInspector, setShowInspector] = useState(false);
+  const [showDebug, setShowDebug] = useState(true); // Enable debug by default for now
 
   const currentUrl = customUrl || (selectedPort ? `http://localhost:${selectedPort}` : '');
+
+  const {
+    iframeRef,
+    isInspecting,
+    toggleInspection,
+    detectedFramework,
+    selectedNode,
+    clearSelection
+  } = useIframeInspector({
+    onNodeSelect: (data) => {
+      console.log('[GROK] AutoView - Selected node:', data);
+      console.log('[GROK] AutoView - Component info:', data.component);
+      console.log('[GROK] AutoView - Framework info:', data.framework);
+      if (!showInspector) {
+        setShowInspector(true);
+      }
+    },
+    onFrameworkDetected: (framework) => {
+      console.log('[GROK] AutoView - Detected framework:', framework);
+    }
+  });
 
   useEffect(() => {
     // Simulate initial loading
@@ -26,11 +53,18 @@ export const AutoView: React.FC = () => {
   }, []);
 
   const handleIframeLoad = () => {
+    console.log('[GROK] AutoView - Iframe loaded:', currentUrl);
     setLoadError(null);
   };
 
   const handleIframeError = () => {
+    console.log('[GROK] AutoView - Iframe error for:', currentUrl);
     setLoadError('Failed to load the application. Make sure the development server is running.');
+  };
+
+  const handleOpenSourceFile = (filePath: string, lineNumber?: number) => {
+    // TODO: Integrate with VS Code file opening API
+    console.log('Open source file:', filePath, lineNumber);
   };
 
   if (isLoading) {
@@ -66,57 +100,15 @@ export const AutoView: React.FC = () => {
             customUrl={customUrl}
             onCustomUrlChange={setCustomUrl}
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDebug(!showDebug)}
-            className="mr-2"
-          >
-            <Bug className="h-4 w-4" />
-          </Button>
         </div>
-        
-        {showDebug && (
-          <div className="p-4 bg-muted/50 border-b">
-            <div className="text-xs space-y-2">
-              <div>
-                <strong>Terminal Sessions:</strong> {terminalContents.length}
-              </div>
-              <div>
-                <strong>Ports from Terminals:</strong> {getPortsFromAllTerminals().join(', ') || 'None'}
-              </div>
-              <div>
-                <strong>Recent Terminal Output:</strong>
-                {terminalContents.map((tc, idx) => (
-                  <div key={idx} className="ml-2 font-mono text-xs bg-background p-2 rounded max-h-20 overflow-y-auto">
-                    {tc.recentOutput.slice(-200) || 'No output yet'}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div className="flex-1 flex items-center justify-center p-8">
-          <Alert className="max-w-md">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              No development servers detected. Start your application's development server and it will appear automatically, or enter a custom URL above.
-              {terminalContents.length === 0 && (
-                <div className="mt-2 text-sm">
-                  💡 Try opening a terminal and running a dev server (e.g., npm start, npm run dev).
-                </div>
-              )}
-            </AlertDescription>
-          </Alert>
-        </div>
+        <NoServerState terminalContentsLength={terminalContents.length} />
       </div>
     );
   }
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-2 border-b">
         <PortSelector
           selectedPort={selectedPort}
           detectedPorts={detectedPorts}
@@ -125,50 +117,113 @@ export const AutoView: React.FC = () => {
           customUrl={customUrl}
           onCustomUrlChange={setCustomUrl}
         />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowDebug(!showDebug)}
-          className="mr-2"
-        >
-          <Bug className="h-4 w-4" />
-        </Button>
+        
+        <div className="flex items-center gap-2">
+          {detectedFramework && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{detectedFramework.type}</span>
+              {detectedFramework.version && <span>v{detectedFramework.version}</span>}
+            </div>
+          )}
+          
+          <Button
+            variant={isInspecting ? "default" : "outline"}
+            size="sm"
+            onClick={toggleInspection}
+            className="flex items-center gap-2"
+          >
+            <Target className="h-4 w-4" />
+            {isInspecting ? 'Stop Inspecting' : 'Inspect Element'}
+          </Button>
+          
+          <Button
+            variant={showDebug ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowDebug(!showDebug)}
+            className="flex items-center gap-2"
+          >
+            <Bug className="h-4 w-4" />
+            Debug
+          </Button>
+          
+          {selectedNode && (
+            <Button
+              variant={showInspector ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowInspector(!showInspector)}
+              className="flex items-center gap-2"
+            >
+              {showInspector ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showInspector ? 'Hide Inspector' : 'Show Inspector'}
+            </Button>
+          )}
+        </div>
       </div>
       
-      {showDebug && (
-        <div className="p-4 bg-muted/50 border-b">
-          <div className="text-xs space-y-2">
-            <div>
-              <strong>Terminal Sessions:</strong> {terminalContents.length}
-            </div>
-            <div>
-              <strong>Ports from Terminals:</strong> {getPortsFromAllTerminals().join(', ') || 'None'}
-            </div>
-            <div>
-              <strong>Detected Ports:</strong> {detectedPorts.map(p => `${p.port}${p.description?.includes('(detected)') ? '*' : ''}`).join(', ')}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div className="flex-1 relative">
-        {loadError && (
-          <div className="absolute top-0 left-0 right-0 z-10 p-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{loadError}</AlertDescription>
-            </Alert>
+      <div className="flex-1 overflow-hidden">
+        {showDebug && (
+          <div className="border-b">
+            <InspectorDebugPanel />
           </div>
         )}
         
-        <iframe
-          src={currentUrl}
-          className="w-full h-full border-0"
-          title="Application Preview"
-          onLoad={handleIframeLoad}
-          onError={handleIframeError}
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation"
-        />
+        {showInspector && selectedNode ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={60} minSize={30}>
+              <div className="h-full relative">
+                {loadError && (
+                  <div className="absolute top-0 left-0 right-0 z-10 p-4">
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{loadError}</AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+                
+                <iframe
+                  ref={iframeRef}
+                  src={currentUrl}
+                  className="w-full h-full border-0"
+                  title="Application Preview"
+                  onLoad={handleIframeLoad}
+                  onError={handleIframeError}
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation"
+                />
+              </div>
+            </ResizablePanel>
+            
+            <ResizableHandle />
+            
+            <ResizablePanel defaultSize={40} minSize={30}>
+              <ComponentInspectorPanel
+                inspectionData={selectedNode}
+                framework={detectedFramework}
+                onOpenSourceFile={handleOpenSourceFile}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div className="h-full relative">
+            {loadError && (
+              <div className="absolute top-0 left-0 right-0 z-10 p-4">
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
+              </div>
+            )}
+            
+            <iframe
+              ref={iframeRef}
+              src={currentUrl}
+              className="w-full h-full border-0"
+              title="Application Preview"
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

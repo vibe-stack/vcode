@@ -134,7 +134,7 @@ export function PersistentTerminalPanel() {
       window.terminalApi.write(activeTabId, data);
     }
   }, [activeTabId, activeTab?.activeSplitId, getTabSplits]);
-
+  
   if (!isVisible) {
     return null;
   }

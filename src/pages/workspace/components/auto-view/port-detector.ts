@@ -98,9 +98,9 @@ export const usePortDetector = () => {
     scanPorts();
     
     // Set up periodic scanning
-    const interval = setInterval(scanPorts, 5000); // Check every 5 seconds
+    // const interval = setInterval(scanPorts, 5000); // Check every 5 seconds
     
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, [selectedPort, tabs.length]); // Re-scan when terminal count changes
 
   const refreshPorts = () => {
