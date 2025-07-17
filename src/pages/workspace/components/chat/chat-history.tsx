@@ -112,7 +112,7 @@ export function ChatHistory({ onLoadSession, onClearHistory, currentSessionId }:
               </div>
             </div>
           ) : (
-            <div className="h-full">
+            <div className="h-full max-h-64 overflow-y-auto">
               <div className="p-2">
                 {recentSessions.map((session) => (
                   <div
