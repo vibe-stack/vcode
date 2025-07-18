@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { RotateCcw, Settings, Plus, Trash2, Edit3, ChevronDown, ChevronRight, Server, Zap, X, ExternalLink, FileText, Wrench, Folder, Database, Search } from 'lucide-react'
 import { cn } from '../../../../utils/tailwind'
+import { useSettingsStore } from '../../../../stores/settings'
+import { getActiveAccentClasses } from '../../../../utils/accent-colors'
 
 import { Button } from '../../../../components/ui/button'
 import { Badge } from '../../../../components/ui/badge'
@@ -32,6 +34,11 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
   const [editingServer, setEditingServer] = useState<MCPServerConfig | null>(null)
   const [selectedServer, setSelectedServer] = useState<string | null>(null)
   const [toolEnabled, setToolEnabled] = useState<Record<string, boolean>>({})
+  
+  // Get accent color settings
+  const { settings } = useSettingsStore()
+  const accentColor = settings.appearance?.accentColor || 'blue'
+  const useGradient = settings.appearance?.accentGradient ?? true
 
   useEffect(() => {
     loadServers()
@@ -296,7 +303,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
     const lines = jsonString.split('\n')
     
     return (
-      <div className="whitespace-pre-wrap break-words max-w-full">
+      <div className="whitespace-pre-wrap break-words !max-w-full">
         {lines.map((line, index) => {
           // Color different parts of JSON
           let coloredLine = line
@@ -317,7 +324,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
           coloredLine = coloredLine.replace(/([{}[\]])/g, '<span class="text-blue-400">$1</span>')
           
           return (
-            <div key={index} dangerouslySetInnerHTML={{ __html: coloredLine }} className="max-w-full overflow-hidden" />
+            <div key={index} dangerouslySetInnerHTML={{ __html: coloredLine }} className="!max-w-full overflow-hidden" />
           )
         })}
       </div>
@@ -396,7 +403,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                             >
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-2">
-                                  <div className="text-sm font-medium truncate">{server.name}</div>
+                                  <div className="text-sm font-medium break-all">{server.name}</div>
                                   {server.disabled && (
                                     <Badge variant="destructive" className="text-xs">
                                       Disabled
@@ -606,7 +613,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
           <div className="p-3 space-y-3">
             {/* System Tools Section */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 p-2 rounded-md bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800/80 transition-colors">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -645,29 +652,29 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                     
                     return (
                       <div key={tool.name} className="space-y-2">
-                        <div className="p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div className="p-2 rounded-md bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800/80 transition-colors">
                           <div className="flex items-start gap-2">
-                            <ToolIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleToolExpanded(toolId)}
+                                  className="h-4 w-4 p-0"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                  )}
+                                </Button>
                                 <h5 className="text-sm font-medium truncate flex-1">{tool.name}</h5>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleToolExpanded(toolId)}
-                                    className="h-4 w-4 p-0"
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronDown className="h-3 w-3" />
-                                    ) : (
-                                      <ChevronRight className="h-3 w-3" />
-                                    )}
-                                  </Button>
+                                  <ToolIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                   <Switch
                                     checked={isEnabled}
                                     onCheckedChange={(checked) => handleToolToggle('system', tool.name, checked)}
-                                    className="scale-90"
+                                    className={cn("scale-90", getActiveAccentClasses(accentColor, useGradient))}
                                   />
                                 </div>
                               </div>
@@ -682,7 +689,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                           <div className="ml-6 p-2 rounded-lg bg-muted/20 space-y-2">
                             <div className="space-y-1">
                               <div className="text-xs font-medium text-muted-foreground">Tool Schema</div>
-                              <div className="max-h-48 overflow-y-auto overflow-x-auto w-full border rounded">
+                              <div className="max-h-48 overflow-y-auto overflow-x-auto !w-full border rounded">
                                 <div className="text-xs bg-background/50 p-2">
                                   <div className="font-mono whitespace-pre-wrap">
                                     <span className="text-blue-400">{"{"}</span>{"\n"}
@@ -712,20 +719,22 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
               )}
             </div>
 
-            {/* MCP Servers Section */}
+            {/* Add MCP Server Button */}
+            <div className="flex justify-end mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addServer}
+                className={cn("h-6 text-xs", getActiveAccentClasses(accentColor, useGradient))}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add MCP Server
+              </Button>
+            </div>
             {servers.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
                 <Server className="h-6 w-6 mx-auto mb-2 opacity-50" />
                 <p className="text-xs">No MCP servers configured</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfigOpen(true)}
-                  className="mt-2 h-7 text-xs"
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add Server
-                </Button>
               </div>
             ) : (
               servers.map((server) => {
@@ -734,7 +743,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                 return (
                   <div key={server.config.id} className="space-y-2">
                     {/* MCP Server Header */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800/80 transition-colors">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -748,7 +757,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                         )}
                       </Button>
                       <Server className="h-4 w-4" />
-                      <span className="text-sm font-medium truncate flex-1">{server.config.name}</span>
+                      <span className="text-sm font-medium break-all flex-1">{server.config.name}</span>
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusColor(server.status)}`} />
                       <Badge variant="secondary" className="text-xs h-4">
                         {server.tools.length}
@@ -789,31 +798,29 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                           
                           return (
                             <div key={tool.name} className="space-y-2">
-                              <div className="p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                              <div className="p-2 rounded-md bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800/80 transition-colors">
                                 <div className="flex items-start gap-2">
-                                  <ToolIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => toggleToolExpanded(toolId)}
+                                        className="h-4 w-4 p-0"
+                                      >
+                                        {isExpanded ? (
+                                          <ChevronDown className="h-3 w-3" />
+                                        ) : (
+                                          <ChevronRight className="h-3 w-3" />
+                                        )}
+                                      </Button>
                                       <h5 className="text-sm font-medium truncate flex-1">{tool.name}</h5>
                                       <div className="flex items-center gap-1 flex-shrink-0">
-                                        {tool.description && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => toggleToolExpanded(toolId)}
-                                            className="h-4 w-4 p-0"
-                                          >
-                                            {isExpanded ? (
-                                              <ChevronDown className="h-3 w-3" />
-                                            ) : (
-                                              <ChevronRight className="h-3 w-3" />
-                                            )}
-                                          </Button>
-                                        )}
+                                        <ToolIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                         <Switch
                                           checked={isEnabled}
                                           onCheckedChange={(checked) => handleToolToggle(server.config.id, tool.name, checked)}
-                                          className="scale-90"
+                                          className={cn("scale-90", getActiveAccentClasses(accentColor, useGradient))}
                                         />
                                       </div>
                                     </div>
@@ -830,7 +837,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                                 <div className="ml-6 p-2 rounded-lg bg-muted/20 space-y-2">
                                   <div className="space-y-1">
                                     <div className="text-xs font-medium text-muted-foreground">Tool Schema</div>
-                                    <div className="max-h-48 overflow-y-auto overflow-x-auto w-full border rounded">
+                                    <div className="max-h-48 overflow-y-auto overflow-x-auto !w-full border rounded">
                                       <div className="text-xs bg-background/50 p-2">
                                         <pre className="font-mono whitespace-pre-wrap">
                                           <JsonSyntaxHighlighter json={tool.inputSchema || {}} />
