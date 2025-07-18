@@ -18,6 +18,14 @@ interface ElectronWindow {
   close: () => Promise<void>;
 }
 
+interface SearchResult {
+  filePath: string;
+  line: number;
+  column: number;
+  content: string;
+  lineContent: string;
+}
+
 interface ProjectApi {
   openFolder: (folderPath?: string) => Promise<void>;
   getCurrentProject: () => Promise<string | null>; 
@@ -50,7 +58,7 @@ interface ProjectApi {
     query: string,
     rootPath?: string,
     options?: { filePatterns?: string[]; excludePatterns?: string[] }
-  ) => Promise<string[]>;
+  ) => Promise<SearchResult[]>;
   getRecentProjects: () => Promise<string[]>;
   addRecentProject: (projectPath: string, projectName?: string) => Promise<void>;
   removeRecentProject: (projectPath: string) => Promise<void>;

@@ -248,8 +248,76 @@ async function searchInFiles(
   rootPath: string,
   options: { filePatterns?: string[]; excludePatterns?: string[] } = {}
 ): Promise<SearchResult[]> {
-  const { filePatterns = ['.js', '.ts', '.jsx', '.tsx', '.css', '.html', '.json', '.md'], excludePatterns = ['node_modules', 'dist', 'build', '.git'] } = options;
   const results: SearchResult[] = [];
+
+  // Read gitignore patterns
+  const gitignorePatterns = await getGitignorePatterns(rootPath);
+  
+  // Default exclude patterns if none provided
+  const defaultExcludes = ['node_modules', 'dist', 'build', '.git', '.next', '.nuxt', 'out', 'coverage', '.nyc_output'];
+  const excludePatterns = options.excludePatterns?.length ? options.excludePatterns : [...defaultExcludes, ...gitignorePatterns];
+  
+  // Default file patterns if none provided (more comprehensive)
+  const defaultFilePatterns = [
+    '.js', '.ts', '.jsx', '.tsx', '.vue', '.svelte',
+    '.css', '.scss', '.sass', '.less',
+    '.html', '.htm', '.xml',
+    '.json', '.yaml', '.yml', '.toml',
+    '.md', '.mdx', '.txt', '.rst',
+    '.py', '.rb', '.php', '.java', '.c', '.cpp', '.h', '.hpp',
+    '.rs', '.go', '.kt', '.swift', '.cs',
+    '.sql', '.graphql', '.gql',
+    '.sh', '.bash', '.zsh', '.fish',
+    '.Dockerfile', '.dockerfile'
+  ];
+  const filePatterns = options.filePatterns?.length ? options.filePatterns : defaultFilePatterns;
+
+  // Helper function to check if a path should be excluded
+  function shouldExclude(relativePath: string, name: string): boolean {
+    // Check against exclude patterns
+    for (const pattern of excludePatterns) {
+      if (!pattern.trim()) continue;
+      
+      // Handle different pattern types
+      if (pattern.startsWith('*')) {
+        // Wildcard pattern like *.log
+        const extension = pattern.substring(1);
+        if (name.endsWith(extension)) return true;
+      } else if (pattern.endsWith('/')) {
+        // Directory pattern like node_modules/
+        const dirName = pattern.slice(0, -1);
+        if (name === dirName || relativePath.includes(`${dirName}/`)) return true;
+      } else if (pattern.includes('*')) {
+        // Complex wildcard pattern
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        if (regex.test(name) || regex.test(relativePath)) return true;
+      } else {
+        // Exact match
+        if (name === pattern || relativePath.includes(pattern)) return true;
+      }
+    }
+    return false;
+  }
+
+  // Helper function to check if file matches include patterns
+  function shouldInclude(fileName: string): boolean {
+    if (!filePatterns.length) return true;
+    
+    for (const pattern of filePatterns) {
+      if (pattern.startsWith('.')) {
+        // Extension pattern like .js
+        if (fileName.endsWith(pattern)) return true;
+      } else if (pattern.includes('*')) {
+        // Wildcard pattern
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        if (regex.test(fileName)) return true;
+      } else {
+        // Exact match or contains
+        if (fileName.includes(pattern)) return true;
+      }
+    }
+    return false;
+  }
 
   async function searchInDirectory(dirPath: string): Promise<void> {
     try {
@@ -257,38 +325,39 @@ async function searchInFiles(
       
       for (const entry of entries) {
         const fullPath = path.join(dirPath, entry);
+        const relativePath = path.relative(rootPath, fullPath);
         const stats = await fs.stat(fullPath);
 
-        // Skip excluded patterns
-        if (excludePatterns.some(pattern => entry.includes(pattern))) {
+        // Skip excluded paths
+        if (shouldExclude(relativePath, entry)) {
           continue;
         }
 
         if (stats.isDirectory()) {
           await searchInDirectory(fullPath);
-        } else if (stats.isFile()) {
-          // Check if file extension matches patterns
-          const fileExt = path.extname(entry);
-          if (filePatterns.some(pattern => entry.endsWith(pattern) || fileExt === pattern)) {
-            try {
-              const content = await fs.readFile(fullPath, 'utf8');
-              const lines = content.split('\n');
+        } else if (stats.isFile() && shouldInclude(entry)) {
+          try {
+            const content = await fs.readFile(fullPath, 'utf8');
+            const lines = content.split('\n');
+            
+            lines.forEach((line, lineIndex) => {
+              let searchIndex = 0;
+              let columnIndex;
               
-              lines.forEach((line, lineIndex) => {
-                const columnIndex = line.toLowerCase().indexOf(query.toLowerCase());
-                if (columnIndex !== -1) {
-                  results.push({
-                    filePath: fullPath,
-                    line: lineIndex + 1,
-                    column: columnIndex + 1,
-                    content: query,
-                    lineContent: line,
-                  });
-                }
-              });
-            } catch (error) {
-              // Skip files that can't be read as text
-            }
+              // Find all occurrences in the line
+              while ((columnIndex = line.toLowerCase().indexOf(query.toLowerCase(), searchIndex)) !== -1) {
+                results.push({
+                  filePath: fullPath,
+                  line: lineIndex + 1,
+                  column: columnIndex + 1,
+                  content: query,
+                  lineContent: line,
+                });
+                searchIndex = columnIndex + 1;
+              }
+            });
+          } catch (error) {
+            // Skip files that can't be read as text (binary files, etc.)
           }
         }
       }
@@ -299,6 +368,26 @@ async function searchInFiles(
 
   await searchInDirectory(rootPath);
   return results;
+}
+
+// Helper function to read and parse gitignore patterns
+async function getGitignorePatterns(rootPath: string): Promise<string[]> {
+  const gitignorePath = path.join(rootPath, '.gitignore');
+  
+  try {
+    if (fsSync.existsSync(gitignorePath)) {
+      const content = await fs.readFile(gitignorePath, 'utf8');
+      return content
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'))
+        .filter(Boolean);
+    }
+  } catch (error) {
+    console.error('Error reading .gitignore:', error);
+  }
+  
+  return [];
 }
 
 export function addProjectEventListeners(window: BrowserWindow): void {
