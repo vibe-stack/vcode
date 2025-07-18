@@ -7,13 +7,14 @@ import { TaskModal } from "./task-modal";
 
 export const KanbanBoard: React.FC = () => {
   const { currentProject } = useProjectStore();
-  const { getBoard, createTask, updateTask } = useKanbanStore();
+  const { getBoard, createTask, updateTask, moveTask } = useKanbanStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<KanbanTask | undefined>();
   const [modalInitialStatus, setModalInitialStatus] =
     useState<TaskStatus>("ideas");
   const [containerWidth, setContainerWidth] = useState(0);
+  const [draggedTask, setDraggedTask] = useState<KanbanTask | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const board = getBoard(currentProject || "");
@@ -85,6 +86,30 @@ export const KanbanBoard: React.FC = () => {
     handleEditTask(task);
   };
 
+  const handleTaskDrop = (task: KanbanTask, targetColumnId: string) => {
+    if (!currentProject) return;
+    
+    // Only move if the task is being dropped in a different column
+    if (task.status !== targetColumnId) {
+      moveTask(currentProject, task.id, targetColumnId as TaskStatus);
+      updateTask(currentProject, task.id, {
+        status: targetColumnId as TaskStatus,
+        updatedAt: new Date(),
+      });
+    }
+    
+    // Clear drag state
+    setDraggedTask(null);
+  };
+
+  const handleDragStart = (task: KanbanTask) => {
+    setDraggedTask(task);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+  };
+
   if (!currentProject) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -115,6 +140,10 @@ export const KanbanBoard: React.FC = () => {
                 onCreateTask={() => handleCreateTask(column.id)}
                 onEditTask={handleEditTask}
                 onTaskClick={handleTaskClick}
+                onTaskDrop={handleTaskDrop}
+                onTaskDragStart={handleDragStart}
+                onTaskDragEnd={handleDragEnd}
+                draggedTask={draggedTask}
               />
             </div>
           ))}

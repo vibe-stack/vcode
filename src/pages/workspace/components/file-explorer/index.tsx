@@ -32,6 +32,7 @@ import { CreateFilePopover } from "./create-file-popover";
 import { cn } from "@/utils/tailwind";
 import { useSettingsStore } from "@/stores/settings";
 import { getActiveAccentClasses } from "@/utils/accent-colors";
+import { useEditorContentStore } from "@/stores/editor-content";
 
 export function FileExplorer() {
   const { fileTree, projectName, currentProject } = useProjectStore();
@@ -44,7 +45,7 @@ export function FileExplorer() {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(),
   );
-  const [activeTab, setActiveTab] = useState<"files" | "git" | "mcp" | "extensions" | "themes">("files");
+  const { fileExplorerTab } = useEditorContentStore();
   const [extensionHost] = useState(() => new VSCodeExtensionHost());
   const [extensionManager] = useState(() => new ExtensionManagerRenderer(extensionHost));
   const [extensionInstaller] = useState(() => new ExtensionInstaller(extensionHost, extensionManager));
@@ -202,80 +203,9 @@ export function FileExplorer() {
   return (
     <div className="flex h-full max-h-full flex-col border-r overflow-hidden">
       <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as "files" | "git" | "mcp" | "extensions" | "themes")}
+        value={fileExplorerTab}
         className="flex h-full max-h-full flex-col overflow-hidden"
       >
-        <div className="border-b px-2 py-2 flex-shrink-0">
-          <div className="bg-muted/50 flex items-center gap-0 rounded-md p-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
-                activeTab === "files" &&
-                  getActiveAccentClasses(accentColor, useGradient),
-              )}
-              onClick={() => setActiveTab("files")}
-            >
-              <Files className="h-3.5 w-3.5" />
-              Files
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
-                activeTab === "git" &&
-                  getActiveAccentClasses(accentColor, useGradient),
-              )}
-              onClick={() => setActiveTab("git")}
-              disabled={!isGitRepo}
-            >
-              <GitBranch className="h-3.5 w-3.5" />
-              Git
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
-                activeTab === "mcp" &&
-                  getActiveAccentClasses(accentColor, useGradient),
-              )}
-              onClick={() => setActiveTab("mcp")}
-            >
-              <Server className="h-3.5 w-3.5" />
-              MCP
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
-                activeTab === "extensions" &&
-                  getActiveAccentClasses(accentColor, useGradient),
-              )}
-              onClick={() => setActiveTab("extensions")}
-            >
-              <Package className="h-3.5 w-3.5" />
-              Ext
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
-                activeTab === "themes" &&
-                  getActiveAccentClasses(accentColor, useGradient),
-              )}
-              onClick={() => setActiveTab("themes")}
-            >
-              <Palette className="h-3.5 w-3.5" />
-              Theme
-            </Button>
-          </div>
-        </div>
 
         {/* Files Tab */}
         <TabsContent

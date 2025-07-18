@@ -3,6 +3,7 @@ import { immer } from "zustand/middleware/immer";
 import { persist } from "zustand/middleware";
 
 export type EditorContentView = "code" | "agents" | "kanban";
+export type FileExplorerTab = "files" | "git" | "mcp" | "extensions" | "themes";
 
 export interface EditorContentState {
   // Individual panel toggles
@@ -14,6 +15,10 @@ export interface EditorContentState {
   toggleCode: () => void;
   toggleAgents: () => void;
   toggleKanban: () => void;
+  
+  // File explorer tab state
+  fileExplorerTab: FileExplorerTab;
+  setFileExplorerTab: (tab: FileExplorerTab) => void;
   
   // Legacy view property for backward compatibility
   view: EditorContentView;
@@ -45,6 +50,13 @@ export const useEditorContentStore = create<EditorContentState>()(
       toggleKanban: () =>
         set((state) => {
           state.kanbanVisible = !state.kanbanVisible;
+        }),
+      
+      // File explorer tab state
+      fileExplorerTab: "files",
+      setFileExplorerTab: (tab) =>
+        set((state) => {
+          state.fileExplorerTab = tab;
         }),
       
       // Legacy view property for backward compatibility
@@ -87,6 +99,7 @@ export const useEditorContentStore = create<EditorContentState>()(
         codeVisible: state.codeVisible,
         agentsVisible: state.agentsVisible,
         kanbanVisible: state.kanbanVisible,
+        fileExplorerTab: state.fileExplorerTab,
         view: state.view,
         leftPanelSize: state.leftPanelSize,
         rightPanelSize: state.rightPanelSize,

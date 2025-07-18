@@ -33,12 +33,16 @@ interface TaskCardProps {
   task: KanbanTask;
   onEdit: (task: KanbanTask) => void;
   onClick?: (task: KanbanTask) => void;
+  onDragStart?: (task: KanbanTask) => void;
+  onDragEnd?: () => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   onEdit,
   onClick,
+  onDragStart,
+  onDragEnd,
 }) => {
   const { currentProject } = useProjectStore();
   const { startAgent, stopAgent, pauseAgent, resumeAgent } = useKanbanStore();
@@ -59,6 +63,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEdit(currentTask);
+  };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("application/json", JSON.stringify(currentTask));
+    e.dataTransfer.effectAllowed = "move";
+    onDragStart?.(currentTask);
+  };
+
+  const handleDragEnd = () => {
+    onDragEnd?.();
   };
 
   // Helper for relative time
@@ -206,6 +220,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <div
           className="dark:bg-accent/40 hover:bg-accent/50 dark:border-accent/60 group w-full max-w-md cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
           onClick={handleCardClick}
+          draggable
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
           {/* Header: Title & Edit */}
           <div className="mb-3 flex items-center justify-between">

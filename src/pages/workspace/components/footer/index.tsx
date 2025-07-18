@@ -25,6 +25,10 @@ import {
   MessageSquare,
   Bell,
   Settings,
+  Files,
+  Server,
+  Package,
+  Palette,
 } from "lucide-react";
 import React from "react";
 import { GitBranchSwitcher } from "./git-branch-switcher";
@@ -48,7 +52,9 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
     kanbanVisible, 
     toggleCode, 
     toggleAgents, 
-    toggleKanban 
+    toggleKanban,
+    fileExplorerTab,
+    setFileExplorerTab
   } = useEditorContentStore();
   const {
     isVisible: isTerminalVisible,
@@ -160,6 +166,71 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
             title="Toggle Agents Panel"
           >
             <MessageSquare className="h-3 w-3" />
+          </Button>
+        </div>
+
+        {/* File Explorer Tab Icons */}
+        <div className="flex items-center gap-1 ml-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab("files")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              fileExplorerTab === "files" && "bg-accent text-accent-foreground"
+            )}
+            title="Files"
+          >
+            <Files className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab("git")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              fileExplorerTab === "git" && "bg-accent text-accent-foreground"
+            )}
+            title="Git"
+            disabled={!isGitRepo}
+          >
+            <GitBranch className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab("mcp")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              fileExplorerTab === "mcp" && "bg-accent text-accent-foreground"
+            )}
+            title="MCP"
+          >
+            <Server className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab("extensions")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              fileExplorerTab === "extensions" && "bg-accent text-accent-foreground"
+            )}
+            title="Extensions"
+          >
+            <Package className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab("themes")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              fileExplorerTab === "themes" && "bg-accent text-accent-foreground"
+            )}
+            title="Themes"
+          >
+            <Palette className="h-3 w-3" />
           </Button>
         </div>
       </div>
