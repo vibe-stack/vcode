@@ -1,5 +1,10 @@
-import { projectApi } from '@/services/project-api';
-import { ChatAttachment, EnhancedChatMessage, TiptapContent, SerializedChatData } from './types';
+import { projectApi } from "@/services/project-api";
+import {
+  ChatAttachment,
+  EnhancedChatMessage,
+  TiptapContent,
+  SerializedChatData,
+} from "./types";
 
 export class ChatSerializationService {
   private static instance: ChatSerializationService;
@@ -15,36 +20,40 @@ export class ChatSerializationService {
    * Convert Tiptap content to plain text for AI SDK
    */
   tiptapToPlainText(content: TiptapContent): string {
-    if (!content) return '';
+    if (!content) return "";
 
-    if (content.type === 'text') {
-      return content.text || '';
+    if (content.type === "text") {
+      return content.text || "";
     }
 
-    if (content.type === 'mention') {
+    if (content.type === "mention") {
       const attrs = content.attrs || {};
       return `@${attrs.label || attrs.id}`;
     }
 
     if (content.content) {
-      return content.content.map(child => this.tiptapToPlainText(child)).join('');
+      return content.content
+        .map((child) => this.tiptapToPlainText(child))
+        .join("");
     }
 
-    return '';
+    return "";
   }
 
   /**
    * Extract mentions from Tiptap content
    */
-  extractMentions(content: TiptapContent): Array<{ id: string; label: string; type: string }> {
+  extractMentions(
+    content: TiptapContent,
+  ): Array<{ id: string; label: string; type: string }> {
     const mentions: Array<{ id: string; label: string; type: string }> = [];
 
     const traverse = (node: TiptapContent) => {
-      if (node.type === 'mention' && node.attrs) {
+      if (node.type === "mention" && node.attrs) {
         mentions.push({
           id: node.attrs.id,
           label: node.attrs.label,
-          type: node.attrs.type || 'file',
+          type: node.attrs.type || "file",
         });
       }
 
@@ -60,13 +69,15 @@ export class ChatSerializationService {
   /**
    * Convert mentions to attachments
    */
-  async mentionsToAttachments(mentions: Array<{ id: string; label: string; type: string }>): Promise<ChatAttachment[]> {
+  async mentionsToAttachments(
+    mentions: Array<{ id: string; label: string; type: string }>,
+  ): Promise<ChatAttachment[]> {
     const attachments: ChatAttachment[] = [];
 
     for (const mention of mentions) {
-      if (mention.type === 'file' && mention.id.startsWith('file-')) {
-        const filePath = mention.id.replace('file-', '');
-        
+      if (mention.type === "file" && mention.id.startsWith("file-")) {
+        const filePath = mention.id.replace("file-", "");
+
         try {
           // Get file content
           const fileResult = await projectApi.openFile(filePath);
@@ -74,7 +85,7 @@ export class ChatSerializationService {
 
           attachments.push({
             id: mention.id,
-            type: 'file',
+            type: "file",
             name: mention.label,
             path: filePath,
             content: fileResult.content,
@@ -86,15 +97,15 @@ export class ChatSerializationService {
           // Still add the attachment reference even if we can't load the content
           attachments.push({
             id: mention.id,
-            type: 'file',
+            type: "file",
             name: mention.label,
             path: filePath,
           });
         }
-      } else if (mention.type === 'url') {
+      } else if (mention.type === "url") {
         attachments.push({
           id: mention.id,
-          type: 'url',
+          type: "url",
           name: mention.label,
           url: mention.label,
         });
@@ -117,12 +128,14 @@ export class ChatSerializationService {
 
     // Add attachments if present
     if (message.attachments && message.attachments.length > 0) {
-      aiMessage.experimental_attachments = message.attachments.map(attachment => ({
-        name: attachment.name,
-        contentType: this.getContentType(attachment),
-        url: attachment.url || `file://${attachment.path}`,
-        ...(attachment.content && { content: attachment.content }),
-      }));
+      aiMessage.experimental_attachments = message.attachments.map(
+        (attachment) => ({
+          name: attachment.name,
+          contentType: this.getContentType(attachment),
+          url: attachment.url || `file://${attachment.path}`,
+          ...(attachment.content && { content: attachment.content }),
+        }),
+      );
     }
 
     return aiMessage;
@@ -141,14 +154,18 @@ export class ChatSerializationService {
 
     // Convert attachments if present
     if (aiMessage.experimental_attachments) {
-      message.attachments = aiMessage.experimental_attachments.map((attachment: any) => ({
-        id: `attachment-${attachment.name}`,
-        type: attachment.url?.startsWith('file://') ? 'file' : 'url',
-        name: attachment.name,
-        url: attachment.url,
-        path: attachment.url?.startsWith('file://') ? attachment.url.replace('file://', '') : undefined,
-        content: attachment.content,
-      }));
+      message.attachments = aiMessage.experimental_attachments.map(
+        (attachment: any) => ({
+          id: `attachment-${attachment.name}`,
+          type: attachment.url?.startsWith("file://") ? "file" : "url",
+          name: attachment.name,
+          url: attachment.url,
+          path: attachment.url?.startsWith("file://")
+            ? attachment.url.replace("file://", "")
+            : undefined,
+          content: attachment.content,
+        }),
+      );
     }
 
     return message;
@@ -160,7 +177,7 @@ export class ChatSerializationService {
   serialize(messages: EnhancedChatMessage[]): SerializedChatData {
     return {
       messages,
-      version: '1.0',
+      version: "1.0",
     };
   }
 
@@ -168,45 +185,45 @@ export class ChatSerializationService {
    * Deserialize chat data from storage
    */
   deserialize(data: SerializedChatData): EnhancedChatMessage[] {
-    return data.messages.map(message => ({
+    return data.messages.map((message) => ({
       ...message,
       timestamp: new Date(message.timestamp),
     }));
   }
 
   private getContentType(attachment: ChatAttachment): string {
-    if (attachment.type === 'url') {
-      return 'text/html';
+    if (attachment.type === "url") {
+      return "text/html";
     }
 
     if (attachment.path) {
-      const extension = attachment.path.split('.').pop()?.toLowerCase();
+      const extension = attachment.path.split(".").pop()?.toLowerCase();
       const contentTypes: Record<string, string> = {
-        'js': 'application/javascript',
-        'jsx': 'application/javascript',
-        'ts': 'application/typescript',
-        'tsx': 'application/typescript',
-        'css': 'text/css',
-        'html': 'text/html',
-        'json': 'application/json',
-        'md': 'text/markdown',
-        'txt': 'text/plain',
-        'py': 'text/x-python',
-        'java': 'text/x-java',
-        'cpp': 'text/x-c++',
-        'c': 'text/x-c',
-        'php': 'text/x-php',
-        'rb': 'text/x-ruby',
-        'go': 'text/x-go',
-        'rs': 'text/x-rust',
-        'swift': 'text/x-swift',
-        'kt': 'text/x-kotlin',
+        js: "application/javascript",
+        jsx: "application/javascript",
+        ts: "application/typescript",
+        tsx: "application/typescript",
+        css: "text/css",
+        html: "text/html",
+        json: "application/json",
+        md: "text/markdown",
+        txt: "text/plain",
+        py: "text/x-python",
+        java: "text/x-java",
+        cpp: "text/x-c++",
+        c: "text/x-c",
+        php: "text/x-php",
+        rb: "text/x-ruby",
+        go: "text/x-go",
+        rs: "text/x-rust",
+        swift: "text/x-swift",
+        kt: "text/x-kotlin",
       };
 
-      return contentTypes[extension || ''] || 'text/plain';
+      return contentTypes[extension || ""] || "text/plain";
     }
 
-    return 'text/plain';
+    return "text/plain";
   }
 }
 

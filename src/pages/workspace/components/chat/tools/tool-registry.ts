@@ -1,47 +1,47 @@
-import { tools } from './index';
-import { toolConfigs, getEnabledTools } from './tool-config';
+import { tools } from "./index";
+import { toolConfigs, getEnabledTools } from "./tool-config";
 
 /**
  * Tool registry that manages all available tools and their configurations
  */
 export class ToolRegistry {
   private static instance: ToolRegistry;
-  
+
   private constructor() {}
-  
+
   static getInstance(): ToolRegistry {
     if (!ToolRegistry.instance) {
       ToolRegistry.instance = new ToolRegistry();
     }
     return ToolRegistry.instance;
   }
-  
+
   /**
    * Get all available tools for the AI SDK
    */
   getTools() {
     const enabledToolNames = getEnabledTools();
     const enabledTools: Record<string, any> = {};
-    
+
     for (const toolName of enabledToolNames) {
       if (tools[toolName]) {
         enabledTools[toolName] = tools[toolName];
       }
     }
-    
+
     return enabledTools;
   }
-  
+
   /**
    * Get tools by category
    */
   getToolsByCategory(category: string) {
     return Object.values(toolConfigs)
-      .filter(config => config.category === category && config.enabled)
-      .map(config => tools[config.name])
+      .filter((config) => config.category === category && config.enabled)
+      .map((config) => tools[config.name])
       .filter(Boolean);
   }
-  
+
   /**
    * Check if a tool is enabled
    */
@@ -49,7 +49,7 @@ export class ToolRegistry {
     const config = toolConfigs[toolName as keyof typeof toolConfigs];
     return config ? config.enabled : false;
   }
-  
+
   /**
    * Enable or disable a tool
    */

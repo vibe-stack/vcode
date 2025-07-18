@@ -1,35 +1,49 @@
-import { Message } from '@ai-sdk/ui-utils';
-import { frontendToolExecutors, FrontendToolExecutors, ToolExecutionResult } from './executors';
-import { getToolsRequiringConfirmation } from './tool-config';
-import { ToolName } from './index';
-import { useChatSnapshotStore } from '@/stores/chat-snapshots';
+import { Message } from "@ai-sdk/ui-utils";
+import {
+  frontendToolExecutors,
+  FrontendToolExecutors,
+  ToolExecutionResult,
+} from "./executors";
+import { getToolsRequiringConfirmation } from "./tool-config";
+import { ToolName } from "./index";
+import { useChatSnapshotStore } from "@/stores/chat-snapshots";
 
 export interface ToolExecutionService {
-  executeApprovedTool(toolCallId: string, messages: Message[], sessionId: string): Promise<string>;
+  executeApprovedTool(
+    toolCallId: string,
+    messages: Message[],
+    sessionId: string,
+  ): Promise<string>;
   cancelTool(toolCallId: string): Promise<string>;
   getToolsRequiringConfirmation(): ToolName[];
 }
 
 class ToolExecutionServiceImpl implements ToolExecutionService {
-  async executeApprovedTool(toolCallId: string, messages: Message[], sessionId: string): Promise<string> {
+  async executeApprovedTool(
+    toolCallId: string,
+    messages: Message[],
+    sessionId: string,
+  ): Promise<string> {
     // Find the message and tool call
-    const message = messages.find(msg => 
-      msg.parts?.some(part => 
-        part.type === 'tool-invocation' && 
-        part.toolInvocation.toolCallId === toolCallId
-      )
+    const message = messages.find((msg) =>
+      msg.parts?.some(
+        (part) =>
+          part.type === "tool-invocation" &&
+          part.toolInvocation.toolCallId === toolCallId,
+      ),
     );
-    
+
     if (!message) {
       throw new Error(`Tool call ${toolCallId} not found`);
     }
 
     const toolCall = message.parts?.find(
-      part => part.type === 'tool-invocation' &&
-        part.toolInvocation.toolCallId === toolCallId
+      (part) =>
+        part.type === "tool-invocation" &&
+        part.toolInvocation.toolCallId === toolCallId,
     );
 
-    if (!toolCall || toolCall.type !== 'tool-invocation') {
+    if (!toolCall || toolCall.type !== "tool-invocation") {
       throw new Error(`Invalid tool call ${toolCallId}`);
     }
 
@@ -43,35 +57,38 @@ class ToolExecutionServiceImpl implements ToolExecutionService {
 
     try {
       // Execute the tool
-      const executor = frontendToolExecutors[toolName as keyof FrontendToolExecutors];
-      const result = await executor(toolInvocation.args) as ToolExecutionResult;
-      
+      const executor =
+        frontendToolExecutors[toolName as keyof FrontendToolExecutors];
+      const result = (await executor(
+        toolInvocation.args,
+      )) as ToolExecutionResult;
+
       // Handle file change snapshots
       if (result.metadata?.fileChanges) {
         const snapshotStore = useChatSnapshotStore.getState();
-        
+
         for (const change of result.metadata.fileChanges) {
           snapshotStore.addSnapshot(sessionId, {
             messageId: message.id,
             filePath: change.filePath,
             prevState: change.prevState,
             nextState: change.nextState,
-            status: 'pending',
+            status: "pending",
             operation: change.operation,
           });
         }
       }
-      
+
       // Return only the message to the LLM
       return result.message;
     } catch (error) {
-      const errorMessage = `Error executing ${toolName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      const errorMessage = `Error executing ${toolName}: ${error instanceof Error ? error.message : "Unknown error"}`;
       throw new Error(errorMessage);
     }
   }
 
   async cancelTool(toolCallId: string): Promise<string> {
-    return 'Tool execution cancelled by user';
+    return "Tool execution cancelled by user";
   }
 
   getToolsRequiringConfirmation(): ToolName[] {

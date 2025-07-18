@@ -1,16 +1,16 @@
-import { formatDataStreamPart, Message } from '@ai-sdk/ui-utils';
-import { DataStreamWriter } from 'ai';
-import { tools, ToolName } from './index';
-import { frontendToolExecutors } from './executors';
-import { getToolsRequiringConfirmation as getToolsRequiringConfirmationFromConfig } from './tool-config';
+import { formatDataStreamPart, Message } from "@ai-sdk/ui-utils";
+import { DataStreamWriter } from "ai";
+import { tools, ToolName } from "./index";
+import { frontendToolExecutors } from "./executors";
+import { getToolsRequiringConfirmation as getToolsRequiringConfirmationFromConfig } from "./tool-config";
 
 // Approval constants
 export const APPROVAL = {
-  EXECUTE: 'execute',
-  CANCEL: 'cancel',
+  EXECUTE: "execute",
+  CANCEL: "cancel",
 } as const;
 
-export type ApprovalType = typeof APPROVAL[keyof typeof APPROVAL];
+export type ApprovalType = (typeof APPROVAL)[keyof typeof APPROVAL];
 
 /**
  * Processes tool invocations on the frontend, executing tools when they are approved
@@ -18,10 +18,10 @@ export type ApprovalType = typeof APPROVAL[keyof typeof APPROVAL];
  */
 export async function processFrontendToolCalls(
   messages: Message[],
-  dataStream: DataStreamWriter
+  dataStream: DataStreamWriter,
 ): Promise<Message[]> {
   const lastMessage = messages[messages.length - 1];
-  
+
   if (!lastMessage.parts) {
     return messages;
   }
@@ -29,7 +29,7 @@ export async function processFrontendToolCalls(
   const processedParts = await Promise.all(
     lastMessage.parts.map(async (part) => {
       // Only process tool invocations
-      if (part.type !== 'tool-invocation') {
+      if (part.type !== "tool-invocation") {
         return part;
       }
 
@@ -37,7 +37,10 @@ export async function processFrontendToolCalls(
       const toolName = toolInvocation.toolName as ToolName;
 
       // Only continue if this is a tool we can execute and it's in 'result' state
-      if (!(toolName in frontendToolExecutors) || toolInvocation.state !== 'result') {
+      if (
+        !(toolName in frontendToolExecutors) ||
+        toolInvocation.state !== "result"
+      ) {
         return part;
       }
 
@@ -49,7 +52,7 @@ export async function processFrontendToolCalls(
           const executeFunction = frontendToolExecutors[toolName];
           result = await executeFunction(toolInvocation.args);
         } catch (error) {
-          result = `Error executing ${toolName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          result = `Error executing ${toolName}: ${error instanceof Error ? error.message : "Unknown error"}`;
         }
       } else if (toolInvocation.result === APPROVAL.CANCEL) {
         result = `Tool execution cancelled by user`;
@@ -60,10 +63,10 @@ export async function processFrontendToolCalls(
 
       // Forward updated tool result to the client
       dataStream.write(
-        formatDataStreamPart('tool_result', {
+        formatDataStreamPart("tool_result", {
           toolCallId: toolInvocation.toolCallId,
           result,
-        })
+        }),
       );
 
       // Return updated toolInvocation with the actual result
@@ -74,7 +77,7 @@ export async function processFrontendToolCalls(
           result,
         },
       };
-    })
+    }),
   );
 
   return [...messages.slice(0, -1), { ...lastMessage, parts: processedParts }];

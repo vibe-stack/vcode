@@ -12,11 +12,18 @@ export interface KeyBinding {
   /** Optional arguments to pass to the command */
   args?: any[];
   /** Context in which this key binding is active */
-  context?: 'editor' | 'global' | 'explorer' | 'terminal';
+  context?: "editor" | "global" | "explorer" | "terminal";
   /** Whether this key binding is enabled */
   enabled: boolean;
   /** Category for organization */
-  category: 'file' | 'edit' | 'view' | 'navigation' | 'debug' | 'terminal' | 'custom';
+  category:
+    | "file"
+    | "edit"
+    | "view"
+    | "navigation"
+    | "debug"
+    | "terminal"
+    | "custom";
 }
 
 export interface KeymapProfile {
@@ -39,7 +46,7 @@ export interface KeymapState {
   commands: Map<string, KeyCommand>;
   /** Whether key mappings are enabled */
   enabled: boolean;
-  
+
   // Actions
   /** Register a new command */
   registerCommand: (id: string, command: KeyCommand) => void;

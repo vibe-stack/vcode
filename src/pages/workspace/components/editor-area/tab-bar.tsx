@@ -1,16 +1,16 @@
-import React, { useCallback, useRef } from 'react';
-import { BufferContent } from '@/stores/buffers';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
+import React, { useCallback, useRef } from "react";
+import { BufferContent } from "@/stores/buffers";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/utils/tailwind';
-import { MoreHorizontal, X } from 'lucide-react';
-import { Tab } from './tab';
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/utils/tailwind";
+import { MoreHorizontal, X } from "lucide-react";
+import { Tab } from "./tab";
 
 export interface TabBarProps {
   paneId: string;
@@ -47,13 +47,13 @@ export function TabBar({
     <div
       ref={tabBarRef}
       className={cn(
-        "border-b bg-muted/30 transition-colors",
-        isActivePane && "bg-muted/50"
+        "bg-muted/30 border-b transition-colors",
+        isActivePane && "bg-muted/50",
       )}
       onDrop={onTabDrop}
       onDragOver={(e) => e.preventDefault()}
     >
-      <div className="flex items-center min-h-[32px]">
+      <div className="flex min-h-[32px] items-center">
         <ScrollArea className="flex-1">
           <div className="flex overflow-x-auto">
             {buffers.map((buffer) => (
@@ -73,24 +73,27 @@ export function TabBar({
 
         {/* Pane menu button */}
         <div className="flex-shrink-0 px-1">
-          {canClosePane && (<DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 hover:bg-muted"
-              >
-                <MoreHorizontal className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-
-              <DropdownMenuItem onClick={onClosePane} className="text-red-600">
-                <X className="h-4 w-4 mr-2" />
-                Close
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {canClosePane && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hover:bg-muted h-6 w-6 p-0"
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={onClosePane}
+                  className="text-red-600"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Close
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

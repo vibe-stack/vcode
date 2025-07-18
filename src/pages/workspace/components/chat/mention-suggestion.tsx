@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { File, Globe, Link, Folder } from 'lucide-react';
-import { cn } from '@/utils/tailwind';
-import { MentionItem } from './types';
+import React, { useState, useEffect, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { File, Globe, Link, Folder } from "lucide-react";
+import { cn } from "@/utils/tailwind";
+import { MentionItem } from "./types";
 
 interface MentionSuggestionProps {
   items: MentionItem[];
@@ -26,26 +26,26 @@ export const MentionSuggestion: React.FC<MentionSuggestionProps> = ({
       onKeyDown(event);
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onKeyDown]);
 
   useEffect(() => {
     if (selectedItemRef.current) {
       selectedItemRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
+        behavior: "smooth",
+        block: "nearest",
       });
     }
   }, [selectedIndex]);
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'file':
+      case "file":
         return <File className="h-4 w-4" />;
-      case 'url':
+      case "url":
         return <Globe className="h-4 w-4" />;
-      case 'reference':
+      case "reference":
         return <Link className="h-4 w-4" />;
       default:
         return <Folder className="h-4 w-4" />;
@@ -57,7 +57,7 @@ export const MentionSuggestion: React.FC<MentionSuggestionProps> = ({
   }
 
   return (
-    <Card className="w-80 max-h-64 shadow-lg border">
+    <Card className="max-h-64 w-80 border shadow-lg">
       <CardContent className="p-0">
         <ScrollArea className="h-full" ref={scrollRef}>
           <div className="p-1">
@@ -66,27 +66,27 @@ export const MentionSuggestion: React.FC<MentionSuggestionProps> = ({
                 key={item.id}
                 ref={index === selectedIndex ? selectedItemRef : null}
                 className={cn(
-                  'flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors',
+                  "flex cursor-pointer items-center gap-3 rounded-md p-2 transition-colors",
                   index === selectedIndex
-                    ? 'bg-accent text-accent-foreground'
-                    : 'hover:bg-muted'
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-muted",
                 )}
                 onClick={() => onSelect(item)}
               >
-                <div className="flex-shrink-0 text-muted-foreground">
+                <div className="text-muted-foreground flex-shrink-0">
                   {item.icon || getIcon(item.type)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">
                     {item.label}
                   </div>
                   {item.description && (
-                    <div className="text-xs text-muted-foreground truncate">
+                    <div className="text-muted-foreground truncate text-xs">
                       {item.description}
                     </div>
                   )}
                   {item.path && (
-                    <div className="text-xs text-muted-foreground truncate">
+                    <div className="text-muted-foreground truncate text-xs">
                       {item.path}
                     </div>
                   )}

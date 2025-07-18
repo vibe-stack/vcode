@@ -1,51 +1,56 @@
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ToolName } from './tools';
+import React from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToolName } from "./tools";
 
 interface ToolDisplayProps {
   toolName: ToolName;
   args: any;
   result?: any;
-  state: 'call' | 'result' | string;
+  state: "call" | "result" | string;
 }
 
 // Helper to extract filename from path
 const getFileName = (filePath: string): string => {
-  if (!filePath) return '';
-  return filePath.split('/').pop() || filePath;
+  if (!filePath) return "";
+  return filePath.split("/").pop() || filePath;
 };
 
 // Helper to format args for display
 const formatArgs = (args: any): string => {
-  if (!args || typeof args !== 'object') return '';
+  if (!args || typeof args !== "object") return "";
   return JSON.stringify(args, null, 2);
 };
 
 // Helper to format result for display
 const formatResult = (result: any): string => {
-  if (!result) return '';
-  if (typeof result === 'string') return result;
+  if (!result) return "";
+  if (typeof result === "string") return result;
   return JSON.stringify(result, null, 2);
 };
 
-export function ToolDisplay({ toolName, args, result, state }: ToolDisplayProps) {
+export function ToolDisplay({
+  toolName,
+  args,
+  result,
+  state,
+}: ToolDisplayProps) {
   const getToolLabel = () => {
     switch (toolName) {
-      case 'readFile':
-        return `Read ${getFileName(args?.filePath || '')}`;
-      case 'writeFile':
-        return `Write ${getFileName(args?.filePath || '')}`;
-      case 'listDirectory':
-        return `List ${getFileName(args?.dirPath || '')}`;
-      case 'createDirectory':
-        return `Create ${getFileName(args?.dirPath || '')}`;
-      case 'deleteFile':
-        return `Delete ${getFileName(args?.filePath || '')}`;
-      case 'searchFiles':
-        return `Search "${args?.query || ''}"`;
-      case 'getProjectInfo':
-        return 'Get project info';
+      case "readFile":
+        return `Read ${getFileName(args?.filePath || "")}`;
+      case "writeFile":
+        return `Write ${getFileName(args?.filePath || "")}`;
+      case "listDirectory":
+        return `List ${getFileName(args?.dirPath || "")}`;
+      case "createDirectory":
+        return `Create ${getFileName(args?.dirPath || "")}`;
+      case "deleteFile":
+        return `Delete ${getFileName(args?.filePath || "")}`;
+      case "searchFiles":
+        return `Search "${args?.query || ""}"`;
+      case "getProjectInfo":
+        return "Get project info";
       default:
         return toolName;
     }
@@ -53,45 +58,48 @@ export function ToolDisplay({ toolName, args, result, state }: ToolDisplayProps)
 
   const getToolDetails = () => {
     switch (toolName) {
-      case 'readFile':
+      case "readFile":
         return {
-          summary: `Reading file: ${args?.filePath || ''}`,
-          details: { filePath: args?.filePath }
+          summary: `Reading file: ${args?.filePath || ""}`,
+          details: { filePath: args?.filePath },
         };
-      case 'writeFile':
+      case "writeFile":
         return {
-          summary: `Writing to: ${args?.filePath || ''}`,
-          details: { filePath: args?.filePath, contentLength: args?.content?.length || 0 }
+          summary: `Writing to: ${args?.filePath || ""}`,
+          details: {
+            filePath: args?.filePath,
+            contentLength: args?.content?.length || 0,
+          },
         };
-      case 'listDirectory':
+      case "listDirectory":
         return {
-          summary: `Listing directory: ${args?.dirPath || ''}`,
-          details: { dirPath: args?.dirPath }
+          summary: `Listing directory: ${args?.dirPath || ""}`,
+          details: { dirPath: args?.dirPath },
         };
-      case 'createDirectory':
+      case "createDirectory":
         return {
-          summary: `Creating directory: ${args?.dirPath || ''}`,
-          details: { dirPath: args?.dirPath }
+          summary: `Creating directory: ${args?.dirPath || ""}`,
+          details: { dirPath: args?.dirPath },
         };
-      case 'deleteFile':
+      case "deleteFile":
         return {
-          summary: `Deleting file: ${args?.filePath || ''}`,
-          details: { filePath: args?.filePath }
+          summary: `Deleting file: ${args?.filePath || ""}`,
+          details: { filePath: args?.filePath },
         };
-      case 'searchFiles':
+      case "searchFiles":
         return {
-          summary: `Searching for: ${args?.query || ''}`,
-          details: { query: args?.query, directory: args?.directory }
+          summary: `Searching for: ${args?.query || ""}`,
+          details: { query: args?.query, directory: args?.directory },
         };
-      case 'getProjectInfo':
+      case "getProjectInfo":
         return {
-          summary: 'Getting project information',
-          details: { includeStats: args?.includeStats }
+          summary: "Getting project information",
+          details: { includeStats: args?.includeStats },
         };
       default:
         return {
           summary: toolName,
-          details: args
+          details: args,
         };
     }
   };
@@ -100,9 +108,9 @@ export function ToolDisplay({ toolName, args, result, state }: ToolDisplayProps)
 
   return (
     <div className="space-y-2">
-      <Card className="text-xs border-muted">
-        <CardHeader className="pb-3 pt-3">
-          <CardTitle className="text-sm flex items-center gap-2">
+      <Card className="border-muted text-xs">
+        <CardHeader className="pt-3 pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
             {toolName}
             <Badge variant="secondary" className="text-xs">
               {state}
@@ -112,16 +120,20 @@ export function ToolDisplay({ toolName, args, result, state }: ToolDisplayProps)
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
           <div>
-            <p className="font-medium text-muted-foreground mb-2 text-xs">Arguments:</p>
-            <pre className="bg-muted/50 p-2 rounded text-xs overflow-x-auto border">
+            <p className="text-muted-foreground mb-2 text-xs font-medium">
+              Arguments:
+            </p>
+            <pre className="bg-muted/50 overflow-x-auto rounded border p-2 text-xs">
               {formatArgs(args)}
             </pre>
           </div>
-          
+
           {result && (
             <div>
-              <p className="font-medium text-muted-foreground mb-2 text-xs">Result:</p>
-              <pre className="bg-muted/50 p-2 rounded text-xs overflow-x-auto max-h-40 overflow-y-auto border">
+              <p className="text-muted-foreground mb-2 text-xs font-medium">
+                Result:
+              </p>
+              <pre className="bg-muted/50 max-h-40 overflow-x-auto overflow-y-auto rounded border p-2 text-xs">
                 {formatResult(result)}
               </pre>
             </div>

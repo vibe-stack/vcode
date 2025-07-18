@@ -1,10 +1,10 @@
-import React from 'react';
-import { EditorContent } from '@tiptap/react';
-import { Button } from '@/components/ui/button';
-import { ArrowUp, Square, Paperclip, X } from 'lucide-react';
-import { cn } from '@/utils/tailwind';
-import { ChatAttachment } from '../types';
-import { useChatInput } from './useChatInput';
+import React from "react";
+import { EditorContent } from "@tiptap/react";
+import { Button } from "@/components/ui/button";
+import { ArrowUp, Square, Paperclip, X } from "lucide-react";
+import { cn } from "@/utils/tailwind";
+import { ChatAttachment } from "../types";
+import { useChatInput } from "./useChatInput";
 
 interface ChatInputProps {
   onSend: (content: string, attachments: ChatAttachment[]) => void;
@@ -41,7 +41,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   if (!editor) {
     return (
       <div className="relative w-full">
-        <div className="flex-1 resize-none min-h-0 h-20 border rounded-md p-3 bg-muted animate-pulse">
+        <div className="bg-muted h-20 min-h-0 flex-1 animate-pulse resize-none rounded-md border p-3">
           <div className="text-muted-foreground text-xs">Loading editor...</div>
         </div>
       </div>
@@ -52,19 +52,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <div className="relative w-full">
       {/* Attachments preview - moved to top */}
       {attachments.length > 0 && (
-        <div className="mb-2 p-2 bg-muted/50 rounded-md border">
+        <div className="bg-muted/50 mb-2 rounded-md border p-2">
           <div className="flex flex-wrap gap-2">
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
-                className="flex items-center gap-1 px-2 py-1 bg-background rounded-md text-xs border group"
+                className="bg-background group flex items-center gap-1 rounded-md border px-2 py-1 text-xs"
               >
                 <Paperclip className="h-3 w-3" />
-                <span className="truncate max-w-[200px]">{attachment.name}</span>
+                <span className="max-w-[200px] truncate">
+                  {attachment.name}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-3 w-3 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                  className="hover:bg-destructive hover:text-destructive-foreground h-3 w-3 p-0 opacity-0 transition-opacity group-hover:opacity-100"
                   onClick={() => removeAttachment(attachment.id)}
                   title="Remove attachment"
                 >
@@ -76,28 +78,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      <div className="relative border rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      <div className="focus-within:ring-ring relative rounded-md border focus-within:ring-2 focus-within:ring-offset-2">
         <EditorContent
           editor={editor}
           className={cn(
-            "min-h-[80px] max-h-[200px] overflow-y-auto p-0 text-xs",
-            "prose prose-sm max-w-none dark:prose-invert",
-            "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:rounded [&_.mention]:text-xs",
-            disabled && "opacity-50 cursor-not-allowed"
+            "max-h-[200px] min-h-[80px] overflow-y-auto p-0 text-xs",
+            "prose prose-sm dark:prose-invert max-w-none",
+            "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:rounded [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:text-xs",
+            disabled && "cursor-not-allowed opacity-50",
           )}
           onKeyDown={handleKeyDown}
         />
 
         {/* Placeholder */}
         {isEmpty && !isLoading && (
-          <div className="absolute top-3 left-3 text-muted-foreground text-xs pointer-events-none">
+          <div className="text-muted-foreground pointer-events-none absolute top-3 left-3 text-xs">
             {placeholder}
           </div>
         )}
       </div>
 
       {/* Send button */}
-      <div className="absolute bottom-2 right-2 flex items-end">
+      <div className="absolute right-2 bottom-2 flex items-end">
         {isLoading ? (
           <Button
             variant="ghost"
@@ -126,4 +128,3 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     </div>
   );
 };
-

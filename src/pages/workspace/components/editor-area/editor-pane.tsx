@@ -1,29 +1,33 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useBufferStore } from '@/stores/buffers';
-import { useEditorSplitStore } from '@/stores/editor-splits';
-import { cn } from '@/utils/tailwind';
-import { TabBar } from './tab-bar';
-import { Editor } from './editor';
-import { EditorPaneProps } from './types';
-import { UnsavedChangesDialog } from '@/components/unsaved-changes-dialog';
-import { bufferCloseService } from '@/services/buffer-close';
+import React, { useState, useCallback, useEffect } from "react";
+import { useBufferStore } from "@/stores/buffers";
+import { useEditorSplitStore } from "@/stores/editor-splits";
+import { cn } from "@/utils/tailwind";
+import { TabBar } from "./tab-bar";
+import { Editor } from "./editor";
+import { EditorPaneProps } from "./types";
+import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
+import { bufferCloseService } from "@/services/buffer-close";
 
 export function EditorPane({ paneId, className }: EditorPaneProps) {
   // Use separate selectors to ensure re-renders when state changes
-  const buffers = useBufferStore(state => state.buffers);
-  const updateBufferContent = useBufferStore(state => state.updateBufferContent);
-  
+  const buffers = useBufferStore((state) => state.buffers);
+  const updateBufferContent = useBufferStore(
+    (state) => state.updateBufferContent,
+  );
+
   // Select the pane object directly so this component re-renders on state change
-  const pane = useEditorSplitStore(state => state.getPane(paneId));
-  const setActivePane = useEditorSplitStore(state => state.setActivePane);
-  const setActivePaneBuffer = useEditorSplitStore(state => state.setActivePaneBuffer);
-  const closePane = useEditorSplitStore(state => state.closePane);
-  const getAllPanes = useEditorSplitStore(state => state.getAllPanes);
-  const moveBuffer = useEditorSplitStore(state => state.moveBuffer);
-  const startDrag = useEditorSplitStore(state => state.startDrag);
-  const endDrag = useEditorSplitStore(state => state.endDrag);
-  const activePaneId = useEditorSplitStore(state => state.activePaneId);
-  
+  const pane = useEditorSplitStore((state) => state.getPane(paneId));
+  const setActivePane = useEditorSplitStore((state) => state.setActivePane);
+  const setActivePaneBuffer = useEditorSplitStore(
+    (state) => state.setActivePaneBuffer,
+  );
+  const closePane = useEditorSplitStore((state) => state.closePane);
+  const getAllPanes = useEditorSplitStore((state) => state.getAllPanes);
+  const moveBuffer = useEditorSplitStore((state) => state.moveBuffer);
+  const startDrag = useEditorSplitStore((state) => state.startDrag);
+  const endDrag = useEditorSplitStore((state) => state.endDrag);
+  const activePaneId = useEditorSplitStore((state) => state.activePaneId);
+
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
   const [unsavedChangesDialog, setUnsavedChangesDialog] = useState<{
     open: boolean;
@@ -34,8 +38,8 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
     onCancel: () => void;
   }>({
     open: false,
-    bufferId: '',
-    fileName: '',
+    bufferId: "",
+    fileName: "",
     onSave: async () => {},
     onDiscard: () => {},
     onCancel: () => {},
@@ -61,51 +65,71 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   }, [paneId]);
 
   // Use the selected pane object for bufferIds and activeBufferId
-  const paneBuffers = pane?.bufferIds.map(id => buffers.get(id)!).filter(Boolean) || [];
-  const activeBuffer = pane?.activeBufferId ? buffers.get(pane.activeBufferId) : null;
+  const paneBuffers =
+    pane?.bufferIds.map((id) => buffers.get(id)!).filter(Boolean) || [];
+  const activeBuffer = pane?.activeBufferId
+    ? buffers.get(pane.activeBufferId)
+    : null;
   const isActivePane = activePaneId === paneId;
 
-  const handleTabClick = useCallback((bufferId: string) => {
-    setActivePane(paneId);
-    setActivePaneBuffer(paneId, bufferId);
-    // Also update the global buffer store's active buffer for commands like Cmd+W
-    useBufferStore.getState().setActiveBuffer(bufferId);
-  }, [paneId, setActivePane, setActivePaneBuffer]);
+  const handleTabClick = useCallback(
+    (bufferId: string) => {
+      setActivePane(paneId);
+      setActivePaneBuffer(paneId, bufferId);
+      // Also update the global buffer store's active buffer for commands like Cmd+W
+      useBufferStore.getState().setActiveBuffer(bufferId);
+    },
+    [paneId, setActivePane, setActivePaneBuffer],
+  );
 
-  const handleTabClose = useCallback(async (bufferId: string) => {
-    await bufferCloseService.closeBuffer({ bufferId, paneId });
-  }, [paneId]);
+  const handleTabClose = useCallback(
+    async (bufferId: string) => {
+      await bufferCloseService.closeBuffer({ bufferId, paneId });
+    },
+    [paneId],
+  );
 
-  const handleTabDragStart = useCallback((bufferId: string, event: React.DragEvent) => {
-    setDraggedTabId(bufferId);
-    startDrag('tab', bufferId, paneId);
-    
-    event.dataTransfer.setData('application/x-tab-id', bufferId);
-    event.dataTransfer.setData('application/x-source-pane', paneId);
-    event.dataTransfer.effectAllowed = 'move';
-  }, [paneId, startDrag]);
+  const handleTabDragStart = useCallback(
+    (bufferId: string, event: React.DragEvent) => {
+      setDraggedTabId(bufferId);
+      startDrag("tab", bufferId, paneId);
+
+      event.dataTransfer.setData("application/x-tab-id", bufferId);
+      event.dataTransfer.setData("application/x-source-pane", paneId);
+      event.dataTransfer.effectAllowed = "move";
+    },
+    [paneId, startDrag],
+  );
 
   const handleTabDragEnd = useCallback(() => {
     setDraggedTabId(null);
     endDrag();
   }, [endDrag]);
 
-  const handleContentChange = useCallback((content: string) => {
-    if (activeBuffer) {
-      updateBufferContent(activeBuffer.id, content);
-    }
-  }, [activeBuffer, updateBufferContent]);
+  const handleContentChange = useCallback(
+    (content: string) => {
+      if (activeBuffer) {
+        updateBufferContent(activeBuffer.id, content);
+      }
+    },
+    [activeBuffer, updateBufferContent],
+  );
 
-  const handleTabDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    const tabId = event.dataTransfer.getData('application/x-tab-id');
-    const sourcePaneId = event.dataTransfer.getData('application/x-source-pane');
-    
-    if (tabId && sourcePaneId && sourcePaneId !== paneId) {
-      // Move buffer from source pane to this pane
-      moveBuffer(tabId, sourcePaneId, paneId);
-    }
-  }, [paneId, moveBuffer]);
+  const handleTabDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const tabId = event.dataTransfer.getData("application/x-tab-id");
+      const sourcePaneId = event.dataTransfer.getData(
+        "application/x-source-pane",
+      );
+
+      if (tabId && sourcePaneId && sourcePaneId !== paneId) {
+        // Move buffer from source pane to this pane
+        moveBuffer(tabId, sourcePaneId, paneId);
+      }
+    },
+    [paneId, moveBuffer],
+  );
 
   const handlePaneClick = useCallback(() => {
     setActivePane(paneId);
@@ -125,8 +149,8 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
 
   return (
     <>
-      <div 
-        className={cn("flex flex-col h-full bg-background", className)}
+      <div
+        className={cn("bg-background flex h-full flex-col", className)}
         onClick={handlePaneClick}
         data-pane-id={paneId}
       >
@@ -149,15 +173,14 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
         {/* Editor Content */}
         <div className="flex-1 overflow-hidden">
           {activeBuffer ? (
-            <Editor
-              buffer={activeBuffer}
-              onChange={handleContentChange}
-            />
+            <Editor buffer={activeBuffer} onChange={handleContentChange} />
           ) : (
-            <div className="h-full flex items-center justify-center select-none">
+            <div className="flex h-full items-center justify-center select-none">
               <div className="text-center">
-                <p className="text-muted-foreground text-sm mb-2">No file selected</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground mb-2 text-sm">
+                  No file selected
+                </p>
+                <p className="text-muted-foreground text-xs">
                   Drag a file here or click on a file in the explorer
                 </p>
               </div>
@@ -169,7 +192,9 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
       {/* Unsaved Changes Dialog */}
       <UnsavedChangesDialog
         open={unsavedChangesDialog.open}
-        onOpenChange={(open) => setUnsavedChangesDialog(prev => ({ ...prev, open }))}
+        onOpenChange={(open) =>
+          setUnsavedChangesDialog((prev) => ({ ...prev, open }))
+        }
         fileName={unsavedChangesDialog.fileName}
         onSave={unsavedChangesDialog.onSave}
         onDiscard={unsavedChangesDialog.onDiscard}

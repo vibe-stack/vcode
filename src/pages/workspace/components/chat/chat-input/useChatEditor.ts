@@ -1,12 +1,12 @@
-import { useEditor } from '@tiptap/react';
-import { Extension } from '@tiptap/core';
-import { Document } from '@tiptap/extension-document';
-import { Paragraph } from '@tiptap/extension-paragraph';
-import { Text } from '@tiptap/extension-text';
-import { Mention } from '@tiptap/extension-mention';
-import { mentionProvider } from '../mention-provider';
-import { mentionSuggestion } from '../mention-suggestion';
-import { useEffect } from 'react';
+import { useEditor } from "@tiptap/react";
+import { Extension } from "@tiptap/core";
+import { Document } from "@tiptap/extension-document";
+import { Paragraph } from "@tiptap/extension-paragraph";
+import { Text } from "@tiptap/extension-text";
+import { Mention } from "@tiptap/extension-mention";
+import { mentionProvider } from "../mention-provider";
+import { mentionSuggestion } from "../mention-suggestion";
+import { useEffect } from "react";
 
 interface UseChatEditorProps {
   disabled: boolean;
@@ -16,19 +16,19 @@ interface UseChatEditorProps {
   onUserInput: () => void;
 }
 
-export const useChatEditor = ({ 
-  disabled, 
-  isLoading, 
-  onSend, 
-  onUpdate, 
-  onUserInput 
+export const useChatEditor = ({
+  disabled,
+  isLoading,
+  onSend,
+  onUpdate,
+  onUserInput,
 }: UseChatEditorProps) => {
   // Custom extension to intercept Shift+Enter
   const ShiftEnterSend = Extension.create({
-    name: 'shiftEnterSend',
+    name: "shiftEnterSend",
     addKeyboardShortcuts() {
       return {
-        'Shift-Enter': () => {
+        "Shift-Enter": () => {
           onSend().catch(console.error);
           return true;
         },
@@ -43,13 +43,13 @@ export const useChatEditor = ({
       Text,
       Mention.configure({
         HTMLAttributes: {
-          class: 'mention',
+          class: "mention",
         },
         suggestion: mentionSuggestion,
       }),
       ShiftEnterSend,
     ],
-    content: '',
+    content: "",
     editable: !disabled,
     onUpdate: ({ editor }) => {
       // Update attachments when mentions change (but don't mark as user input yet)

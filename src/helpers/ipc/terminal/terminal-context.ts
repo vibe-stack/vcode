@@ -7,8 +7,8 @@ import {
   TERMINAL_LIST_CHANNEL,
   TERMINAL_DATA_EVENT,
   TERMINAL_EXIT_EVENT,
-  TERMINAL_ERROR_EVENT
-} from './terminal-channels';
+  TERMINAL_ERROR_EVENT,
+} from "./terminal-channels";
 
 export interface TerminalCreateOptions {
   cwd?: string;
@@ -42,17 +42,16 @@ export function exposeTerminalContext() {
 
   contextBridge.exposeInMainWorld("terminalApi", {
     // Terminal management
-    create: (options?: TerminalCreateOptions) => 
+    create: (options?: TerminalCreateOptions) =>
       ipcRenderer.invoke(TERMINAL_CREATE_CHANNEL, options),
-    write: (terminalId: string, data: string) => 
+    write: (terminalId: string, data: string) =>
       ipcRenderer.invoke(TERMINAL_WRITE_CHANNEL, terminalId, data),
-    resize: (terminalId: string, cols: number, rows: number) => 
+    resize: (terminalId: string, cols: number, rows: number) =>
       ipcRenderer.invoke(TERMINAL_RESIZE_CHANNEL, terminalId, cols, rows),
-    kill: (terminalId: string) => 
+    kill: (terminalId: string) =>
       ipcRenderer.invoke(TERMINAL_KILL_CHANNEL, terminalId),
-    killAll: () => 
-      ipcRenderer.invoke(TERMINAL_KILL_ALL_CHANNEL),
-    list: (): Promise<TerminalInfo[]> => 
+    killAll: () => ipcRenderer.invoke(TERMINAL_KILL_ALL_CHANNEL),
+    list: (): Promise<TerminalInfo[]> =>
       ipcRenderer.invoke(TERMINAL_LIST_CHANNEL),
 
     // Event listeners
@@ -61,13 +60,13 @@ export function exposeTerminalContext() {
       ipcRenderer.on(TERMINAL_DATA_EVENT, handler);
       return () => ipcRenderer.removeListener(TERMINAL_DATA_EVENT, handler);
     },
-    
+
     onExit: (callback: (data: TerminalExitEvent) => void) => {
       const handler = (_: any, data: TerminalExitEvent) => callback(data);
       ipcRenderer.on(TERMINAL_EXIT_EVENT, handler);
       return () => ipcRenderer.removeListener(TERMINAL_EXIT_EVENT, handler);
     },
-    
+
     onError: (callback: (data: TerminalErrorEvent) => void) => {
       const handler = (_: any, data: TerminalErrorEvent) => callback(data);
       ipcRenderer.on(TERMINAL_ERROR_EVENT, handler);
@@ -79,6 +78,6 @@ export function exposeTerminalContext() {
       ipcRenderer.removeAllListeners(TERMINAL_DATA_EVENT);
       ipcRenderer.removeAllListeners(TERMINAL_EXIT_EVENT);
       ipcRenderer.removeAllListeners(TERMINAL_ERROR_EVENT);
-    }
+    },
   });
 }
