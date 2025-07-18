@@ -42,7 +42,7 @@ export function EditorWithTerminal() {
   }
 
   return (
-    <ResizablePanelGroup direction="vertical" className="h-full">
+    <ResizablePanelGroup direction="vertical" className="h-full gap-2">
       <ResizablePanel 
         defaultSize={100 - terminalSize} 
         minSize={30}
@@ -60,7 +60,9 @@ export function EditorWithTerminal() {
         onResize={handleTerminalResize}
         className="flex flex-col"
       >
-        <TerminalPanel />
+        <div className="h-full w-full bg-card rounded-md border border-border shadow-md ring-1 ring-border/50 overflow-hidden">
+          <TerminalPanel />
+        </div>
       </ResizablePanel>
     </ResizablePanelGroup>
   );

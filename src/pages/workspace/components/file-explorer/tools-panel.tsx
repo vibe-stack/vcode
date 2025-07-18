@@ -671,7 +671,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                                   />
                                 </div>
                               </div>
-                              <p className="text-xs text-muted-foreground leading-relaxed">
+                              <p className="text-[10px] text-muted-foreground leading-tight break-words line-clamp-3 overflow-hidden">
                                 {tool.description}
                               </p>
                             </div>
@@ -818,7 +818,7 @@ export function ToolsPanel({ className }: ToolsPanelProps) {
                                       </div>
                                     </div>
                                     {tool.description && (
-                                      <p className="text-xs text-muted-foreground leading-relaxed">
+                                      <p className="text-[10px] text-muted-foreground leading-tight break-words line-clamp-3 overflow-hidden">
                                         {tool.description}
                                       </p>
                                     )}

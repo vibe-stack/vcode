@@ -58,7 +58,7 @@ export const FileTreeNode = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renamingValue, setRenamingValue] = useState("");
-  const isExpanded = level === 0 || expandedFolders.has(node.path);
+  const isExpanded = expandedFolders.has(node.path);
   const isDirectory = node.type === "directory";
   const hasChildren = node.children && node.children.length > 0;
 

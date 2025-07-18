@@ -3,7 +3,7 @@ import { KanbanBoard } from "../agents-view/kanban-board";
 
 export const KanbanView = () => {
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full bg-background">
       <KanbanBoard />
     </div>
   );

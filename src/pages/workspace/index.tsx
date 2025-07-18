@@ -72,9 +72,9 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="bg-background relative flex h-full max-h-full w-full flex-col overflow-hidden">
-      {/* Custom title bar */}
-      <div className="draglayer bg-background/95 flex h-12 flex-shrink-0 items-center border-b px-4 backdrop-blur-md">
+    <div className="bg-gray-900/40 relative flex h-full max-h-full w-full flex-col overflow-hidden p-2 gap-2">
+      {/* Header Panel */}
+      <div className="bg-background rounded-md border border-border flex h-12 flex-shrink-0 items-center px-4 shadow-md ring-1 ring-border/50">
         {/* Left section - Logo/Home */}
         <div className="flex flex-1 items-center">
           <div className="no-drag">
@@ -121,7 +121,7 @@ export default function WorkspacePage() {
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup 
           direction="horizontal" 
-          className="h-full overflow-hidden"
+          className="h-full overflow-hidden gap-2"
           key={`layout-${layout.columns.join('-')}`}
         >
           {/* Code Column (File Explorer + Editor) */}
@@ -132,22 +132,22 @@ export default function WorkspacePage() {
               minSize={25}
               maxSize={75}
             >
-              <ResizablePanelGroup direction="horizontal" className="h-full">
-                {/* File Explorer */}
+              <ResizablePanelGroup direction="horizontal" className="h-full gap-2">
+                {/* File Explorer Panel */}
                 <ResizablePanel
                   id="file-explorer"
                   defaultSize={leftPanelSize}
                   onResize={onResizeLeftPanel}
                   minSize={15}
                 >
-                  <div className="h-full max-h-full w-full overflow-hidden">
+                  <div className="h-full max-h-full w-full overflow-hidden bg-card rounded-md border border-border shadow-md ring-1 ring-border/50">
                     <FileExplorer />
                   </div>
                 </ResizablePanel>
                 <ResizableHandle />
-                {/* Code Editor */}
+                {/* Code Editor Panel */}
                 <ResizablePanel id="code-editor" defaultSize={100 - leftPanelSize} minSize={30}>
-                  <div className="h-full max-h-full w-full overflow-hidden">
+                  <div className="h-full max-h-full w-full overflow-hidden bg-card rounded-md border border-border shadow-md ring-1 ring-border/50">
                     <EditorWithTerminal />
                   </div>
                 </ResizablePanel>
@@ -158,14 +158,14 @@ export default function WorkspacePage() {
           {/* Resizable handle between Code and Kanban columns */}
           {layout.showCodeColumn && layout.showKanbanColumn && <ResizableHandle />}
 
-          {/* Kanban Column */}
+          {/* Kanban Column Panel */}
           {layout.showKanbanColumn && (
             <ResizablePanel
               id="kanban-column"
               defaultSize={layout.totalColumns === 1 ? 100 : layout.totalColumns === 2 ? 50 : 33}
               minSize={25}
             >
-              <div className="h-full max-h-full w-full overflow-hidden">
+              <div className="h-full max-h-full w-full overflow-hidden bg-card rounded-md border border-border shadow-md ring-1 ring-border/50">
                 <KanbanView />
               </div>
             </ResizablePanel>
@@ -176,19 +176,19 @@ export default function WorkspacePage() {
           {/* Resizable handle between Code and Agent columns (when Kanban is not visible) */}
           {layout.showCodeColumn && !layout.showKanbanColumn && layout.showAgentColumn && <ResizableHandle />}
 
-          {/* Agent Column (Chat or Settings) */}
+          {/* Agent Column Panel (Chat or Settings) */}
           {layout.showAgentColumn && (
             <ResizablePanel
               id="agent-column"
               defaultSize={layout.totalColumns === 1 ? 100 : layout.totalColumns === 2 ? 50 : 33}
               minSize={25}
             >
-              <div className="h-full max-h-full w-full overflow-hidden">
+              <div className="h-full max-h-full w-full overflow-hidden bg-card rounded-md border border-border shadow-md ring-1 ring-border/50">
                 {settingsVisible ? (
                   <SettingsPanel />
                 ) : agentsVisible ? (
                   layout.totalColumns === 1 ? (
-                    <div className="flex justify-center w-full h-full">
+                    <div className="flex justify-center w-full h-full p-4">
                       <div className="w-[70%] h-full">
                         <ChatPanel isAgentMode={true} />
                       </div>
@@ -202,7 +202,11 @@ export default function WorkspacePage() {
           )}
         </ResizablePanelGroup>
       </div>
-      <WorkspaceFooter onOpenSettings={toggleSettings} />
+      
+      {/* Footer Panel */}
+      <div className="bg-card rounded-md border border-border shadow-md ring-1 ring-border/50 overflow-hidden">
+        <WorkspaceFooter onOpenSettings={toggleSettings} />
+      </div>
     </div>
   );
 }

@@ -43,7 +43,7 @@ export function FileExplorer() {
   const useGradient = settings.appearance?.accentGradient ?? true;
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
-    new Set(),
+    new Set([currentProject || ""]),
   );
   const { fileExplorerTab } = useEditorContentStore();
   const [extensionHost] = useState(() => new VSCodeExtensionHost());

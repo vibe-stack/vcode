@@ -139,7 +139,7 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
 
   return (
     <footer
-      className="workspace-footer bg-background flex h-9 w-full items-center justify-between border-t px-2 text-[11px] flex-shrink-0"
+      className="workspace-footer flex h-9 w-full items-center justify-between px-2 text-[11px] flex-shrink-0"
       data-status-bar
     >
       {/* Left Section - View Icons */}
@@ -186,7 +186,7 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
           >
             <Server className="h-3 w-3" />
           </Button>
-          <Button
+          {/* <Button
             variant="ghost"
             size="sm"
             onClick={() => setFileExplorerTab(fileExplorerTab === "extensions" ? null : "extensions")}
@@ -197,7 +197,7 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
             title="Extensions"
           >
             <Package className="h-3 w-3" />
-          </Button>
+          </Button> */}
           <Button
             variant="ghost"
             size="sm"
