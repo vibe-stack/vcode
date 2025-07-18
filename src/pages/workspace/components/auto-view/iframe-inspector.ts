@@ -170,12 +170,15 @@ export class IframeInspector {
     if (!this.iframe) return;
 
     this.iframe.addEventListener('load', () => {
-      console.log('[GROK] IframeInspector - Iframe loaded, setting up communication and injecting script');
+      console.log('[GROK] IframeInspector - Iframe loaded, setting up communication');
       this.setupFrameCommunication();
-      // Inject script after iframe loads
-      setTimeout(() => {
-        this.injectInspectionScript();
-      }, 100);
+      // Only inject script if we're currently inspecting
+      if (this.isInspecting) {
+        console.log('[GROK] IframeInspector - Currently inspecting, injecting script after iframe load');
+        setTimeout(() => {
+          this.injectInspectionScript();
+        }, 100);
+      }
     });
   }
 

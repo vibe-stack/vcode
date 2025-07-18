@@ -72,15 +72,6 @@ export const AutoView: React.FC = () => {
     return () => cleanup();
   }, [initialize, cleanup]);
 
-  // Sync hook inspection state with store
-  useEffect(() => {
-    if (hookIsInspecting !== isInspecting) {
-      // The hook manages its own state, we just need to sync
-      // Don't call toggleInspection here to avoid infinite loops
-      console.log('[GROK] AutoView - Inspection state sync:', hookIsInspecting);
-    }
-  }, [hookIsInspecting, isInspecting]);
-
   // Sync selected node from hook to store
   useEffect(() => {
     if (hookSelectedNode !== selectedNode) {
