@@ -26,6 +26,7 @@ export const usePortDetector = () => {
       });
       return true;
     } catch (error) {
+      // Silently fail - this is expected for most ports
       return false;
     }
   };
@@ -40,8 +41,9 @@ export const usePortDetector = () => {
     // Get ports from terminal output
     const terminalPorts = getPortsFromTerminals();
     
-    // Combine with common ports, prioritizing terminal-detected ports
-    const portsToCheck = [...new Set([...terminalPorts, ...COMMON_PORTS])];
+    // Only check terminal-detected ports and a few common ones to reduce console errors
+    const commonPortsToCheck = terminalPorts.length > 0 ? [] : [3000, 8080, 5000];
+    const portsToCheck = [...new Set([...terminalPorts, ...commonPortsToCheck])];
     
     const activePortsPromises = portsToCheck.map(async (port) => {
       const isActive = await checkPort(port);

@@ -2,140 +2,93 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, ExternalLink, Globe } from 'lucide-react';
-import { usePortDetector, DetectedPort } from './port-detector';
+import { RefreshCw, ExternalLink } from 'lucide-react';
+import { useAutoViewStore } from '@/stores/auto-view';
 
-interface PortSelectorProps {
-  selectedPort: number | null;
-  detectedPorts: DetectedPort[];
-  onPortSelect: (port: number) => void;
-  onRefresh: () => void;
-  customUrl: string;
-  onCustomUrlChange: (url: string) => void;
-}
-
-export const PortSelector: React.FC<PortSelectorProps> = ({
-  selectedPort,
-  detectedPorts,
-  onPortSelect,
-  onRefresh,
-  customUrl,
-  onCustomUrlChange
-}) => {
-  const [isCustomMode, setIsCustomMode] = useState(false);
+export const PortSelector: React.FC = () => {
+  const {
+    selectedPort,
+    detectedPorts,
+    customUrl,
+    currentUrl,
+    setSelectedPort,
+    setCustomUrl,
+    refreshPorts
+  } = useAutoViewStore();
 
   const handlePortChange = (value: string) => {
     const port = parseInt(value);
     if (!isNaN(port)) {
-      onPortSelect(port);
-      setIsCustomMode(false);
+      setSelectedPort(port);
+      setCustomUrl(`http://localhost:${port}`);
     }
   };
 
-  const handleCustomUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Extract port from custom URL if it's a localhost URL
-    const match = customUrl.match(/localhost:(\d+)/);
+  const handleUrlChange = (value: string) => {
+    setCustomUrl(value);
+    // Auto-detect port from URL if it's a localhost URL
+    const match = value.match(/localhost:(\d+)/);
     if (match) {
       const port = parseInt(match[1]);
-      onPortSelect(port);
+      setSelectedPort(port);
     }
   };
 
   const openInBrowser = () => {
-    const url = isCustomMode ? customUrl : `http://localhost:${selectedPort}`;
-    window.open(url, '_blank');
+    if (currentUrl) {
+      window.open(currentUrl, '_blank');
+    }
   };
 
   return (
-    <div className="flex items-center gap-2 p-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <Globe className="h-4 w-4 text-muted-foreground" />
-      
-      {!isCustomMode ? (
-        <>
-          <Select value={selectedPort?.toString() || ''} onValueChange={handlePortChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select a port" />
-            </SelectTrigger>
-            <SelectContent>
-              {detectedPorts.map((port) => (
-                <SelectItem key={port.port} value={port.port.toString()}>
-                  <div className="flex items-center gap-2">
-                    <span>localhost:{port.port}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {port.description}
-                    </Badge>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCustomMode(true)}
-            className="text-xs"
-          >
-            Custom URL
-          </Button>
-        </>
-      ) : (
-        <form onSubmit={handleCustomUrlSubmit} className="flex items-center gap-2 flex-1">
-          <Input
-            value={customUrl}
-            onChange={(e) => onCustomUrlChange(e.target.value)}
-            placeholder="http://localhost:3000 or custom URL"
-            className="flex-1"
-          />
-          <Button type="submit" size="sm" variant="default">
-            Load
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCustomMode(false)}
-          >
-            Cancel
-          </Button>
-        </form>
-      )}
-      
-      <div className="flex items-center gap-1 ml-auto">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onRefresh}
-          className="h-8 w-8 p-0"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+    <div className="flex items-center gap-2 flex-1">
+      <div className="flex-1 relative">
+        {/* Auto-detect select inside the input */}
+        {detectedPorts.length > 0 && (
+          <div className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10">
+            <Select value={selectedPort?.toString() || ''} onValueChange={handlePortChange}>
+              <SelectTrigger className="h-6 w-20 border-0 bg-transparent text-xs p-0">
+                <SelectValue placeholder="Auto" />
+              </SelectTrigger>
+              <SelectContent>
+                {detectedPorts.map((port) => (
+                  <SelectItem key={port.port} value={port.port.toString()}>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs">{port.port}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={openInBrowser}
-          className="h-8 w-8 p-0"
-          disabled={!selectedPort && !isCustomMode}
-        >
-          <ExternalLink className="h-4 w-4" />
-        </Button>
+        <Input
+          value={customUrl}
+          onChange={(e) => handleUrlChange(e.target.value)}
+          placeholder="http://localhost:3000 or custom URL"
+          className={`w-full ${detectedPorts.length > 0 ? 'pl-24' : 'pl-3'}`}
+        />
       </div>
       
-      {detectedPorts.length > 0 && (
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
-            {detectedPorts.length} port{detectedPorts.length !== 1 ? 's' : ''} detected
-          </Badge>
-          {detectedPorts.some(p => p.description?.includes('(detected)')) && (
-            <Badge variant="secondary" className="text-xs">
-              From terminals
-            </Badge>
-          )}
-        </div>
-      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={refreshPorts}
+        className="h-8 w-8 p-0"
+      >
+        <RefreshCw className="h-4 w-4" />
+      </Button>
+      
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={openInBrowser}
+        className="h-8 w-8 p-0"
+        disabled={!currentUrl}
+      >
+        <ExternalLink className="h-4 w-4" />
+      </Button>
     </div>
   );
 };

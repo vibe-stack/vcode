@@ -1,33 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { PortSelector } from './port-selector';
-import { usePortDetector } from './port-detector';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Bug, Target, Eye, EyeOff } from 'lucide-react';
-import { useTerminalContentTracker } from './terminal-content-tracker';
+import { Loader2, AlertCircle, Monitor, Target, Eye, EyeOff } from 'lucide-react';
 import { NoServerState } from './no-server-state';
 import { useIframeInspector } from './use-iframe-inspector';
 import { ComponentInspectorPanel } from './component-inspector-panel';
-import { InspectorDebugPanel } from './inspector-debug-panel';
+import { DraggableDebugOverlay } from './draggable-debug-overlay';
+import { AutoViewDebugger } from './auto-view-debugger';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useAutoViewStore } from '@/stores/auto-view';
 
 export const AutoView: React.FC = () => {
-  const { detectedPorts, selectedPort, selectPort, refreshPorts } = usePortDetector();
-  const { terminalContents, getPortsFromAllTerminals } = useTerminalContentTracker();
-  const [customUrl, setCustomUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [showInspector, setShowInspector] = useState(false);
-  const [showDebug, setShowDebug] = useState(true); // Enable debug by default for now
-
-  const currentUrl = customUrl || (selectedPort ? `http://localhost:${selectedPort}` : '');
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const {
+    // State
+    detectedPorts,
+    selectedPort,
+    customUrl,
+    currentUrl,
+    isLoading,
+    loadError,
+    showInspector,
+    showDebug,
+    isInspecting,
+    detectedFramework,
+    selectedNode,
+    terminalContents,
+    
+    // Actions
+    setSelectedPort,
+    setCustomUrl,
+    setLoadError,
+    setShowInspector,
+    setShowDebug,
+    toggleInspection,
+    refreshPorts,
+    setDetectedFramework,
+    setSelectedNode,
+    initialize,
+    cleanup
+  } = useAutoViewStore();
 
   const {
     iframeRef,
-    isInspecting,
-    toggleInspection,
-    detectedFramework,
-    selectedNode,
+    isInspecting: hookIsInspecting,
+    toggleInspection: hookToggleInspection,
+    detectedFramework: hookDetectedFramework,
+    selectedNode: hookSelectedNode,
     clearSelection
   } = useIframeInspector({
     onNodeSelect: (data) => {
@@ -37,34 +58,52 @@ export const AutoView: React.FC = () => {
         hasComponent: !!data.component,
         componentName: data.component?.componentName
       });
-      if (!showInspector) {
-        setShowInspector(true);
-      }
+      setSelectedNode(data);
     },
     onFrameworkDetected: (framework) => {
       console.log('[GROK] AutoView - Detected framework:', framework.type, framework.version);
+      setDetectedFramework(framework);
     }
   });
 
+  // Initialize store on mount
   useEffect(() => {
-    // Simulate initial loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    initialize();
+    return () => cleanup();
+  }, [initialize, cleanup]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  // Sync hook inspection state with store
+  useEffect(() => {
+    if (hookIsInspecting !== isInspecting) {
+      // The hook manages its own state, we just need to sync
+      // Don't call toggleInspection here to avoid infinite loops
+      console.log('[GROK] AutoView - Inspection state sync:', hookIsInspecting);
+    }
+  }, [hookIsInspecting, isInspecting]);
 
+  // Sync selected node from hook to store
+  useEffect(() => {
+    if (hookSelectedNode !== selectedNode) {
+      setSelectedNode(hookSelectedNode);
+    }
+  }, [hookSelectedNode, selectedNode, setSelectedNode]);
+
+  // Sync detected framework from hook to store
+  useEffect(() => {
+    if (hookDetectedFramework !== detectedFramework) {
+      setDetectedFramework(hookDetectedFramework);
+    }
+  }, [hookDetectedFramework, detectedFramework, setDetectedFramework]);
+
+  // Handle iframe events
   const handleIframeLoad = (event: React.SyntheticEvent<HTMLIFrameElement>) => {
     const iframe = event.currentTarget;
     console.log('[GROK] AutoView - Iframe loaded:', currentUrl);
-    // Don't log the iframe element directly - it has React fiber properties that cause circular refs
     
     try {
       console.log('[GROK] AutoView - Can access iframe document:', {
         hasContentDocument: !!iframe.contentDocument,
         hasContentWindow: !!iframe.contentWindow,
-        // Don't access origin/URL as they might trigger CORS errors
         documentReady: iframe.contentDocument?.readyState
       });
     } catch (e) {
@@ -85,28 +124,23 @@ export const AutoView: React.FC = () => {
     console.log('[GROK] AutoView - Open source file:', filePath, lineNumber);
   };
 
-  // Add effect to log when inspection state changes
+  // Log when inspection state changes
   useEffect(() => {
     console.log('[GROK] AutoView - Inspection state changed:', {
-      isInspecting,
+      isInspecting: hookIsInspecting,
       hasSelectedNode: !!selectedNode,
       framework: detectedFramework,
       showInspector,
       currentUrl
     });
-  }, [isInspecting, selectedNode, detectedFramework, showInspector, currentUrl]);
+  }, [hookIsInspecting, selectedNode, detectedFramework, showInspector, currentUrl]);
 
   if (isLoading) {
     return (
       <div className="h-full w-full flex flex-col">
-        <PortSelector
-          selectedPort={selectedPort}
-          detectedPorts={detectedPorts}
-          onPortSelect={selectPort}
-          onRefresh={refreshPorts}
-          customUrl={customUrl}
-          onCustomUrlChange={setCustomUrl}
-        />
+        <div className="p-3 border-b">
+          <PortSelector />
+        </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -120,91 +154,62 @@ export const AutoView: React.FC = () => {
   if (!currentUrl) {
     return (
       <div className="h-full w-full flex flex-col">
-        <div className="flex items-center justify-between">
-          <PortSelector
-            selectedPort={selectedPort}
-            detectedPorts={detectedPorts}
-            onPortSelect={selectPort}
-            onRefresh={refreshPorts}
-            customUrl={customUrl}
-            onCustomUrlChange={setCustomUrl}
-          />
+        <div className="flex items-center justify-between p-3 border-b">
+          <PortSelector />
         </div>
         <NoServerState terminalContentsLength={terminalContents.length} />
       </div>
     );
-  }
-
-  return (
-    <div className="h-full w-full flex flex-col">
-      <div className="flex items-center justify-between p-2 border-b">
-        <PortSelector
-          selectedPort={selectedPort}
-          detectedPorts={detectedPorts}
-          onPortSelect={selectPort}
-          onRefresh={refreshPorts}
-          customUrl={customUrl}
-          onCustomUrlChange={setCustomUrl}
-        />
-        
-        <div className="flex items-center gap-2">
-          {detectedFramework && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{detectedFramework.type}</span>
-              {detectedFramework.version && <span>v{detectedFramework.version}</span>}
-            </div>
-          )}
+  }    return (
+      <div className="h-full w-full flex flex-col">
+        <div className="flex items-center justify-between p-3 border-b">
+          <PortSelector />
           
-          <Button
-            variant={isInspecting ? "default" : "outline"}
-            size="sm"
-            onClick={() => {
-              console.log('[GROK] AutoView - Toggle inspection clicked, current state:', isInspecting);
-              console.log('[GROK] AutoView - Current iframe URL:', currentUrl);
-              toggleInspection();
-            }}
-            className="flex items-center gap-2"
-          >
-            <Target className="h-4 w-4" />
-            {isInspecting ? 'Stop Inspecting' : 'Inspect Element'}
-          </Button>
-          
-          <Button
-            variant={showDebug ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowDebug(!showDebug)}
-            className="flex items-center gap-2"
-          >
-            <Bug className="h-4 w-4" />
-            Debug
-          </Button>
-          
-          {selectedNode && (
+          <div className="flex items-center gap-2">
             <Button
-              variant={showInspector ? "default" : "outline"}
+              variant={hookIsInspecting ? "default" : "ghost"}
               size="sm"
-              onClick={() => setShowInspector(!showInspector)}
-              className="flex items-center gap-2"
+              onClick={() => {
+                console.log('[GROK] AutoView - Toggle inspection clicked, current state:', hookIsInspecting);
+                console.log('[GROK] AutoView - Current iframe URL:', currentUrl);
+                hookToggleInspection();
+              }}
+              className="h-8 w-8 p-0"
+              title="Inspect Element"
             >
-              {showInspector ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              {showInspector ? 'Hide Inspector' : 'Show Inspector'}
+              <Target className="h-4 w-4" />
             </Button>
-          )}
-        </div>
-      </div>
-      
-      <div className="flex-1 overflow-hidden">
-        {showDebug && (
-          <div className="border-b">
-            <InspectorDebugPanel />
+            
+            <Button
+              variant={showDebug ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setShowDebug(!showDebug)}
+              className="h-8 w-8 p-0"
+              title="Console"
+            >
+              <Monitor className="h-4 w-4" />
+            </Button>
+            
+            {selectedNode && (
+              <Button
+                variant={showInspector ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setShowInspector(!showInspector)}
+                className="h-8 w-8 p-0"
+                title={showInspector ? 'Hide Inspector' : 'Show Inspector'}
+              >
+                {showInspector ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            )}
           </div>
-        )}
-        
+        </div>
+      
+      <div ref={containerRef} className="flex-1 overflow-hidden relative">
         {showInspector && selectedNode ? (
           <ResizablePanelGroup direction="horizontal" className="h-full">
             <ResizablePanel defaultSize={60} minSize={30}>
               <div className="h-full relative">
-                {isInspecting && (
+                {hookIsInspecting && (
                   <div className="absolute top-2 left-2 z-20 bg-blue-500 text-white px-2 py-1 rounded text-xs">
                     🎯 Inspection Mode Active - Click any element
                   </div>
@@ -245,7 +250,7 @@ export const AutoView: React.FC = () => {
           </ResizablePanelGroup>
         ) : (
           <div className="h-full relative">
-            {isInspecting && (
+            {hookIsInspecting && (
               <div className="absolute top-2 left-2 z-20 bg-blue-500 text-white px-2 py-1 rounded text-xs">
                 🎯 Inspection Mode Active - Click any element
               </div>
@@ -273,6 +278,13 @@ export const AutoView: React.FC = () => {
             />
           </div>
         )}
+        
+        {/* Draggable Debug Overlay */}
+        <DraggableDebugOverlay
+          isVisible={showDebug}
+          onClose={() => setShowDebug(false)}
+          containerRef={containerRef}
+        />
       </div>
     </div>
   );
