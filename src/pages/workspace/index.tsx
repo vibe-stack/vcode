@@ -72,7 +72,7 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="bg-gray-900/40 relative flex h-full max-h-full w-full flex-col overflow-hidden p-2 gap-2">
+    <div className="bg-gray-950/60 relative flex h-full max-h-full w-full flex-col overflow-hidden p-2 gap-2">
       {/* Header Panel */}
       <div className="bg-background rounded-md border border-border flex h-12 flex-shrink-0 items-center px-4 shadow-md ring-1 ring-border/50">
         {/* Left section - Logo/Home */}
