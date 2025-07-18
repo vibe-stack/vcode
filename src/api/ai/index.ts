@@ -1,6 +1,6 @@
 import { createXai } from "@ai-sdk/xai";
 import { CoreMessage, streamText, createDataStreamResponse } from "ai";
-import { toolRegistry } from "../../pages/workspace/components/chat/tools";
+import { getAllTools } from "./tools";
 import { settingsManager } from "../../helpers/ipc/settings/settings-listeners";
 import { systemPrompt } from "./system-prompt";
 
@@ -19,11 +19,16 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
     return createDataStreamResponse({
       execute: async (dataStream) => {
         try {
+          // Get tools asynchronously to include MCP tools
+          const availableTools = await getAllTools();
+          console.log('[AI API] Loaded', Object.keys(availableTools).length, 'tools for AI:', Object.keys(availableTools));
+          console.log('[AI API] Tool descriptions:', Object.entries(availableTools).map(([name, tool]) => ({ name, description: tool.description })));
+          
           const result = streamText({
             model: model("grok-4-0709"),
             system: systemPrompt,
             messages: messages,
-            tools: toolRegistry.getTools(),
+            tools: availableTools,
             maxSteps: 50,
             // maxSteps: 10,
             // maxTokens: 10000,

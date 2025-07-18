@@ -8,6 +8,7 @@ import { router } from "./routes/router";
 import { RouterProvider } from "@tanstack/react-router";
 import { useProjectStore } from "./stores/project";
 import { useSettingsStore } from "./stores/settings";
+import "./services/mcp-integration"; // Initialize MCP integration
 
 export default function App() {
   const { i18n } = useTranslation();

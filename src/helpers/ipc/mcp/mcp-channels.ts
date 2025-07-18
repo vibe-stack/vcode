@@ -1,17 +1,14 @@
+// MCP IPC channel definitions
 export const MCP_LIST_SERVERS_CHANNEL = 'mcp:list-servers'
 export const MCP_START_SERVER_CHANNEL = 'mcp:start-server'
 export const MCP_STOP_SERVER_CHANNEL = 'mcp:stop-server'
 export const MCP_RESTART_SERVER_CHANNEL = 'mcp:restart-server'
+export const MCP_GET_TOOLS_CHANNEL = 'mcp:get-tools'
 export const MCP_GET_SERVER_TOOLS_CHANNEL = 'mcp:get-server-tools'
 export const MCP_CALL_TOOL_CHANNEL = 'mcp:call-tool'
-export const MCP_LOAD_CONFIG_CHANNEL = 'mcp:load-config'
-export const MCP_SAVE_CONFIG_CHANNEL = 'mcp:save-config'
-export const MCP_ADD_SERVER_CHANNEL = 'mcp:add-server'
-export const MCP_REMOVE_SERVER_CHANNEL = 'mcp:remove-server'
-export const MCP_UPDATE_SERVER_CHANNEL = 'mcp:update-server'
 export const MCP_SERVER_STATUS_CHANNEL = 'mcp:server-status'
+export const MCP_SERVER_UPDATE_CHANNEL = 'mcp:server-update'
+export const MCP_LOAD_CONFIG_CHANNEL = 'mcp:load-config'
 export const MCP_DISCOVER_TOOLS_CHANNEL = 'mcp:discover-tools'
-
-// Event channels for real-time updates
 export const MCP_SERVER_EVENT_CHANNEL = 'mcp:server-event'
 export const MCP_TOOL_EVENT_CHANNEL = 'mcp:tool-event'

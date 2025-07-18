@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { mcpTools, getMCPTools } from "./mcp-tools";
 
 // Read File Tool
 const readFileParams = z.object({
@@ -94,7 +95,18 @@ export const tools = {
   deleteFile,
   searchFiles,
   getProjectInfo,
+  ...mcpTools,
 };
+
+// Dynamic tool loading function that includes MCP tools
+export async function getAllTools() {
+  const mcpToolsMap = await getMCPTools();
+  
+  return {
+    ...tools,
+    ...mcpToolsMap
+  };
+}
 
 export type ToolName = keyof typeof tools;
 

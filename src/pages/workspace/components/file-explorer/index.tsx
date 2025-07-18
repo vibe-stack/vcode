@@ -17,10 +17,15 @@ import {
   FileText,
   FolderPlus,
   Server,
+  Package,
+  Palette,
 } from "lucide-react";
 import { FileTreeNode } from "./file-tree-node";
 import { GitPanel } from "./git-panel";
 import { MCPPanel } from "./mcp-panel";
+import { VSCodeExtensionsPanel } from "./vscode-extensions-panel";
+import { ThemeManagerPanel } from "./theme-manager-panel";
+import { VSCodeExtensionHost } from "../../../../services/vscode-extension-host";
 import { CreateFilePopover } from "./create-file-popover";
 import { cn } from "@/utils/tailwind";
 import { useSettingsStore } from "@/stores/settings";
@@ -37,7 +42,8 @@ export function FileExplorer() {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(),
   );
-  const [activeTab, setActiveTab] = useState<"files" | "git" | "mcp">("files");
+  const [activeTab, setActiveTab] = useState<"files" | "git" | "mcp" | "extensions" | "themes">("files");
+  const [extensionHost] = useState(() => new VSCodeExtensionHost());
 
   const handleFileClick = useCallback(
     async (filePath: string) => {
@@ -144,7 +150,7 @@ export function FileExplorer() {
     <div className="flex h-full max-h-full flex-col border-r overflow-hidden">
       <Tabs
         value={activeTab}
-        onValueChange={(value) => setActiveTab(value as "files" | "git" | "mcp")}
+        onValueChange={(value) => setActiveTab(value as "files" | "git" | "mcp" | "extensions" | "themes")}
         className="flex h-full max-h-full flex-col overflow-hidden"
       >
         <div className="border-b px-2 py-2 flex-shrink-0">
@@ -153,7 +159,7 @@ export function FileExplorer() {
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-4 text-xs transition-all",
+                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
                 activeTab === "files" &&
                   getActiveAccentClasses(accentColor, useGradient),
               )}
@@ -166,7 +172,7 @@ export function FileExplorer() {
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-4 text-xs transition-all",
+                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
                 activeTab === "git" &&
                   getActiveAccentClasses(accentColor, useGradient),
               )}
@@ -180,7 +186,7 @@ export function FileExplorer() {
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 flex-1 gap-1.5 rounded-md px-4 text-xs transition-all",
+                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
                 activeTab === "mcp" &&
                   getActiveAccentClasses(accentColor, useGradient),
               )}
@@ -188,6 +194,32 @@ export function FileExplorer() {
             >
               <Server className="h-3.5 w-3.5" />
               MCP
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
+                activeTab === "extensions" &&
+                  getActiveAccentClasses(accentColor, useGradient),
+              )}
+              onClick={() => setActiveTab("extensions")}
+            >
+              <Package className="h-3.5 w-3.5" />
+              Ext
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 flex-1 gap-1.5 rounded-md px-1 text-xs transition-all",
+                activeTab === "themes" &&
+                  getActiveAccentClasses(accentColor, useGradient),
+              )}
+              onClick={() => setActiveTab("themes")}
+            >
+              <Palette className="h-3.5 w-3.5" />
+              Theme
             </Button>
           </div>
         </div>
@@ -287,6 +319,26 @@ export function FileExplorer() {
         >
           <div className="p-2">
             <MCPPanel />
+          </div>
+        </TabsContent>
+
+        {/* Extensions Tab */}
+        <TabsContent
+          value="extensions"
+          className="m-0 flex flex-1 flex-col overflow-hidden p-0"
+        >
+          <div className="p-2">
+            <VSCodeExtensionsPanel extensionHost={extensionHost} />
+          </div>
+        </TabsContent>
+
+        {/* Themes Tab */}
+        <TabsContent
+          value="themes"
+          className="m-0 flex flex-1 flex-col overflow-hidden p-0"
+        >
+          <div className="p-2">
+            <ThemeManagerPanel />
           </div>
         </TabsContent>
       </Tabs>

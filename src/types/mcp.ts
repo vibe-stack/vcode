@@ -15,20 +15,19 @@ export interface MCPServerConfig {
 export interface MCPTool {
   name: string
   description: string
-  schema: Record<string, unknown>
-  serverId: string
-  serverName: string
+  inputSchema: Record<string, unknown>
 }
 
 export interface MCPServerInstance {
+  id: string
   config: MCPServerConfig
   status: 'stopped' | 'starting' | 'running' | 'error'
   process?: any
   connection?: MCPConnection
   tools: MCPTool[]
-  lastError?: string
-  startTime?: Date
-  uptime?: number
+  lastError?: string | null
+  startedAt?: Date | null
+  restartCount: number
 }
 
 export interface MCPConnection {

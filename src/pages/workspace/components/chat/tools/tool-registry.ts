@@ -1,4 +1,4 @@
-import { tools } from "./index";
+import { tools, getAllTools } from "./index";
 import { toolConfigs, getEnabledTools } from "./tool-config";
 
 /**
@@ -17,16 +17,31 @@ export class ToolRegistry {
   }
 
   /**
-   * Get all available tools for the AI SDK
+   * Get all available tools for the AI SDK (including dynamic MCP tools)
    */
-  getTools() {
+  async getTools() {
     const enabledToolNames = getEnabledTools();
     const enabledTools: Record<string, any> = {};
 
+    // Get static tools first
     for (const toolName of enabledToolNames) {
       if (tools[toolName]) {
         enabledTools[toolName] = tools[toolName];
       }
+    }
+
+    // Get dynamic MCP tools
+    try {
+      const allTools = await getAllTools();
+      
+      // Add all MCP tools (they're auto-enabled if servers are running)
+      for (const [toolName, tool] of Object.entries(allTools)) {
+        if (toolName.startsWith('mcp_')) {
+          enabledTools[toolName] = tool;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load MCP tools:', error);
     }
 
     return enabledTools;

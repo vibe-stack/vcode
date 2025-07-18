@@ -35,13 +35,33 @@ export class MCPServerManager extends EventEmitter {
       const configData = await fs.readFile(this.configPath, 'utf8')
       const settings = JSON.parse(configData)
       
-      this.config = settings.mcp || { mcpServers: {} }
+      // Handle both formats: direct mcpServers or nested under mcp
+      const mcpServers = settings.mcpServers || settings.mcp?.mcpServers || {}
+      
+      this.config = {
+        mcpServers,
+        globalAutoApprove: settings.globalAutoApprove || settings.mcp?.globalAutoApprove || [],
+        timeout: settings.timeout || settings.mcp?.timeout || 30000,
+        retryAttempts: settings.retryAttempts || settings.mcp?.retryAttempts || 3,
+        logLevel: settings.logLevel || settings.mcp?.logLevel || 'info'
+      }
       
       // Initialize servers from config
       for (const [id, serverConfig] of Object.entries(this.config.mcpServers)) {
+        // Convert config format to our internal format
         const fullConfig: MCPServerConfig = {
           id,
-          ...serverConfig
+          name: (serverConfig as any).name || id,
+          command: (serverConfig as any).command,
+          args: (serverConfig as any).args || [],
+          // Handle both 'type' and 'connectionType' properties
+          connectionType: ((serverConfig as any).type || (serverConfig as any).connectionType || 'stdio') as 'stdio' | 'sse' | 'https',
+          url: (serverConfig as any).url,
+          disabled: (serverConfig as any).disabled || false,
+          autoApprove: (serverConfig as any).autoApprove || [],
+          env: (serverConfig as any).env || {},
+          timeout: (serverConfig as any).timeout,
+          retryAttempts: (serverConfig as any).retryAttempts
         }
         
         this.servers.set(id, {
@@ -70,7 +90,25 @@ export class MCPServerManager extends EventEmitter {
         // File doesn't exist, start with empty settings
       }
       
-      settings.mcp = this.config
+      // Convert back to the format in your config file
+      const mcpServers: any = {}
+      for (const [id, serverConfig] of Object.entries(this.config?.mcpServers || {})) {
+        const config = serverConfig as any
+        mcpServers[id] = {
+          name: config.name,
+          command: config.command,
+          args: config.args,
+          type: config.connectionType, // Use 'type' instead of 'connectionType'
+          url: config.url,
+          disabled: config.disabled,
+          autoApprove: config.autoApprove,
+          env: config.env,
+          timeout: config.timeout,
+          retryAttempts: config.retryAttempts
+        }
+      }
+      
+      settings.mcpServers = mcpServers
       
       await fs.writeFile(this.configPath, JSON.stringify(settings, null, 2))
     } catch (error) {

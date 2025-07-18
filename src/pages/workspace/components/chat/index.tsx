@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Bot, Code2 } from 'lucide-react';
+import { MoreHorizontal, Plus, Bot, Code2, Settings } from 'lucide-react';
 import { ChatInput } from './chat-input';
 import { useChat } from '@ai-sdk/react';
 import { chatFetch } from './chat-fetch';
@@ -16,6 +16,7 @@ import DotMatrix from '@/components/ui/animated-dot-matrix';
 import { cn } from '@/utils/tailwind';
 import { useSettingsStore } from '@/stores/settings';
 import { getActiveAccentClasses } from '@/utils/accent-colors';
+import { ToolsPanel } from './tools-panel';
 
 interface ChatPanelProps {
     isAgentMode?: boolean;
@@ -25,6 +26,7 @@ interface ChatPanelProps {
 export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelProps) {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
+    const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
     const { settings } = useSettingsStore();
     const accentColor = settings.appearance?.accentColor || 'blue';
     const useGradient = settings.appearance?.accentGradient ?? true;
@@ -305,6 +307,26 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
         }
     }, [currentSessionId]);
 
+    const handleToolToggle = useCallback((toolId: string, enabled: boolean) => {
+        console.log('Tool toggle:', toolId, enabled);
+        // TODO: Implement tool enable/disable logic
+    }, []);
+
+    const handleRefreshMCP = useCallback(async () => {
+        console.log('Refreshing MCP servers...');
+        try {
+            // Restart all MCP servers
+            const servers = await window.mcpApi?.listServers() || [];
+            for (const server of servers) {
+                if (server.status === 'running') {
+                    await window.mcpApi?.restartServer(server.id);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to refresh MCP servers:', error);
+        }
+    }, []);
+
     return (
         <div className={cn(
             "h-full flex flex-col bg-sidebar w-full max-w-full min-w-0",
@@ -357,6 +379,15 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
                             title="New Chat"
                         >
                             <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-lg"
+                            onClick={() => setIsToolsPanelOpen(true)}
+                            title="AI Tools Manager"
+                        >
+                            <Settings className="h-4 w-4" />
                         </Button>
                         <ChatHistory
                             onLoadSession={handleLoadSession}
@@ -427,6 +458,14 @@ export function ChatPanel({ isAgentMode = false, onToggleAgentMode }: ChatPanelP
                     />
                 </div>
             </div>
+            
+            {/* Tools Panel */}
+            <ToolsPanel
+                isOpen={isToolsPanelOpen}
+                onClose={() => setIsToolsPanelOpen(false)}
+                onToolToggle={handleToolToggle}
+                onRefreshMCP={handleRefreshMCP}
+            />
         </div>
     );
 }

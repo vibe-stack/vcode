@@ -8,9 +8,10 @@ import { addSettingsEventListeners } from "./settings/settings-listeners";
 import { addGitEventListeners } from "./git/git-listeners";
 import { addTerminalEventListeners } from "./terminal/terminal-listeners";
 import registerShellListeners from "./shell/shell-listeners";
-import { registerMCPListeners } from "./mcp/mcp-listeners";
+import { addMCPEventListeners } from "./mcp/mcp-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
+  console.log('📋 registerListeners called - starting to add all event listeners...')
   addWindowEventListeners(mainWindow);
   addThemeEventListeners();
   addProjectEventListeners(mainWindow);
@@ -20,5 +21,7 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addGitEventListeners(mainWindow);
   addTerminalEventListeners(mainWindow);
   registerShellListeners();
-  registerMCPListeners(mainWindow);
+  console.log('🔧 About to add MCP event listeners...')
+  addMCPEventListeners();
+  console.log('✅ All event listeners registered successfully')
 }
