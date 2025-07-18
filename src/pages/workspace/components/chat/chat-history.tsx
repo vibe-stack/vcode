@@ -125,7 +125,7 @@ export function ChatHistory({
               </div>
             </div>
           ) : (
-            <ScrollArea className="h-full">
+            <div className="h-full max-h-64 overflow-y-auto">
               <div className="p-2">
                 {recentSessions.map((session) => (
                   <div
@@ -162,7 +162,7 @@ export function ChatHistory({
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           )}
         </div>
 

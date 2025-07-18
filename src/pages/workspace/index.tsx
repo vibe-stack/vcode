@@ -1,26 +1,17 @@
-import React, { useState, useEffect } from "react";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
-import { FileExplorer, EditorWithTerminal, ChatPanel } from "./components";
-import { useProjectStore } from "@/stores/project";
-import { WorkspaceFooter } from "./components/footer";
-import { useEditorContentStore } from "@/stores/editor-content";
-import { AgentsView } from "./components/agents-view";
-import { SettingsModal } from "@/components/SettingsModal";
+import React from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { FileExplorer, ChatPanel, PersistentTerminalPanel, EditorArea, AutoView, HiddenTerminalContainer } from './components';
+import { useProjectStore } from '@/stores/project';
+import { useEffect } from 'react';
+import { WorkspaceFooter } from './components/footer';
+import { useEditorContentStore } from '@/stores/editor-content';
+import { AgentsView } from './components/agents-view';
+import { useTerminalStore } from '@/stores/terminal';
 
 export default function WorkspacePage() {
-  const { currentProject } = useProjectStore();
-  const {
-    view,
-    leftPanelSize,
-    rightPanelSize,
-    onResizeLeftPanel,
-    onResizeRightPanel,
-  } = useEditorContentStore();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { currentProject, fileTree } = useProjectStore();
+  const { view, leftPanelSize, rightPanelSize, onResizeLeftPanel, onResizeRightPanel } = useEditorContentStore();
+  const { isVisible } = useTerminalStore();
 
   useEffect(() => {
     // Ensure we have a project loaded
@@ -31,57 +22,55 @@ export default function WorkspacePage() {
     }
   }, [currentProject]);
 
-  if (leftPanelSize === undefined || rightPanelSize === undefined) {
-    return null;
-  } else {
-    console.log("leftPanelSize", leftPanelSize);
-    console.log("rightPanelSize", rightPanelSize);
-  }               
-
   return (
-    <div className="bg-background relative flex w-full flex-col h-full">
+    <div className="w-full bg-background h-full max-h-full relative flex flex-col">
+      {/* Hidden container for keeping all terminals alive */}
+      <HiddenTerminalContainer />
+      
+      <ResizablePanelGroup direction="horizontal">
+        {/* Left Panel - File Explorer */}
+        <ResizablePanel defaultSize={leftPanelSize} onResize={onResizeLeftPanel}>
+          <div className="h-full w-full">
+            <FileExplorer />
+          </div>
+        </ResizablePanel>
 
-      {/* Main content area */}
-      <div className="flex-1">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Left Panel - File Explorer */}
-          <ResizablePanel
-            defaultSize={leftPanelSize}
-            onResize={onResizeLeftPanel}
-          >
-            <div className="w-full h-full">
-              <FileExplorer />
-            </div>
-          </ResizablePanel>
+        <ResizableHandle />
 
-          <ResizableHandle />
+        {/* Center Panel - Main Content Area */}
+        <ResizablePanel defaultSize={60} minSize={30}>
+          {view === "auto" ? (
+            // Auto view takes the full center panel
+            <AutoView />
+          ) : (
+            // Other views use the resizable vertical layout
+            <ResizablePanelGroup direction="vertical" className="h-full">
+              <ResizablePanel defaultSize={70} minSize={30}>
+                {view === "code" && <EditorArea />}
+                {view === "agents" && <AgentsView />}
+              </ResizablePanel>
 
-          {/* Center Panel - Editor Area */}
-          <ResizablePanel defaultSize={60} minSize={30}>
-            {view === "code" && <EditorWithTerminal />}
-            {view === "agents" && <AgentsView />}
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          {/* Right Panel - Chat */}
-          {view !== "agents" && (
-            <ResizablePanel
-              defaultSize={rightPanelSize}
-              onResize={onResizeRightPanel}
-              minSize={15}
-            >
-              <div className="w-full h-full">
-                <ChatPanel />
-              </div>
-            </ResizablePanel>
+              {isVisible && <>
+                <ResizableHandle />
+                <ResizablePanel defaultSize={30} minSize={15}>
+                  <PersistentTerminalPanel />
+                </ResizablePanel></>
+              }
+            </ResizablePanelGroup>
           )}
-        </ResizablePanelGroup>
-      </div>
-      <WorkspaceFooter />
+        </ResizablePanel>
 
-      {/* Settings Modal */}
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+        <ResizableHandle />
+
+        {/* Right Panel - Chat (hidden in auto and agents views) */}
+        {view !== "agents" && view !== "auto" && <ResizablePanel defaultSize={rightPanelSize} onResize={onResizeRightPanel} minSize={15}>
+          <div className="h-full w-full">
+            <ChatPanel />
+          </div>
+        </ResizablePanel>}
+      </ResizablePanelGroup>
+      
+      <WorkspaceFooter />
     </div>
   );
 }

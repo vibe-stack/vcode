@@ -7,6 +7,7 @@ import { exposeSettingsContext } from "./settings/settings-context";
 import { exposeGitContext } from "./git/git-context";
 import { exposeTerminalContext } from "./terminal/terminal-context";
 import { exposeShellContext } from "./shell/shell-context";
+import { exposeAgentContext } from "./agents/agent-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -18,4 +19,5 @@ export default function exposeContexts() {
   exposeGitContext();
   exposeTerminalContext();
   exposeShellContext();
+  exposeAgentContext();
 }

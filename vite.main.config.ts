@@ -5,12 +5,20 @@ import path from "path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+      '@': path.resolve(__dirname, './src'),
+    }
   },
   build: {
     rollupOptions: {
-      external: ["node-pty", "electron", "fs", "path", "os", "child_process"],
-    },
-  },
+      external: [
+        'node-pty',
+        'electron',
+        "fs",
+        "path",
+        "os",
+        "child_process",
+        "better-sqlite3",
+      ]
+    }
+  }
 });
