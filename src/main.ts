@@ -1,6 +1,7 @@
 import { app, BrowserWindow, screen } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import { cleanupTerminals } from "./helpers/ipc/terminal/terminal-listeners";
+import { ExtensionManagerMain } from "./services/extension-manager-main";
 // "electron-squirrel-startup" seems broken when packaging with vite
 //import started from "electron-squirrel-startup";
 import path from "path";
@@ -35,6 +36,11 @@ function createWindow() {
   console.log('🚀 Registering IPC listeners including MCP...')
   registerListeners(mainWindow);
   console.log('✅ IPC listeners registered successfully')
+
+  // Initialize extension manager
+  console.log('🔌 Initializing Extension Manager...')
+  new ExtensionManagerMain();
+  console.log('✅ Extension Manager initialized')
 
   // Let the renderer process keymap system handle Cmd+W entirely
   // It will close tabs when available and prevent app closure when appropriate

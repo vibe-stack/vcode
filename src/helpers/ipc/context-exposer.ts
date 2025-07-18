@@ -8,6 +8,7 @@ import { exposeGitContext } from "./git/git-context";
 import { exposeTerminalContext } from "./terminal/terminal-context";
 import { exposeShellContext } from "./shell/shell-context";
 import { exposeMCPContext } from "./mcp/mcp-context";
+import { exposeExtensionContext } from "./extensions/extension-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -20,4 +21,5 @@ export default function exposeContexts() {
   exposeTerminalContext();
   exposeShellContext();
   exposeMCPContext();
+  exposeExtensionContext();
 }

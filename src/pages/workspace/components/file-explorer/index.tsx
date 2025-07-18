@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useProjectStore } from "@/stores/project";
 import { useGitStore } from "@/stores/git";
 import { useBufferStore } from "@/stores/buffers";
@@ -26,6 +26,8 @@ import { MCPPanel } from "./mcp-panel";
 import { VSCodeExtensionsPanel } from "./vscode-extensions-panel";
 import { ThemeManagerPanel } from "./theme-manager-panel";
 import { VSCodeExtensionHost } from "../../../../services/vscode-extension-host";
+import { ExtensionManagerRenderer } from "../../../../services/extension-manager-renderer";
+import { ExtensionInstaller } from "../../../../services/extension-installer";
 import { CreateFilePopover } from "./create-file-popover";
 import { cn } from "@/utils/tailwind";
 import { useSettingsStore } from "@/stores/settings";
@@ -44,6 +46,57 @@ export function FileExplorer() {
   );
   const [activeTab, setActiveTab] = useState<"files" | "git" | "mcp" | "extensions" | "themes">("files");
   const [extensionHost] = useState(() => new VSCodeExtensionHost());
+  const [extensionManager] = useState(() => new ExtensionManagerRenderer(extensionHost));
+  const [extensionInstaller] = useState(() => new ExtensionInstaller(extensionHost, extensionManager));
+
+  // Initialize extension manager to load previously installed extensions
+  useEffect(() => {
+    extensionManager.initialize().catch(error => {
+      console.error('Failed to initialize extension manager:', error)
+    })
+  }, [extensionManager])
+
+  // Listen for webview creation events
+  useEffect(() => {
+    const handleWebviewCreated = (webviewPanel: any) => {
+      console.log('Webview panel created:', webviewPanel)
+      // For now, switch to extensions tab when webview is created
+      setActiveTab('extensions')
+    }
+
+    const handleShowWebview = (webviewPanel: any) => {
+      console.log('Show webview panel:', webviewPanel)
+      // Switch to extensions tab and show the webview
+      setActiveTab('extensions')
+    }
+
+    // Add event listeners
+    extensionHost.on('webviewCreated', handleWebviewCreated)
+    extensionHost.on('showWebview', handleShowWebview)
+
+    // Listen for webview events from main process
+    const handleMainProcessWebview = (event: any, webviewPanel: any) => {
+      console.log('Webview created in main process:', webviewPanel)
+      handleWebviewCreated(webviewPanel)
+    }
+
+    // Add IPC listener for main process webview events
+    if (window.electronAPI) {
+      window.electronAPI.on('extension:webview-created', handleMainProcessWebview)
+    }
+
+    // Cleanup
+    return () => {
+      extensionHost.off('webviewCreated', handleWebviewCreated)
+      extensionHost.off('showWebview', handleShowWebview)
+      
+      if (window.electronAPI) {
+        window.electronAPI.off('extension:webview-created', handleMainProcessWebview)
+      }
+    }
+  }, [extensionHost])
+
+  // Extensions are loaded on demand - no auto-installation of mocks
 
   const handleFileClick = useCallback(
     async (filePath: string) => {
@@ -328,7 +381,10 @@ export function FileExplorer() {
           className="m-0 flex flex-1 flex-col overflow-hidden p-0"
         >
           <div className="p-2">
-            <VSCodeExtensionsPanel extensionHost={extensionHost} />
+            <VSCodeExtensionsPanel 
+              extensionHost={extensionHost} 
+              extensionManager={extensionManager}
+            />
           </div>
         </TabsContent>
 

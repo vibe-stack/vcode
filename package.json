@@ -117,6 +117,7 @@
     "@tiptap/suggestion": "^3.0.1",
     "@typefox/monaco-editor-react": "^6.9.0",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/yauzl": "^2.10.3",
     "@vitejs/plugin-react": "^4.6.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-unicode11": "^0.8.0",
@@ -161,6 +162,7 @@
     "tippy.js": "^6.3.7",
     "vaul": "^1.1.2",
     "xterm": "^5.3.0",
+    "yauzl": "^3.2.0",
     "zod": "3",
     "zustand": "^5.0.6"
   }

@@ -11,7 +11,10 @@ import {
   AlertCircle,
   Wrench,
   Zap,
-  RefreshCw
+  RefreshCw,
+  Play,
+  Square,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 
@@ -45,6 +48,7 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
     toolCount: number;
   }>>([]);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const loadTools = async () => {
     setLoading(true);
@@ -160,19 +164,33 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
     }
   };
 
+  // Group tools by server for MCP tools, and by category for others
   const groupedTools = tools.reduce((acc, tool) => {
-    if (!acc[tool.category]) {
-      acc[tool.category] = [];
+    if (tool.category === 'mcp' && tool.serverId) {
+      const serverKey = `mcp-${tool.serverId}`;
+      if (!acc[serverKey]) {
+        acc[serverKey] = [];
+      }
+      acc[serverKey].push(tool);
+    } else {
+      if (!acc[tool.category]) {
+        acc[tool.category] = [];
+      }
+      acc[tool.category].push(tool);
     }
-    acc[tool.category].push(tool);
     return acc;
   }, {} as Record<string, Tool[]>);
+
+  // Get server info for display
+  const getServerInfo = (serverId: string) => {
+    return mcpServers.find(s => s.id === serverId);
+  };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+      <div className="bg-gray-900 rounded-lg p-6 max-w-2xl w-full h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
@@ -185,13 +203,18 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                onRefreshMCP();
-                loadTools();
+              onClick={async () => {
+                setActionLoading('refresh');
+                try {
+                  onRefreshMCP();
+                  await loadTools();
+                } finally {
+                  setActionLoading(null);
+                }
               }}
-              disabled={loading}
+              disabled={loading || actionLoading === 'refresh'}
             >
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              <RefreshCw className={cn("h-4 w-4", (loading || actionLoading === 'refresh') && "animate-spin")} />
               Refresh
             </Button>
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -200,84 +223,134 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
           </div>
         </div>
 
-        {/* MCP Servers Status */}
-        {mcpServers.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-              <Zap className="h-4 w-4 text-purple-500" />
-              MCP Servers
-            </h3>
-            <div className="grid grid-cols-1 gap-2">
-              {mcpServers.map((server) => (
-                <div
-                  key={server.id}
-                  className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(server.status)}
-                    <div>
-                      <div className="text-sm font-medium">{server.id}</div>
-                      <div className="text-xs text-gray-400">
-                        {server.toolCount} tools
-                      </div>
-                    </div>
-                  </div>
-                  <Badge 
-                    variant={server.status === 'running' ? 'default' : 'secondary'}
-                    className="text-xs"
-                  >
-                    {server.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Tools by Category */}
+        {/* Tools by Category and MCP Server */}
         <div className="space-y-6">
-          {Object.entries(groupedTools).map(([category, categoryTools]) => (
-            <div key={category}>
-              <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                {getCategoryIcon(category)}
-                {category.charAt(0).toUpperCase() + category.slice(1)} Tools
-                <Badge variant="outline" className="text-xs">
-                  {categoryTools.length}
-                </Badge>
-              </h3>
-              <div className="space-y-2">
-                {categoryTools.map((tool) => (
-                  <div
-                    key={tool.id}
-                    className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        {tool.category === 'mcp' && getStatusIcon(tool.status)}
-                        {getCategoryIcon(tool.category)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{tool.name}</div>
-                        <div className="text-xs text-gray-400 line-clamp-2">
-                          {tool.description}
-                        </div>
-                        {tool.serverId && (
-                          <div className="text-xs text-purple-400 mt-1">
-                            Server: {tool.serverId}
-                          </div>
-                        )}
-                      </div>
+          {Object.entries(groupedTools)
+            .sort(([keyA], [keyB]) => {
+              // Sort order: system, file, then MCP servers
+              const orderA = keyA === 'system' ? 0 : keyA === 'file' ? 1 : 2;
+              const orderB = keyB === 'system' ? 0 : keyB === 'file' ? 1 : 2;
+              if (orderA !== orderB) return orderA - orderB;
+              return keyA.localeCompare(keyB);
+            })
+            .map(([groupKey, groupTools]) => {
+            const isMCPServer = groupKey.startsWith('mcp-');
+            const serverId = isMCPServer ? groupKey.replace('mcp-', '') : null;
+            const serverInfo = serverId ? getServerInfo(serverId) : null;
+            
+            return (
+              <div key={groupKey}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    {isMCPServer ? (
+                      <>
+                        <Zap className="h-4 w-4 text-purple-500" />
+                        {serverId}
+                        {serverInfo && getStatusIcon(serverInfo.status)}
+                        <Badge variant="outline" className="text-xs">
+                          MCP Server
+                        </Badge>
+                      </>
+                    ) : (
+                      <>
+                        {getCategoryIcon(groupKey)}
+                        {groupKey.charAt(0).toUpperCase() + groupKey.slice(1)} Tools
+                      </>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {groupTools.length}
+                    </Badge>
+                  </h3>
+                  
+                  {isMCPServer && serverInfo && (
+                    <div className="flex items-center gap-1">
+                      {serverInfo.status === 'running' ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            setActionLoading(`stop-${serverId}`);
+                            try {
+                              // Call stop server API if available
+                              await loadTools();
+                            } finally {
+                              setActionLoading(null);
+                            }
+                          }}
+                          disabled={actionLoading === `stop-${serverId}`}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Square className="h-3 w-3" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            setActionLoading(`start-${serverId}`);
+                            try {
+                              // Call start server API if available
+                              await loadTools();
+                            } finally {
+                              setActionLoading(null);
+                            }
+                          }}
+                          disabled={actionLoading === `start-${serverId}`}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Play className="h-3 w-3" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          setActionLoading(`restart-${serverId}`);
+                          try {
+                            // Call restart server API if available
+                            await loadTools();
+                          } finally {
+                            setActionLoading(null);
+                          }
+                        }}
+                        disabled={actionLoading === `restart-${serverId}`}
+                        className="h-6 w-6 p-0"
+                      >
+                        <RotateCcw className={cn("h-3 w-3", actionLoading === `restart-${serverId}` && "animate-spin")} />
+                      </Button>
                     </div>
-                    <Switch
-                      checked={tool.enabled}
-                      onCheckedChange={(checked) => onToolToggle(tool.id, checked)}
-                      disabled={tool.category === 'mcp' && tool.status !== 'running'}
-                    />
-                  </div>
-                ))}
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  {groupTools.map((tool) => (
+                    <div
+                      key={tool.id}
+                      className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center gap-2">
+                          {getCategoryIcon(tool.category)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{tool.name}</div>
+                          <div className="text-xs text-gray-400 line-clamp-2">
+                            {tool.description}
+                          </div>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={tool.enabled}
+                        onCheckedChange={(checked) => onToolToggle(tool.id, checked)}
+                        disabled={tool.category === 'mcp' && tool.status !== 'running'}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {tools.length === 0 && !loading && (

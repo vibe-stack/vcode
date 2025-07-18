@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Play, Square, RotateCcw, Settings, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { cn } from '../../../../utils/tailwind'
 
 import { Button } from '../../../../components/ui/button'
 import { Badge } from '../../../../components/ui/badge'
@@ -20,6 +21,7 @@ export function MCPPanel({ className }: MCPPanelProps) {
   const [loading, setLoading] = useState(true)
   const [expandedServers, setExpandedServers] = useState<Set<string>>(new Set())
   const [selectedTool, setSelectedTool] = useState<{ serverId: string; toolName: string } | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     loadServers()
@@ -47,28 +49,37 @@ export function MCPPanel({ className }: MCPPanelProps) {
 
   const handleStartServer = async (serverId: string) => {
     try {
+      setActionLoading(`start-${serverId}`)
       await window.mcpApi.startServer(serverId)
       await loadServers()
     } catch (error) {
       console.error(`Failed to start server ${serverId}:`, error)
+    } finally {
+      setActionLoading(null)
     }
   }
 
   const handleStopServer = async (serverId: string) => {
     try {
+      setActionLoading(`stop-${serverId}`)
       await window.mcpApi.stopServer(serverId)
       await loadServers()
     } catch (error) {
       console.error(`Failed to stop server ${serverId}:`, error)
+    } finally {
+      setActionLoading(null)
     }
   }
 
   const handleRestartServer = async (serverId: string) => {
     try {
+      setActionLoading(`restart-${serverId}`)
       await window.mcpApi.restartServer(serverId)
       await loadServers()
     } catch (error) {
       console.error(`Failed to restart server ${serverId}:`, error)
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -148,10 +159,15 @@ export function MCPPanel({ className }: MCPPanelProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={loadServers}
+                  onClick={async () => {
+                    setActionLoading('refresh')
+                    await loadServers()
+                    setActionLoading(null)
+                  }}
+                  disabled={actionLoading === 'refresh'}
                   className="h-6 w-6 p-0"
                 >
-                  <RotateCcw className="h-3 w-3" />
+                  <RotateCcw className={cn("h-3 w-3", actionLoading === 'refresh' && "animate-spin")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -198,7 +214,7 @@ export function MCPPanel({ className }: MCPPanelProps) {
         </div>
       </div>
 
-      <ScrollArea className="h-[400px]">
+      <ScrollArea className="h-full max-h-[calc(100vh-200px)]">
         <div className="space-y-2">
           {servers.length === 0 ? (
             <div className="text-center py-8 text-sm text-muted-foreground">
@@ -223,18 +239,20 @@ export function MCPPanel({ className }: MCPPanelProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleStopServer(server.config.id)}
+                          disabled={actionLoading === `stop-${server.config.id}`}
                           className="h-6 w-6 p-0"
                         >
-                          <Square className="h-3 w-3" />
+                          <Square className={cn("h-3 w-3", actionLoading === `stop-${server.config.id}` && "opacity-50")} />
                         </Button>
                       ) : (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleStartServer(server.config.id)}
+                          disabled={actionLoading === `start-${server.config.id}`}
                           className="h-6 w-6 p-0"
                         >
-                          <Play className="h-3 w-3" />
+                          <Play className={cn("h-3 w-3", actionLoading === `start-${server.config.id}` && "opacity-50")} />
                         </Button>
                       )}
                       
@@ -242,9 +260,10 @@ export function MCPPanel({ className }: MCPPanelProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRestartServer(server.config.id)}
+                        disabled={actionLoading === `restart-${server.config.id}`}
                         className="h-6 w-6 p-0"
                       >
-                        <RotateCcw className="h-3 w-3" />
+                        <RotateCcw className={cn("h-3 w-3", actionLoading === `restart-${server.config.id}` && "animate-spin")} />
                       </Button>
                       
                       <Button

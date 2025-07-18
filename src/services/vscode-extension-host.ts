@@ -158,6 +158,10 @@ export class VSCodeExtensionHost extends SimpleEventEmitter {
     
     onDidChangeActiveTextEditor: (listener: Function) => {
       return this.addActiveEditorChangeListener(listener)
+    },
+    
+    createWebviewPanel: (viewType: string, title: string, showOptions: any, options?: any) => {
+      return this.createWebviewPanel(viewType, title, showOptions, options)
     }
   }
   
@@ -190,7 +194,7 @@ export class VSCodeExtensionHost extends SimpleEventEmitter {
     }
   }
   
-  async loadExtension(manifest: VSCodeExtensionManifest, extensionId?: string): Promise<VSCodeExtension> {
+  async loadExtension(manifest: VSCodeExtensionManifest, extensionId?: string, extensionPath?: string): Promise<VSCodeExtension> {
     try {
       const id = extensionId || `${manifest.publisher || 'unknown'}.${manifest.name}`
       
@@ -204,13 +208,22 @@ export class VSCodeExtensionHost extends SimpleEventEmitter {
       const extension: VSCodeExtension = {
         id,
         manifest,
-        extensionPath: '',
+        extensionPath: extensionPath || '',
         isActive: false,
         context
       }
       
-      // Extension modules cannot be dynamically loaded in browser environment
-      // Extensions would need to be pre-bundled or loaded via other mechanisms
+      // Try to load and execute the extension's main file
+      if (manifest.main && extension.extensionPath) {
+        console.log(`Extension ${id} has main file: ${manifest.main}, extensionPath: ${extension.extensionPath}`)
+        try {
+          await this.loadExtensionModule(extension)
+        } catch (error) {
+          console.warn(`Failed to load extension module for ${id}:`, error)
+        }
+      } else {
+        console.log(`Extension ${id} missing main (${manifest.main}) or extensionPath (${extension.extensionPath})`)
+      }
       
       this.extensions.set(id, extension)
       
@@ -320,6 +333,17 @@ export class VSCodeExtensionHost extends SimpleEventEmitter {
         }
       })
     }
+
+    // Register views and view containers
+    if (contributes.viewsContainers) {
+      console.log('Registering view containers:', contributes.viewsContainers)
+      this.emit('viewContainersRegistered', contributes.viewsContainers)
+    }
+
+    if (contributes.views) {
+      console.log('Registering views:', contributes.views)
+      this.emit('viewsRegistered', contributes.views)
+    }
   }
   
   setActiveEditor(editor: monaco.editor.IStandaloneCodeEditor | null): void {
@@ -401,6 +425,161 @@ export class VSCodeExtensionHost extends SimpleEventEmitter {
   private registerHoverProvider(language: string, provider: any): { dispose(): void } {
     const disposable = monaco.languages.registerHoverProvider(language, provider)
     return disposable
+  }
+
+  private createWebviewPanel(viewType: string, title: string, showOptions: any, options?: any): any {
+    console.log(`Creating webview panel: ${viewType} - ${title}`)
+    
+    // Create a webview panel that integrates with your IDE
+    const webviewPanel = {
+      viewType,
+      title,
+      visible: true,
+      active: true,
+      webview: {
+        html: '',
+        onDidReceiveMessage: (listener: Function) => {
+          return { dispose: () => {} }
+        },
+        postMessage: (message: any) => {
+          console.log('Webview message:', message)
+          return Promise.resolve(true)
+        },
+        asWebviewUri: (uri: any) => uri,
+        cspSource: 'self'
+      },
+      onDidDispose: (listener: Function) => {
+        return { dispose: () => {} }
+      },
+      onDidChangeViewState: (listener: Function) => {
+        return { dispose: () => {} }
+      },
+      reveal: (column?: any) => {
+        console.log(`Revealing webview panel: ${title}`)
+        this.showWebviewPanel(webviewPanel)
+      },
+      dispose: () => {
+        console.log(`Disposing webview panel: ${title}`)
+      }
+    }
+
+    // Emit event so your IDE can render the webview
+    this.emit('webviewCreated', webviewPanel)
+    
+    return webviewPanel
+  }
+
+  private showWebviewPanel(panel: any): void {
+    // This should integrate with your IDE's panel system
+    console.log('Showing webview panel:', panel.title)
+    
+    // You'll need to create an actual UI component for this webview
+    // For now, just emit an event that your IDE can listen to
+    this.emit('showWebview', panel)
+  }
+
+  private async loadExtensionModule(extension: VSCodeExtension): Promise<void> {
+    const mainPath = extension.manifest.main
+    if (!mainPath || !extension.extensionPath) return
+
+    // Create a global vscode API that the extension can use
+    const originalVscode = (globalThis as any).vscode
+    
+    // Expose the vscode API globally so the extension can access it
+    ;(globalThis as any).vscode = {
+      workspace: this.workspace,
+      window: this.window,
+      commands: this.commands,
+      languages: this.languages,
+      ExtensionContext: ExtensionContext,
+      Uri: {
+        file: (path: string) => ({ fsPath: path, path }),
+        parse: (uri: string) => ({ fsPath: uri, path: uri })
+      }
+    }
+
+    try {
+      // Try to dynamically import the extension module
+      const extensionModulePath = `${extension.extensionPath}/${mainPath}`
+      console.log(`Loading extension module: ${extensionModulePath}`)
+      
+      // For browser environment, we need to request the file via IPC
+      const moduleCode = await this.loadExtensionFile(extensionModulePath)
+      
+      if (moduleCode) {
+        // Convert CommonJS module to ES module format for browser loading
+        const esModuleCode = this.convertToESModule(moduleCode)
+        
+        // Create a blob URL for the module code to avoid CSP issues
+        const blob = new Blob([esModuleCode], { type: 'application/javascript' })
+        const moduleUrl = URL.createObjectURL(blob)
+        
+        try {
+          // Use dynamic import instead of new Function() to avoid CSP issues
+          const moduleExports = await import(/* @vite-ignore */ moduleUrl)
+          
+          // Set the activate function from the extension
+          if (typeof moduleExports.activate === 'function') {
+            extension.activate = moduleExports.activate
+          }
+          
+          if (typeof moduleExports.deactivate === 'function') {
+            extension.deactivate = moduleExports.deactivate
+          }
+          
+          console.log(`✅ Loaded extension module: ${extension.id}`)
+        } finally {
+          // Clean up the blob URL
+          URL.revokeObjectURL(moduleUrl)
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to load extension module ${extension.id}:`, error)
+    } finally {
+      // Restore original vscode global
+      if (originalVscode !== undefined) {
+        ;(globalThis as any).vscode = originalVscode
+      } else {
+        delete (globalThis as any).vscode
+      }
+    }
+  }
+
+  private async loadExtensionFile(filePath: string): Promise<string | null> {
+    try {
+      // Request the extension file content via IPC
+      return await window.extensionAPI.loadExtensionFile(filePath)
+    } catch (error) {
+      console.error(`Failed to load extension file ${filePath}:`, error)
+      return null
+    }
+  }
+
+  private convertToESModule(commonJSCode: string): string {
+    // Convert CommonJS module to ES module format
+    // This is a simplified conversion - real extensions may need more complex handling
+    
+    // Wrap in a function to simulate CommonJS environment
+    const wrappedCode = `
+      const module = { exports: {} };
+      const exports = module.exports;
+      const require = (id) => {
+        if (id === 'vscode') {
+          return window.vscode || globalThis.vscode;
+        }
+        throw new Error('Module "' + id + '" not available in browser environment');
+      };
+      
+      // Original extension code
+      ${commonJSCode}
+      
+      // Export the module.exports as ES module
+      export const activate = module.exports.activate;
+      export const deactivate = module.exports.deactivate;
+      export default module.exports;
+    `;
+    
+    return wrappedCode;
   }
   
   getExtensions(): VSCodeExtension[] {

@@ -9,6 +9,7 @@ import { addGitEventListeners } from "./git/git-listeners";
 import { addTerminalEventListeners } from "./terminal/terminal-listeners";
 import registerShellListeners from "./shell/shell-listeners";
 import { addMCPEventListeners } from "./mcp/mcp-listeners";
+import { addExtensionEventListeners } from "./extensions/extension-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   console.log('📋 registerListeners called - starting to add all event listeners...')
@@ -23,5 +24,7 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   registerShellListeners();
   console.log('🔧 About to add MCP event listeners...')
   addMCPEventListeners();
+  console.log('🔌 About to add Extension event listeners...')
+  addExtensionEventListeners(mainWindow);
   console.log('✅ All event listeners registered successfully')
 }
