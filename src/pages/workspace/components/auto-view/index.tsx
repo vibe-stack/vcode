@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { PortSelector } from './port-selector';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Monitor, Target, Eye, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, Monitor, Target, Eye, EyeOff, MessageSquare } from 'lucide-react';
 import { NoServerState } from './no-server-state';
 import { useIframeInspector } from './use-iframe-inspector';
 import { ComponentInspectorPanel } from './component-inspector-panel';
@@ -10,6 +10,7 @@ import { DraggableDebugOverlay } from './draggable-debug-overlay';
 import { AutoViewDebugger } from './auto-view-debugger';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useAutoViewStore } from '@/stores/auto-view';
+import { ChatOverlay } from './chat-overlay';
 
 export const AutoView: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,6 +29,7 @@ export const AutoView: React.FC = () => {
     detectedFramework,
     selectedNode,
     terminalContents,
+    showChat, // Add showChat state
     
     // Actions
     setSelectedPort,
@@ -40,7 +42,8 @@ export const AutoView: React.FC = () => {
     setDetectedFramework,
     setSelectedNode,
     initialize,
-    cleanup
+    cleanup,
+    setShowChat // Add setShowChat action
   } = useAutoViewStore();
 
   const {
@@ -192,6 +195,17 @@ export const AutoView: React.FC = () => {
                 {showInspector ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             )}
+            
+            {/* Add button to toggle chat overlay */}
+            <Button
+              variant={showChat ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setShowChat(!showChat)}
+              className="h-8 w-8 p-0"
+              title={showChat ? 'Hide Chat' : 'Show Chat'}
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       
@@ -275,6 +289,12 @@ export const AutoView: React.FC = () => {
           isVisible={showDebug}
           onClose={() => setShowDebug(false)}
           containerRef={containerRef}
+        />
+        
+        {/* Chat Overlay */}
+        <ChatOverlay
+          isVisible={showChat}
+          onClose={() => setShowChat(false)}
         />
       </div>
     </div>

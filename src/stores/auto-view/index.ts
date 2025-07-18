@@ -32,6 +32,7 @@ export interface AutoViewState {
   loadError: string | null;
   showInspector: boolean;
   showDebug: boolean;
+  showChat: boolean;
   
   // Inspector state
   isInspecting: boolean;
@@ -49,6 +50,7 @@ export interface AutoViewState {
   setLoadError: (error: string | null) => void;
   setShowInspector: (show: boolean) => void;
   setShowDebug: (show: boolean) => void;
+  setShowChat: (show: boolean) => void;
   setIsInspecting: (inspecting: boolean) => void;
   setDetectedFramework: (framework: FrameworkInfo | null) => void;
   setSelectedNode: (node: IframeInspectionData | null) => void;
@@ -82,6 +84,7 @@ export const useAutoViewStore = create<AutoViewState>((set, get) => ({
   loadError: null,
   showInspector: false,
   showDebug: true,
+  showChat: false,
   isInspecting: false,
   detectedFramework: null,
   selectedNode: null,
@@ -131,6 +134,11 @@ export const useAutoViewStore = create<AutoViewState>((set, get) => ({
   setShowDebug: (show) => set((state) => ({
     ...state,
     showDebug: show
+  })),
+  
+  setShowChat: (show) => set((state) => ({
+    ...state,
+    showChat: show
   })),
   
   setIsInspecting: (inspecting) => set((state) => ({
