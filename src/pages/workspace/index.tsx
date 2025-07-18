@@ -33,7 +33,10 @@ export default function WorkspacePage() {
 
   if (leftPanelSize === undefined || rightPanelSize === undefined) {
     return null;
-  }
+  } else {
+    console.log("leftPanelSize", leftPanelSize);
+    console.log("rightPanelSize", rightPanelSize);
+  }               
 
   return (
     <div className="bg-background relative flex w-full flex-col h-full">
