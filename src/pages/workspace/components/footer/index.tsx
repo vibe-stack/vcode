@@ -73,17 +73,20 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
 
   const handleCreateTerminal = async () => {
     try {
+      console.log('Creating terminal with cwd:', currentProject);
       // Create a new terminal
       const terminalInfo = await window.terminalApi.create({
         cwd: currentProject || undefined,
         title: "Terminal",
       });
 
+      console.log('Terminal created:', terminalInfo);
       // Add it to the store
       createTab(terminalInfo);
 
       // Make sure terminal is visible
       setTerminalVisible(true);
+      console.log('Terminal added to store and made visible');
     } catch (error) {
       console.error("Failed to create terminal:", error);
     }
@@ -95,6 +98,7 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
       setTerminalVisible(true);
       // If no terminals exist, create one automatically
       if (tabs.length === 0) {
+        console.log('No terminals exist, creating one automatically...');
         await handleCreateTerminal();
       }
     } else {
