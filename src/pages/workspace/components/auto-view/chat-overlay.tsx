@@ -300,7 +300,7 @@ export function ChatOverlay({ isVisible, onClose }: ChatOverlayProps) {
     <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Messages overlay - shown above input when enabled */}
       {showMessages && (
-        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+        <div className="absolute bottom-68 left-1/2 transform -translate-x-1/2 pointer-events-auto">
           <div className="w-[600px] max-w-[90vw] bg-background/85 border rounded-lg shadow-lg">
             {/* Messages header */}
             <div className="border-b p-3 flex items-center justify-between">
