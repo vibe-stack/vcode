@@ -31,15 +31,18 @@ export const AutoView: React.FC = () => {
     clearSelection
   } = useIframeInspector({
     onNodeSelect: (data) => {
-      console.log('[GROK] AutoView - Selected node:', data);
-      console.log('[GROK] AutoView - Component info:', data.component);
-      console.log('[GROK] AutoView - Framework info:', data.framework);
+      console.log('[GROK] AutoView - Selected node:', {
+        tagName: data.domNode?.tagName,
+        framework: data.framework?.type,
+        hasComponent: !!data.component,
+        componentName: data.component?.componentName
+      });
       if (!showInspector) {
         setShowInspector(true);
       }
     },
     onFrameworkDetected: (framework) => {
-      console.log('[GROK] AutoView - Detected framework:', framework);
+      console.log('[GROK] AutoView - Detected framework:', framework.type, framework.version);
     }
   });
 
@@ -52,8 +55,23 @@ export const AutoView: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleIframeLoad = () => {
+  const handleIframeLoad = (event: React.SyntheticEvent<HTMLIFrameElement>) => {
+    const iframe = event.currentTarget;
     console.log('[GROK] AutoView - Iframe loaded:', currentUrl);
+    // Don't log the iframe element directly - it has React fiber properties that cause circular refs
+    
+    try {
+      console.log('[GROK] AutoView - Can access iframe document:', {
+        hasContentDocument: !!iframe.contentDocument,
+        hasContentWindow: !!iframe.contentWindow,
+        // Don't access origin/URL as they might trigger CORS errors
+        documentReady: iframe.contentDocument?.readyState
+      });
+    } catch (e) {
+      const error = e as Error;
+      console.log('[GROK] AutoView - Cannot access iframe due to CORS:', error.message);
+    }
+    
     setLoadError(null);
   };
 
@@ -64,8 +82,19 @@ export const AutoView: React.FC = () => {
 
   const handleOpenSourceFile = (filePath: string, lineNumber?: number) => {
     // TODO: Integrate with VS Code file opening API
-    console.log('Open source file:', filePath, lineNumber);
+    console.log('[GROK] AutoView - Open source file:', filePath, lineNumber);
   };
+
+  // Add effect to log when inspection state changes
+  useEffect(() => {
+    console.log('[GROK] AutoView - Inspection state changed:', {
+      isInspecting,
+      hasSelectedNode: !!selectedNode,
+      framework: detectedFramework,
+      showInspector,
+      currentUrl
+    });
+  }, [isInspecting, selectedNode, detectedFramework, showInspector, currentUrl]);
 
   if (isLoading) {
     return (
@@ -129,7 +158,11 @@ export const AutoView: React.FC = () => {
           <Button
             variant={isInspecting ? "default" : "outline"}
             size="sm"
-            onClick={toggleInspection}
+            onClick={() => {
+              console.log('[GROK] AutoView - Toggle inspection clicked, current state:', isInspecting);
+              console.log('[GROK] AutoView - Current iframe URL:', currentUrl);
+              toggleInspection();
+            }}
             className="flex items-center gap-2"
           >
             <Target className="h-4 w-4" />
@@ -171,6 +204,11 @@ export const AutoView: React.FC = () => {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             <ResizablePanel defaultSize={60} minSize={30}>
               <div className="h-full relative">
+                {isInspecting && (
+                  <div className="absolute top-2 left-2 z-20 bg-blue-500 text-white px-2 py-1 rounded text-xs">
+                    🎯 Inspection Mode Active - Click any element
+                  </div>
+                )}
                 {loadError && (
                   <div className="absolute top-0 left-0 right-0 z-10 p-4">
                     <Alert variant="destructive">
@@ -187,7 +225,10 @@ export const AutoView: React.FC = () => {
                   title="Application Preview"
                   onLoad={handleIframeLoad}
                   onError={handleIframeError}
-                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation"
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation allow-modals"
+                  // Electron-specific attributes to bypass CORS
+                  allow="cross-origin-isolated"
+                  style={{ isolation: 'isolate' }}
                 />
               </div>
             </ResizablePanel>
@@ -204,6 +245,11 @@ export const AutoView: React.FC = () => {
           </ResizablePanelGroup>
         ) : (
           <div className="h-full relative">
+            {isInspecting && (
+              <div className="absolute top-2 left-2 z-20 bg-blue-500 text-white px-2 py-1 rounded text-xs">
+                🎯 Inspection Mode Active - Click any element
+              </div>
+            )}
             {loadError && (
               <div className="absolute top-0 left-0 right-0 z-10 p-4">
                 <Alert variant="destructive">
@@ -220,7 +266,10 @@ export const AutoView: React.FC = () => {
               title="Application Preview"
               onLoad={handleIframeLoad}
               onError={handleIframeError}
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation allow-modals"
+              // Electron-specific attributes to bypass CORS
+              allow="cross-origin-isolated"
+              style={{ isolation: 'isolate' }}
             />
           </div>
         )}

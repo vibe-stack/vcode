@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { IframeInspector, IframeInspectionData, FrameworkInfo } from './iframe-inspector';
+import { ElectronIframeInspector } from './electron-iframe-inspector';
 
 export interface UseIframeInspectorOptions {
   onNodeSelect?: (data: IframeInspectionData) => void;
@@ -15,7 +16,18 @@ export const useIframeInspector = (options: UseIframeInspectorOptions = {}) => {
 
   // Initialize inspector
   useEffect(() => {
-    inspectorRef.current = new IframeInspector();
+    // Check if we're in Electron
+    const isElectron = typeof window !== 'undefined' && 
+                      (window.navigator.userAgent.includes('Electron') || 
+                       (window as any).electronAPI);
+    
+    if (isElectron) {
+      console.log('[GROK] useIframeInspector - Using Electron-optimized inspector');
+      inspectorRef.current = new ElectronIframeInspector();
+    } else {
+      console.log('[GROK] useIframeInspector - Using standard iframe inspector');
+      inspectorRef.current = new IframeInspector();
+    }
 
     return () => {
       if (inspectorRef.current) {
@@ -34,10 +46,27 @@ export const useIframeInspector = (options: UseIframeInspectorOptions = {}) => {
 
   // Start inspection
   const startInspection = useCallback(() => {
-    if (!inspectorRef.current) return;
+    console.log('[GROK] useIframeInspector - startInspection called');
+    console.log('[GROK] useIframeInspector - Has inspector:', !!inspectorRef.current);
+    console.log('[GROK] useIframeInspector - Has iframe:', !!iframeRef.current);
+    
+    if (!inspectorRef.current) {
+      console.error('[GROK] useIframeInspector - No inspector available');
+      return;
+    }
+    
+    if (!iframeRef.current) {
+      console.error('[GROK] useIframeInspector - No iframe available');
+      return;
+    }
+    
+    // Test iframe access
+    const canAccess = (inspectorRef.current as any).testIframeAccess?.();
+    console.log('[GROK] useIframeInspector - Can access iframe:', canAccess);
 
     setIsInspecting(true);
     inspectorRef.current.startInspection((data) => {
+      console.log('[GROK] useIframeInspector - Node selected:', data);
       setSelectedNode(data);
       options.onNodeSelect?.(data);
     });
@@ -45,6 +74,9 @@ export const useIframeInspector = (options: UseIframeInspectorOptions = {}) => {
 
   // Stop inspection
   const stopInspection = useCallback(() => {
+    console.log('[GROK] useIframeInspector - stopInspection called');
+    console.log('[GROK] useIframeInspector - Has inspector:', !!inspectorRef.current);
+    
     if (!inspectorRef.current) return;
 
     setIsInspecting(false);

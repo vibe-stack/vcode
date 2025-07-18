@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Code } from 'lucide-react';
 
 interface DebugMessage {
   timestamp: string;
@@ -18,17 +18,34 @@ export const InspectorDebugPanel: React.FC = () => {
   useEffect(() => {
     // Capture console.log messages that start with [GROK]
     const originalConsoleLog = console.log;
-    console.log = (...args) => {
+    const originalConsoleWarn = console.warn;
+    const originalConsoleError = console.error;
+    
+    const logHandler = (level: string, ...args: any[]) => {
       const message = args.join(' ');
       if (message.includes('[GROK]')) {
         setMessages(prev => [...prev, {
           timestamp: new Date().toLocaleTimeString(),
-          source: 'Console',
+          source: `Console.${level}`,
           message: message.replace('[GROK]', '').trim(),
           data: args.length > 1 ? args.slice(1) : undefined
         }]);
       }
+    };
+
+    console.log = (...args) => {
+      logHandler('log', ...args);
       originalConsoleLog(...args);
+    };
+    
+    console.warn = (...args) => {
+      logHandler('warn', ...args);
+      originalConsoleWarn(...args);
+    };
+    
+    console.error = (...args) => {
+      logHandler('error', ...args);
+      originalConsoleError(...args);
     };
 
     // Listen for postMessage events
@@ -47,6 +64,8 @@ export const InspectorDebugPanel: React.FC = () => {
 
     return () => {
       console.log = originalConsoleLog;
+      console.warn = originalConsoleWarn;
+      console.error = originalConsoleError;
       window.removeEventListener('message', handleMessage);
     };
   }, []);
@@ -55,14 +74,28 @@ export const InspectorDebugPanel: React.FC = () => {
     setMessages([]);
   };
 
+  const injectManualScript = () => {
+    console.log('[GROK] InspectorDebugPanel - Manual script injection requested');
+    setMessages(prev => [...prev, {
+      timestamp: new Date().toLocaleTimeString(),
+      source: 'Manual',
+      message: 'Manual script injection triggered'
+    }]);
+  };
+
   return (
     <Card className="h-64">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">Inspector Debug</CardTitle>
-          <Button variant="outline" size="sm" onClick={clearMessages}>
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" onClick={injectManualScript}>
+              <Code className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={clearMessages}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
