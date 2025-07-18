@@ -20,6 +20,11 @@ import {
   Database,
   Zap,
   Activity,
+  Code,
+  Kanban,
+  MessageSquare,
+  Bell,
+  Settings,
 } from "lucide-react";
 import React from "react";
 import { GitBranchSwitcher } from "./git-branch-switcher";
@@ -28,8 +33,13 @@ import { useEditorContentStore } from "@/stores/editor-content";
 import { cn } from "@/utils/tailwind";
 import { useSettingsStore } from "@/stores/settings";
 import { getActiveAccentClasses } from "@/utils/accent-colors";
+import { GoToLineDialog } from "@/components/go-to-line-dialog";
 
-export function WorkspaceFooter() {
+interface WorkspaceFooterProps {
+  onOpenSettings?: () => void;
+}
+
+export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
   const { currentProject } = useProjectStore();
   const { buffers, activeBufferId } = useBufferStore();
   const { 
@@ -49,6 +59,7 @@ export function WorkspaceFooter() {
   const { settings } = useSettingsStore();
   const accentColor = settings.appearance?.accentColor || "blue";
   const useGradient = settings.appearance?.accentGradient ?? true;
+  const [goToLineOpen, setGoToLineOpen] = React.useState(false);
 
   const handleCreateTerminal = async () => {
     try {
@@ -104,155 +115,118 @@ export function WorkspaceFooter() {
 
   return (
     <footer
-      className="workspace-footer bg-background flex h-10 w-full items-center justify-between border-t px-2 text-[11px] flex-shrink-0"
+      className="workspace-footer bg-background flex h-9 w-full items-center justify-between border-t px-2 text-[11px] flex-shrink-0"
       data-status-bar
     >
+      {/* Left Section - View Icons */}
       <div className="flex items-center gap-1">
-        {/* Git Branch Switcher */}
+        {/* Git Branch */}
         <GitBranchSwitcher />
 
-        {/* Terminal - Toggle and Create */}
+        {/* View Toggle Icons */}
+        <div className="flex items-center gap-1 ml-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCode}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              codeVisible && "bg-accent text-accent-foreground"
+            )}
+            title="Toggle Code Editor"
+          >
+            <Code className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleKanban}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              kanbanVisible && "bg-accent text-accent-foreground"
+            )}
+            title="Toggle Kanban Panel"
+          >
+            <Kanban className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleAgents}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+              agentsVisible && "bg-accent text-accent-foreground"
+            )}
+            title="Toggle Agents Panel"
+          >
+            <MessageSquare className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Right Section - File Info and Controls */}
+      <div className="flex items-center gap-1">
+        {/* Language Mode */}
+        {activeBuffer && (
+          <span className="text-muted-foreground text-[10px]">
+            {editorInfo.language.toUpperCase()}
+          </span>
+        )}
+
+        {/* Cursor Position - Clickable */}
+        {activeBuffer?.cursorPosition && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:bg-accent/30 h-5 px-2 py-0 text-[10px] text-muted-foreground"
+            title="Go to line (Ctrl+G)"
+            onClick={() => setGoToLineOpen(true)}
+          >
+            {activeBuffer.cursorPosition.line}:{activeBuffer.cursorPosition.column}
+          </Button>
+        )}
+
+        {/* Terminal Toggle */}
         <Button
           variant="ghost"
           size="sm"
           onClick={handleToggleTerminal}
-          className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
-          title="Toggle terminal"
+          className={cn(
+            "h-5 w-5 p-0 transition-all hover:bg-accent/50",
+            isTerminalVisible && "bg-accent text-accent-foreground"
+          )}
+          title="Toggle Terminal"
         >
-          <Terminal className="h-3 w-3 text-blue-400" />
-          <span className="text-muted-foreground">Terminal</span>
+          <Terminal className="h-3 w-3" />
         </Button>
 
+        {/* Notifications */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleCreateTerminal}
-          className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
-          title="Create new terminal"
+          className="h-5 w-5 p-0 transition-all hover:bg-accent/50"
+          title="Notifications"
         >
-          <Terminal className="h-3 w-3 text-green-400" />
-          <span className="text-muted-foreground">New</span>
+          <Bell className="h-3 w-3" />
         </Button>
 
-        {/* View Toggle */}
-        <div className="flex items-center gap-1">
-          <div className="flex items-center bg-muted/50 rounded-md p-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleCode}
-              className={cn(
-                "h-7 px-2 py-0 text-xs rounded-l-sm rounded-r-none transition-all",
-                codeVisible && getActiveAccentClasses(accentColor, useGradient)
-              )}
-              title="Toggle Code Editor"
-            >
-              Code
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleKanban}
-              className={cn(
-                "h-7 px-2 py-0 text-xs rounded-none transition-all",
-                kanbanVisible && getActiveAccentClasses(accentColor, useGradient)
-              )}
-              title="Toggle Kanban Panel"
-            >
-              Kanban
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleAgents}
-              className={cn(
-                "h-7 px-2 py-0 text-xs rounded-r-sm rounded-l-none transition-all",
-                agentsVisible && getActiveAccentClasses(accentColor, useGradient)
-              )}
-              title="Toggle Agents Panel"
-            >
-              Agent
-            </Button>
-          </div>
-        </div>
-
-        {/* Status Indicator */}
-        <div className="flex items-center gap-1 px-2">
-          {hasUnsavedChanges ? (
-            <>
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400" />
-              <span className="text-yellow-400/80">Modified</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-3 w-3 text-green-400" />
-              <span className="text-muted-foreground">Ready</span>
-            </>
-          )}
-        </div>
+        {/* Settings */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-5 w-5 p-0 transition-all hover:bg-accent/50"
+          title="Settings"
+          onClick={() => onOpenSettings?.()}
+        >
+          <Settings className="h-3 w-3" />
+        </Button>
       </div>
 
-      <div className="flex items-center gap-1">
-        {/* Cursor Position */}
-        {activeBuffer?.cursorPosition && (
-          <div className="hover:bg-accent/30 flex cursor-default items-center gap-1 rounded-sm px-2">
-            <Activity className="h-3 w-3 text-cyan-400" />
-            <span className="text-muted-foreground">
-              Ln {activeBuffer.cursorPosition.line}, Col{" "}
-              {activeBuffer.cursorPosition.column}
-            </span>
-          </div>
-        )}
-
-        {/* Language Mode */}
-        {activeBuffer && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
-          >
-            <FileCode2 className="h-3 w-3 text-orange-400" />
-            <span className="text-muted-foreground">{editorInfo.language}</span>
-          </Button>
-        )}
-
-        {/* Encoding */}
-        {activeBuffer && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
-          >
-            <Database className="h-3 w-3 text-teal-400" />
-            <span className="text-muted-foreground">{editorInfo.encoding}</span>
-          </Button>
-        )}
-
-        {/* Indentation */}
-        {activeBuffer && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hover:bg-accent/50 flex h-7 items-center gap-1 rounded-sm px-2 py-0"
-          >
-            <Zap className="h-3 w-3 text-pink-400" />
-            <span className="text-muted-foreground">
-              {editorInfo.indentation.type === "spaces"
-                ? `${editorInfo.indentation.size} Spaces`
-                : `Tab Size: ${editorInfo.indentation.size}`}
-            </span>
-          </Button>
-        )}
-
-        {/* Line Endings */}
-        {activeBuffer && (
-          <div className="hover:bg-accent/30 flex cursor-default items-center gap-1 rounded-sm px-2">
-            <span className="text-muted-foreground text-[10px]">
-              {editorInfo.lineEnding}
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Go to Line Dialog */}
+      <GoToLineDialog
+        open={goToLineOpen}
+        onOpenChange={setGoToLineOpen}
+      />
     </footer>
   );
 }

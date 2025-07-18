@@ -197,7 +197,7 @@ export default function WorkspacePage() {
           )}
         </ResizablePanelGroup>
       </div>
-      <WorkspaceFooter />
+      <WorkspaceFooter onOpenSettings={() => setSettingsOpen(true)} />
 
       {/* Settings Modal */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />

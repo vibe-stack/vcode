@@ -204,7 +204,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          className="dark:bg-accent/10 hover:bg-accent/20 dark:border-accent/30 group w-full max-w-md cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+          className="dark:bg-accent/40 hover:bg-accent/50 dark:border-accent/60 group w-full max-w-md cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
           onClick={handleCardClick}
         >
           {/* Header: Title & Edit */}

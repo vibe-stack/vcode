@@ -592,7 +592,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             "max-h-[200px] min-h-[80px] overflow-y-auto p-0 text-xs",
             "prose prose-sm dark:prose-invert max-w-none",
             "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:rounded [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:text-xs",
-            "[&_.ProseMirror]:outline-none [&_.ProseMirror]:focus:outline-none",
+            "[&_.ProseMirror]:outline-none [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:p-3 [&_.ProseMirror]:leading-normal",
             "[&_.ProseMirror-focused]:outline-none",
             disabled && "cursor-not-allowed opacity-50",
           )}
@@ -601,7 +601,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
         {/* Placeholder */}
         {isEmpty && !isLoading && (
-          <div className="text-muted-foreground pointer-events-none absolute top-3 left-3 text-xs">
+          <div className="text-muted-foreground pointer-events-none absolute top-[18px] left-[16px] text-xs">
             {placeholder}
           </div>
         )}
