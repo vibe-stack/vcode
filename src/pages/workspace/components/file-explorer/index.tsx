@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { FileTreeNode } from "./file-tree-node";
 import { GitPanel } from "./git-panel";
-import { MCPPanel } from "./mcp-panel";
+import { ToolsPanel } from "./tools-panel";
 import { VSCodeExtensionsPanel } from "./vscode-extensions-panel";
 import { ThemeManagerPanel } from "./theme-manager-panel";
 import { VSCodeExtensionHost } from "../../../../services/vscode-extension-host";
@@ -295,13 +295,13 @@ export function FileExplorer() {
           <GitPanel />
         </TabsContent>
 
-        {/* MCP Tab */}
+        {/* Tools Tab */}
         <TabsContent
-          value="mcp"
+          value="tools"
           className="m-0 flex flex-1 flex-col overflow-hidden p-0"
         >
           <div className="p-2">
-            <MCPPanel />
+            <ToolsPanel />
           </div>
         </TabsContent>
 

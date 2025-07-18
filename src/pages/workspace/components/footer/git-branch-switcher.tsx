@@ -64,7 +64,7 @@ export const GitBranchSwitcher = () => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="text-muted-foreground hover:bg-accent/40 flex flex-row items-center gap-0.5 rounded px-2 py-1 text-[10px] transition"
+          className="text-muted-foreground hover:bg-accent/40 flex flex-row items-center gap-0.5 rounded px-2 py-1 !text-[12px] transition"
           aria-label="Switch Git branch"
         >
           <GitBranchIcon className="h-3 w-3" />

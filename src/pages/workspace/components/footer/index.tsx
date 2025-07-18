@@ -50,9 +50,11 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
     codeVisible, 
     agentsVisible, 
     kanbanVisible, 
+    settingsVisible,
     toggleCode, 
     toggleAgents, 
     toggleKanban,
+    toggleSettings,
     fileExplorerTab,
     setFileExplorerTab
   } = useEditorContentStore();
@@ -60,12 +62,14 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
     isVisible: isTerminalVisible,
     setVisible: setTerminalVisible,
     createTab,
+    tabs,
   } = useTerminalStore();
   const { currentBranch, isGitRepo } = useGitStore();
   const { settings } = useSettingsStore();
   const accentColor = settings.appearance?.accentColor || "blue";
   const useGradient = settings.appearance?.accentGradient ?? true;
   const [goToLineOpen, setGoToLineOpen] = React.useState(false);
+  const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
   const handleCreateTerminal = async () => {
     try {
@@ -85,8 +89,18 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
     }
   };
 
-  const handleToggleTerminal = () => {
-    setTerminalVisible(!isTerminalVisible);
+  const handleToggleTerminal = async () => {
+    if (!isTerminalVisible) {
+      // If terminal is not visible, show it
+      setTerminalVisible(true);
+      // If no terminals exist, create one automatically
+      if (tabs.length === 0) {
+        await handleCreateTerminal();
+      }
+    } else {
+      // If terminal is visible, hide it
+      setTerminalVisible(false);
+    }
   };
 
   // Get active buffer reactively from the store
@@ -129,15 +143,76 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
         {/* Git Branch */}
         <GitBranchSwitcher />
 
-        {/* View Toggle Icons */}
-        <div className="flex items-center gap-1 ml-2">
+        {/* All Icons in New Order: files, git, mcp, ext, theme, code, kanban, agent */}
+        <div className="flex items-center gap-1.5 ml-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab(fileExplorerTab === "files" ? null : "files")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              fileExplorerTab === "files" && getActiveAccentClasses(accentColor, useGradient)
+            )}
+            title="Files"
+          >
+            <Files className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab(fileExplorerTab === "git" ? null : "git")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              fileExplorerTab === "git" && getActiveAccentClasses(accentColor, useGradient)
+            )}
+            title="Git"
+            disabled={!isGitRepo}
+          >
+            <GitBranch className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab(fileExplorerTab === "tools" ? null : "tools")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              fileExplorerTab === "tools" && getActiveAccentClasses(accentColor, useGradient)
+            )}
+            title="Tools"
+          >
+            <Server className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab(fileExplorerTab === "extensions" ? null : "extensions")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              fileExplorerTab === "extensions" && getActiveAccentClasses(accentColor, useGradient)
+            )}
+            title="Extensions"
+          >
+            <Package className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFileExplorerTab(fileExplorerTab === "themes" ? null : "themes")}
+            className={cn(
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              fileExplorerTab === "themes" && getActiveAccentClasses(accentColor, useGradient)
+            )}
+            title="Themes"
+          >
+            <Palette className="h-3 w-3" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleCode}
             className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              codeVisible && "bg-accent text-accent-foreground"
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              codeVisible && getActiveAccentClasses(accentColor, useGradient)
             )}
             title="Toggle Code Editor"
           >
@@ -148,8 +223,8 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
             size="sm"
             onClick={toggleKanban}
             className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              kanbanVisible && "bg-accent text-accent-foreground"
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              kanbanVisible && getActiveAccentClasses(accentColor, useGradient)
             )}
             title="Toggle Kanban Panel"
           >
@@ -160,77 +235,12 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
             size="sm"
             onClick={toggleAgents}
             className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              agentsVisible && "bg-accent text-accent-foreground"
+              "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+              agentsVisible && getActiveAccentClasses(accentColor, useGradient)
             )}
             title="Toggle Agents Panel"
           >
             <MessageSquare className="h-3 w-3" />
-          </Button>
-        </div>
-
-        {/* File Explorer Tab Icons */}
-        <div className="flex items-center gap-1 ml-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setFileExplorerTab("files")}
-            className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              fileExplorerTab === "files" && "bg-accent text-accent-foreground"
-            )}
-            title="Files"
-          >
-            <Files className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setFileExplorerTab("git")}
-            className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              fileExplorerTab === "git" && "bg-accent text-accent-foreground"
-            )}
-            title="Git"
-            disabled={!isGitRepo}
-          >
-            <GitBranch className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setFileExplorerTab("mcp")}
-            className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              fileExplorerTab === "mcp" && "bg-accent text-accent-foreground"
-            )}
-            title="MCP"
-          >
-            <Server className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setFileExplorerTab("extensions")}
-            className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              fileExplorerTab === "extensions" && "bg-accent text-accent-foreground"
-            )}
-            title="Extensions"
-          >
-            <Package className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setFileExplorerTab("themes")}
-            className={cn(
-              "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-              fileExplorerTab === "themes" && "bg-accent text-accent-foreground"
-            )}
-            title="Themes"
-          >
-            <Palette className="h-3 w-3" />
           </Button>
         </div>
       </div>
@@ -263,8 +273,8 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
           size="sm"
           onClick={handleToggleTerminal}
           className={cn(
-            "h-5 w-5 p-0 transition-all hover:bg-accent/50",
-            isTerminalVisible && "bg-accent text-accent-foreground"
+            "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+            isTerminalVisible && getActiveAccentClasses(accentColor, useGradient)
           )}
           title="Toggle Terminal"
         >
@@ -275,7 +285,11 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-5 w-5 p-0 transition-all hover:bg-accent/50"
+          onClick={() => setNotificationsOpen(!notificationsOpen)}
+          className={cn(
+            "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+            notificationsOpen && getActiveAccentClasses(accentColor, useGradient)
+          )}
           title="Notifications"
         >
           <Bell className="h-3 w-3" />
@@ -285,9 +299,15 @@ export function WorkspaceFooter({ onOpenSettings }: WorkspaceFooterProps = {}) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-5 w-5 p-0 transition-all hover:bg-accent/50"
+          onClick={() => {
+            toggleSettings();
+            onOpenSettings?.();
+          }}
+          className={cn(
+            "h-5 w-5 p-0 transition-all hover:bg-accent/50 !rounded-sm",
+            settingsVisible && getActiveAccentClasses(accentColor, useGradient)
+          )}
           title="Settings"
-          onClick={() => onOpenSettings?.()}
         >
           <Settings className="h-3 w-3" />
         </Button>

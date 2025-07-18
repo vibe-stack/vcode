@@ -3,18 +3,20 @@ import { immer } from "zustand/middleware/immer";
 import { persist } from "zustand/middleware";
 
 export type EditorContentView = "code" | "agents" | "kanban";
-export type FileExplorerTab = "files" | "git" | "mcp" | "extensions" | "themes";
+export type FileExplorerTab = "files" | "git" | "tools" | "extensions" | "themes";
 
 export interface EditorContentState {
   // Individual panel toggles
   codeVisible: boolean;
   agentsVisible: boolean;
   kanbanVisible: boolean;
+  settingsVisible: boolean;
   
   // Toggle functions
   toggleCode: () => void;
   toggleAgents: () => void;
   toggleKanban: () => void;
+  toggleSettings: () => void;
   
   // File explorer tab state
   fileExplorerTab: FileExplorerTab;
@@ -33,10 +35,11 @@ export interface EditorContentState {
 export const useEditorContentStore = create<EditorContentState>()(
   persist(
     immer((set) => ({
-      // Individual panel toggles - default: code and agents on, kanban off
+      // Individual panel toggles - default: code and agents on, kanban and settings off
       codeVisible: true,
       agentsVisible: true,
       kanbanVisible: false,
+      settingsVisible: false,
       
       // Toggle functions
       toggleCode: () =>
@@ -46,10 +49,22 @@ export const useEditorContentStore = create<EditorContentState>()(
       toggleAgents: () =>
         set((state) => {
           state.agentsVisible = !state.agentsVisible;
+          // Hide settings when showing agents
+          if (state.agentsVisible) {
+            state.settingsVisible = false;
+          }
         }),
       toggleKanban: () =>
         set((state) => {
           state.kanbanVisible = !state.kanbanVisible;
+        }),
+      toggleSettings: () =>
+        set((state) => {
+          state.settingsVisible = !state.settingsVisible;
+          // Hide agents when showing settings
+          if (state.settingsVisible) {
+            state.agentsVisible = false;
+          }
         }),
       
       // File explorer tab state
@@ -99,6 +114,7 @@ export const useEditorContentStore = create<EditorContentState>()(
         codeVisible: state.codeVisible,
         agentsVisible: state.agentsVisible,
         kanbanVisible: state.kanbanVisible,
+        settingsVisible: state.settingsVisible,
         fileExplorerTab: state.fileExplorerTab,
         view: state.view,
         leftPanelSize: state.leftPanelSize,

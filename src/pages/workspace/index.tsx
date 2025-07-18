@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -11,7 +11,7 @@ import { useEditorContentStore } from "@/stores/editor-content";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalCommands from "@/components/global-commands";
-import { SettingsModal } from "@/components/SettingsModal";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { Link } from "@tanstack/react-router";
 
 export default function WorkspacePage() {
@@ -20,11 +20,12 @@ export default function WorkspacePage() {
     codeVisible,
     agentsVisible,
     kanbanVisible,
+    settingsVisible,
     leftPanelSize,
     rightPanelSize,
     onResizeLeftPanel,
+    toggleSettings,
   } = useEditorContentStore();
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Calculate layout based on visible panels - COLUMN VIEWS
   const calculateLayout = () => {
@@ -41,15 +42,15 @@ export default function WorkspacePage() {
       columns.push('kanban');
     }
     
-    // Agent Column (Chat)
-    if (agentsVisible) {
+    // Agent Column (Chat or Settings)
+    if (agentsVisible || settingsVisible) {
       columns.push('agent');
     }
     
     return {
       showCodeColumn: codeVisible,
       showKanbanColumn: kanbanVisible,
-      showAgentColumn: agentsVisible,
+      showAgentColumn: agentsVisible || settingsVisible,
       totalColumns: columns.length,
       columns: columns
     };
@@ -100,14 +101,14 @@ export default function WorkspacePage() {
         {/* Right section - Commands and Settings */}
         <div className="flex flex-1 items-center justify-end gap-2">
           <div className="no-drag">
-            <GlobalCommands onOpenSettings={() => setSettingsOpen(true)} />
+            <GlobalCommands onOpenSettings={toggleSettings} />
           </div>
           <div className="no-drag">
             <Button
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
-              onClick={() => setSettingsOpen(true)}
+              onClick={toggleSettings}
               title="Settings"
             >
               <Settings className="h-4 w-4" />
@@ -175,7 +176,7 @@ export default function WorkspacePage() {
           {/* Resizable handle between Code and Agent columns (when Kanban is not visible) */}
           {layout.showCodeColumn && !layout.showKanbanColumn && layout.showAgentColumn && <ResizableHandle />}
 
-          {/* Agent Column (Chat) */}
+          {/* Agent Column (Chat or Settings) */}
           {layout.showAgentColumn && (
             <ResizablePanel
               id="agent-column"
@@ -183,24 +184,25 @@ export default function WorkspacePage() {
               minSize={25}
             >
               <div className="h-full max-h-full w-full overflow-hidden">
-                {layout.totalColumns === 1 ? (
-                  <div className="flex justify-center w-full h-full">
-                    <div className="w-[70%] h-full">
-                      <ChatPanel isAgentMode={true} />
+                {settingsVisible ? (
+                  <SettingsPanel />
+                ) : agentsVisible ? (
+                  layout.totalColumns === 1 ? (
+                    <div className="flex justify-center w-full h-full">
+                      <div className="w-[70%] h-full">
+                        <ChatPanel isAgentMode={true} />
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <ChatPanel />
-                )}
+                  ) : (
+                    <ChatPanel />
+                  )
+                ) : null}
               </div>
             </ResizablePanel>
           )}
         </ResizablePanelGroup>
       </div>
-      <WorkspaceFooter onOpenSettings={() => setSettingsOpen(true)} />
-
-      {/* Settings Modal */}
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <WorkspaceFooter onOpenSettings={toggleSettings} />
     </div>
   );
 }
