@@ -19,15 +19,11 @@ export class FileManager {
       const includePatterns = tsConfig?.include || ['**/*'];
       const excludePatterns = tsConfig?.exclude || ['node_modules/**', 'dist/**', 'build/**', '**/*.min.js', '.git/**'];
 
-      console.log(`[FileManager] Searching for files with include: ${includePatterns} and exclude: ${excludePatterns}`);
-
       // Get all TypeScript/JavaScript files in the project based on tsconfig
       const files = await projectApi.searchFiles('**/*.{ts,tsx,js,jsx,d.ts}', projectPath, {
         includePatterns: includePatterns,
         excludePatterns: excludePatterns,
       });
-
-      console.log(`[FileManager] Found ${files.length} files matching tsconfig patterns.`);
 
       // Create a comprehensive file map for better import resolution
       const fileMap = new Map<string, string>();
@@ -85,7 +81,6 @@ export class FileManager {
 
       await Promise.allSettled(loadPromises);
 
-      console.log(`[FileManager] Loaded ${projectFiles.size} files into Monaco with enhanced import mapping.`);
     } catch (error) {
       console.error('[FileManager] Error loading project files:', error);
     }
@@ -105,15 +100,11 @@ export class FileManager {
       const includePatterns = tsConfig?.include || ['**/*'];
       const excludePatterns = tsConfig?.exclude || ['node_modules/**', 'dist/**', 'build/**', '**/*.min.js', '.git/**'];
 
-      console.log(`[FileManager] Searching for files with include: ${includePatterns} and exclude: ${excludePatterns}`);
-
       // Get all TypeScript/JavaScript files in the project based on tsconfig
       const files = await projectApi.searchFiles('**/*.{ts,tsx,js,jsx,d.ts}', projectPath, {
         includePatterns: includePatterns,
         excludePatterns: excludePatterns,
       });
-
-      console.log(`[FileManager] Found ${files.length} files matching tsconfig patterns.`);
 
       // Prioritize loading files from common source directories
       const sourceFiles = files.filter(f =>
@@ -143,7 +134,6 @@ export class FileManager {
 
       await Promise.allSettled(loadPromises);
 
-      console.log(`[FileManager] Loaded ${projectFiles.size} files into Monaco.`);
     } catch (error) {
       console.error('[FileManager] Error loading project files:', error);
     }
@@ -191,7 +181,6 @@ export class FileManager {
         // and 'javascript' for both .js and .jsx files
         const language = (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) ? 'typescript' : 'javascript';
         monaco.editor.createModel(content, language, uri);
-        console.log(`Created Monaco model for ${relativePath} with language ${language}`);
       } else {
         // Update existing model
         existingModel.setValue(content);
@@ -201,7 +190,6 @@ export class FileManager {
       if (filePath.endsWith('.d.ts')) {
         const virtualPath = `file:///${relativePath}`;
         monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
-        console.log(`Added .d.ts file to extra libs: ${relativePath}`);
       }
 
     } catch (error) {
@@ -286,8 +274,6 @@ export class FileManager {
         excludePatterns: ['**/node_modules/**', '**/dist/**', '**/build/**', '.git/**']
       });
 
-      console.log(`Found ${projectTypeFiles.length} project type definition files`);
-
       // Load each project .d.ts file
       const loadPromises = projectTypeFiles.map(async (filePath) => {
         try {
@@ -300,7 +286,6 @@ export class FileManager {
           const virtualPath = `file:///${relativePath}`;
 
           monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
-          console.log(`Loaded project type definitions from ${relativePath}`);
 
         } catch (error) {
           console.warn(`Failed to load project type file ${filePath}:`, error);

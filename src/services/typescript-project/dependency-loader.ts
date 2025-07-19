@@ -16,20 +16,17 @@ export class DependencyLoader {
    */
   static async loadProjectDependencyTypes(projectPath: string): Promise<void> {
     try {
-      console.log('Loading project dependency types...');
       
       // Parse package.json to get actual dependencies
       const packageJsonPath = `${projectPath}/package.json`;
       const packageJson = await TSConfigLoader.parsePackageJson(packageJsonPath);
       
       if (!packageJson) {
-        console.log('No package.json found, skipping dependency type loading');
         return;
       }
 
       // Get all dependencies
       const allDependencies = DependencyLoader.getAllDependencies(packageJson);
-      console.log(`Found ${Object.keys(allDependencies).length} dependencies to analyze for types`);
 
       // Process dependencies in batches to avoid overwhelming the system
       const batchSize = 10;
@@ -48,7 +45,6 @@ export class DependencyLoader {
         }
       }
 
-      console.log('Finished loading dependency types');
     } catch (error) {
       console.error('Error loading project dependency types:', error);
     }
@@ -81,7 +77,6 @@ export class DependencyLoader {
       // Check if the package exists
       const depPackageJson = await TSConfigLoader.parsePackageJson(`${depPath}/package.json`);
       if (!depPackageJson) {
-        console.log(`Package ${dependencyName} not found in node_modules`);
         return;
       }
 
@@ -105,7 +100,7 @@ export class DependencyLoader {
       }
 
     } catch (error) {
-      console.log(`Error loading types for ${dependencyName}:`, error);
+      // noop
     }
   }
 
@@ -129,7 +124,6 @@ export class DependencyLoader {
     packagePath: string, 
     packageJson: PackageJson
   ): Promise<void> {
-    console.log(`Loading framework types for ${packageName}`);
 
     // Load built-in types first
     await DependencyLoader.loadBuiltInTypes(packageName, packagePath, packageJson);
@@ -208,8 +202,6 @@ export class DependencyLoader {
         }
       }
 
-      console.log(`Loaded ${totalLoaded} Next.js type files`);
-
       // Also try to load @types/react if it exists (Next.js depends on React)
       await DependencyLoader.loadCorrespondingTypesPackage(projectPath, 'react');
       
@@ -257,7 +249,7 @@ export class DependencyLoader {
 
       // Try to load all entry points in parallel (truly parallel openFile)
       const loadPromises = typeEntryPoints.map((entryPoint) => {
-        const fullPath = entryPoint!.startsWith('/') ? 
+        const fullPath = entryPoint?.startsWith('/') ? 
           `${packagePath}${entryPoint}` : 
           `${packagePath}/${entryPoint}`;
 
@@ -268,7 +260,6 @@ export class DependencyLoader {
         const { content } = result;
         const virtualPath = `file:///node_modules/${packageName}/${entryPoint}`;
         monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
-        console.log(`Loaded built-in types for ${packageName} from ${entryPoint}`);
         return true;
           })
           .catch(() => false);
@@ -373,10 +364,6 @@ export class DependencyLoader {
         } catch (error) {
           console.warn(`Failed to search for type files with pattern ${pattern} in ${packagePath}:`, error);
         }
-      }
-      
-      if (totalLoaded > 0) {
-        console.log(`Loaded ${totalLoaded} type files for ${packageName}`);
       }
       
     } catch (error) {

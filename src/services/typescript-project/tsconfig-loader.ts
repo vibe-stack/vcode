@@ -18,19 +18,13 @@ export class TSConfigLoader {
       loadedConfigs.add(configPath);
 
       try {
-        console.log("loading tsconfig from", configPath);
         const result = await projectApi.openFile(configPath);
         if (!result || !result.content) {
           throw new Error(`Failed to read tsconfig from ${configPath}`);
         }
         const { content } = result;
         const cleanedContent = TSConfigLoader.removeJSONComments(content);
-        
-        // Debug logging for JSON parsing issues
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[TSConfigLoader] Original content length:', content.length);
-          console.log('[TSConfigLoader] Cleaned content length:', cleanedContent.length);
-        }
+
         
         try {
           const tsConfig = JSON.parse(cleanedContent) as TSConfig;
@@ -57,7 +51,6 @@ export class TSConfigLoader {
         }
 
       } catch (error) {
-        console.log(`[TSConfigLoader] Failed to load ${configPath}:`, error instanceof Error ? error.message : String(error));
         return null;
       }
     };
@@ -71,12 +64,10 @@ export class TSConfigLoader {
     for (const path of possiblePaths) {
       const tsConfig = await loadAndMerge(path);
       if (tsConfig) {
-        console.log(`[TSConfigLoader] Loaded final tsconfig from ${path}:`, tsConfig);
         return tsConfig;
       }
     }
 
-    console.log('[TSConfigLoader] No valid tsconfig.json or jsconfig.json found.');
     return null;
   }
 
@@ -183,7 +174,6 @@ export class TSConfigLoader {
       const { content } = result;
       return JSON.parse(content);
     } catch (error) {
-      console.log('Could not parse package.json:', error);
       return null;
     }
   }

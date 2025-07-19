@@ -88,7 +88,6 @@ export class MonacoConfig {
     // Properly configure baseUrl and paths for module resolution
     if (options.baseUrl) {
       monacoOptions.baseUrl = `${projectPath}${options.baseUrl.replace(/^\./, '')}`;
-      console.log(`[MonacoConfig] Set baseUrl to: ${monacoOptions.baseUrl}`);
     }
 
     if (options.paths) {
@@ -96,15 +95,11 @@ export class MonacoConfig {
       for (const [key, value] of Object.entries(options.paths)) {
         monacoOptions.paths[key] = value.map(p => `${projectPath}${p.replace(/^\./, '')}`);
       }
-      console.log(`[MonacoConfig] Set paths to:`, monacoOptions.paths);
     }
 
     // Apply to both TypeScript and JavaScript defaults
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions(monacoOptions);
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions(monacoOptions);
-
-    console.log('Applied tsconfig compiler options to Monaco:', monacoOptions);
-    console.log('Original tsconfig options:', options);
   }
 
   /**
@@ -116,7 +111,6 @@ export class MonacoConfig {
       // so we need to reset the typescript defaults
       monaco.languages.typescript.typescriptDefaults.setExtraLibs([]);
       monaco.languages.typescript.javascriptDefaults.setExtraLibs([]);
-      console.log('Cleared Monaco extra libraries');
     } catch (error) {
       console.warn('Error clearing Monaco extra libraries:', error);
     }
@@ -142,7 +136,6 @@ export class MonacoConfig {
           
           const result = await projectApi.openFile(libFilePath);
           if (!result || !result.content) {
-            console.warn(`Failed to load TypeScript lib: ${libFileName}`);
             continue;
           }
           const { content } = result;
@@ -152,7 +145,6 @@ export class MonacoConfig {
             `file:///node_modules/typescript/lib/${libFileName}`
           );
           
-          console.log(`Loaded TypeScript lib: ${libFileName}`);
         } catch (error) {
           console.warn(`Could not load TypeScript lib ${lib}:`, error);
         }
@@ -182,7 +174,6 @@ export class MonacoConfig {
       monaco.languages.typescript.typescriptDefaults.setCompilerOptions(compilerOptions);
       monaco.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
 
-      console.log('[MonacoConfig] Enhanced module resolution configured');
     } catch (error) {
       console.error('[MonacoConfig] Error setting up module resolution:', error);
     }
