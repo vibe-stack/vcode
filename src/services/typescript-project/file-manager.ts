@@ -6,9 +6,95 @@ import type { ProjectFileInfo, TSConfig } from './types';
 
 export class FileManager {
   /**
-   * Load project files to provide better intellisense
+   * Load project files to provide better intellisense with enhanced import resolution
    */
   static async loadProjectFiles(
+    projectPath: string,
+    projectFiles: Map<string, ProjectFileInfo>,
+    fileVersions: Map<string, number>,
+    tsConfig: TSConfig | null
+  ): Promise<void> {
+    try {
+      // Determine file patterns from tsconfig or use defaults
+      const includePatterns = tsConfig?.include || ['**/*'];
+      const excludePatterns = tsConfig?.exclude || ['node_modules/**', 'dist/**', 'build/**', '**/*.min.js', '.git/**'];
+
+      console.log(`[FileManager] Searching for files with include: ${includePatterns} and exclude: ${excludePatterns}`);
+
+      // Get all TypeScript/JavaScript files in the project based on tsconfig
+      const files = await projectApi.searchFiles('**/*.{ts,tsx,js,jsx,d.ts}', projectPath, {
+        includePatterns: includePatterns,
+        excludePatterns: excludePatterns,
+      });
+
+      console.log(`[FileManager] Found ${files.length} files matching tsconfig patterns.`);
+
+      // Create a comprehensive file map for better import resolution
+      const fileMap = new Map<string, string>();
+      files.forEach(filePath => {
+        const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+        const fileNameWithoutExt = fileName.replace(/\.(ts|tsx|js|jsx|d\.ts)$/, '');
+        const relativePath = filePath.replace(projectPath, '').replace(/^\//, '');
+        
+        // Map various forms of the file for import resolution
+        fileMap.set(relativePath, filePath);
+        fileMap.set(fileName, filePath);
+        fileMap.set(fileNameWithoutExt, filePath);
+        
+        // For index files, also map the directory name
+        if (fileName.startsWith('index.')) {
+          const dirName = filePath.substring(0, filePath.lastIndexOf('/'));
+          const dirBaseName = dirName.substring(dirName.lastIndexOf('/') + 1);
+          fileMap.set(dirBaseName, filePath);
+        }
+      });
+
+      // Store file map in a global location for import resolution
+      if (typeof window !== 'undefined') {
+        (window as any).projectFileMap = fileMap;
+      }
+
+      // Prioritize loading files from common source directories
+      const sourceFiles = files.filter(f =>
+        f.includes('/src/') ||
+        f.includes('/components/') ||
+        f.includes('/pages/') ||
+        f.includes('/lib/') ||
+        f.includes('/utils/') ||
+        f.includes('/app/') ||       // Next.js app directory
+        f.includes('/layouts/') ||
+        f.includes('/hooks/') ||
+        !f.includes('/')  // Root level files
+      );
+
+      const otherFiles = files.filter(f => !sourceFiles.includes(f));
+
+      // Load source files first (up to 200), then other files (up to 100)
+      const filesToLoad = [
+        ...sourceFiles.slice(0, 200),
+        ...otherFiles.slice(0, 100)
+      ];
+
+      const loadPromises = filesToLoad.map(async (filePath) => {
+        try {
+          await FileManager.loadFileIntoMonaco(filePath, projectPath, projectFiles, fileVersions);
+        } catch (error) {
+          console.warn(`[FileManager] Failed to load file ${filePath}:`, error);
+        }
+      });
+
+      await Promise.allSettled(loadPromises);
+
+      console.log(`[FileManager] Loaded ${projectFiles.size} files into Monaco with enhanced import mapping.`);
+    } catch (error) {
+      console.error('[FileManager] Error loading project files:', error);
+    }
+  }
+
+  /**
+   * Load project files to provide better intellisense
+   */
+  static async loadProjectFilesOriginal(
     projectPath: string,
     projectFiles: Map<string, ProjectFileInfo>,
     fileVersions: Map<string, number>,

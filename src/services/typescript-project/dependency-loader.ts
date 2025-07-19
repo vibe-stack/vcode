@@ -80,6 +80,12 @@ export class DependencyLoader {
         return;
       }
 
+      // Special handling for frameworks with complex type structures
+      if (DependencyLoader.isFrameworkPackage(dependencyName)) {
+        await DependencyLoader.loadFrameworkTypes(projectPath, dependencyName, depPath, depPackageJson);
+        return;
+      }
+
       // Strategy 1: Check if the package has its own type definitions
       const hasBuiltInTypes = await DependencyLoader.loadBuiltInTypes(dependencyName, depPath, depPackageJson);
       
@@ -95,6 +101,127 @@ export class DependencyLoader {
 
     } catch (error) {
       console.log(`Error loading types for ${dependencyName}:`, error);
+    }
+  }
+
+  /**
+   * Check if a package is a major framework that needs special handling
+   */
+  private static isFrameworkPackage(packageName: string): boolean {
+    const frameworkPackages = [
+      'next', 'react', 'vue', 'nuxt', 'svelte', 'angular',
+      '@angular/core', '@vue/cli', 'gatsby'
+    ];
+    return frameworkPackages.includes(packageName);
+  }
+
+  /**
+   * Load types for framework packages with special handling
+   */
+  private static async loadFrameworkTypes(
+    projectPath: string, 
+    packageName: string, 
+    packagePath: string, 
+    packageJson: PackageJson
+  ): Promise<void> {
+    console.log(`Loading framework types for ${packageName}`);
+
+    // Load built-in types first
+    await DependencyLoader.loadBuiltInTypes(packageName, packagePath, packageJson);
+
+    // Framework-specific type loading strategies
+    switch (packageName) {
+      case 'next':
+        await DependencyLoader.loadNextJSTypes(projectPath, packagePath);
+        break;
+      case 'react':
+        await DependencyLoader.loadReactTypes(projectPath, packagePath);
+        break;
+      default:
+        // For other frameworks, use comprehensive type loading
+        await DependencyLoader.loadAllPackageTypeFiles(packagePath, packageName);
+        break;
+    }
+  }
+
+  /**
+   * Load Next.js specific types with comprehensive coverage
+   */
+  private static async loadNextJSTypes(projectPath: string, nextPath: string): Promise<void> {
+    try {
+      // Next.js has types distributed across multiple locations
+      const nextTypePatterns = [
+        'types/**/*.d.ts',     // Main types directory
+        'dist/**/*.d.ts',      // Built types
+        'server/**/*.d.ts',    // Server types
+        'client/**/*.d.ts',    // Client types
+        'app/**/*.d.ts',       // App router types
+        'pages/**/*.d.ts',     // Pages router types
+        '*.d.ts',              // Root level types
+        'navigation/**/*.d.ts', // Navigation types
+        'head/**/*.d.ts',      // Head types
+        'image/**/*.d.ts',     // Image types
+        'link/**/*.d.ts',      // Link types
+        'script/**/*.d.ts',    // Script types
+        'document/**/*.d.ts',  // Document types
+        'app/**/*.d.ts'        // App directory types
+      ];
+
+      let totalLoaded = 0;
+      const loadedFiles = new Set<string>();
+
+      for (const pattern of nextTypePatterns) {
+        try {
+          const typeFiles = await projectApi.searchFiles(pattern, nextPath, {
+            excludePatterns: ['**/node_modules/**', '**/test/**', '**/tests/**']
+          });
+
+          const loadPromises = typeFiles.slice(0, 50).map(async (filePath) => {
+            if (loadedFiles.has(filePath)) return;
+            
+            try {
+              const { content } = await projectApi.openFile(filePath);
+              
+              const relativePath = filePath.replace(nextPath, '').replace(/^\//, '');
+              const virtualPath = `file:///node_modules/next/${relativePath}`;
+              
+              monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
+              loadedFiles.add(filePath);
+              totalLoaded++;
+              
+            } catch (error) {
+              console.warn(`Failed to load Next.js type file ${filePath}:`, error);
+            }
+          });
+
+          await Promise.allSettled(loadPromises);
+          
+        } catch (error) {
+          console.warn(`Failed to search for Next.js types with pattern ${pattern}:`, error);
+        }
+      }
+
+      console.log(`Loaded ${totalLoaded} Next.js type files`);
+
+      // Also try to load @types/react if it exists (Next.js depends on React)
+      await DependencyLoader.loadCorrespondingTypesPackage(projectPath, 'react');
+      
+    } catch (error) {
+      console.warn('Error loading Next.js specific types:', error);
+    }
+  }
+
+  /**
+   * Load React specific types
+   */
+  private static async loadReactTypes(projectPath: string, reactPath: string): Promise<void> {
+    try {
+      // React types are usually in @types/react, but also load any built-in types
+      await DependencyLoader.loadAllPackageTypeFiles(reactPath, 'react');
+      await DependencyLoader.loadCorrespondingTypesPackage(projectPath, 'react');
+      await DependencyLoader.loadCorrespondingTypesPackage(projectPath, 'react-dom');
+    } catch (error) {
+      console.warn('Error loading React types:', error);
     }
   }
 

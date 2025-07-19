@@ -156,4 +156,30 @@ export class MonacoConfig {
       console.error('Error loading TypeScript lib files:', error);
     }
   }
+
+  /**
+   * Setup Monaco's module resolution to better handle imports
+   */
+  static setupMonacoModuleResolution(projectPath: string, tsConfig: TSConfig | null): void {
+    try {
+      // Create a custom module resolution host for Monaco
+      const compilerOptions = {
+        ...monaco.languages.typescript.typescriptDefaults.getCompilerOptions(),
+        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        allowSyntheticDefaultImports: true,
+        esModuleInterop: true,
+        resolveJsonModule: true,
+        baseUrl: projectPath,
+        paths: tsConfig?.compilerOptions?.paths || {}
+      };
+
+      // Apply enhanced compiler options
+      monaco.languages.typescript.typescriptDefaults.setCompilerOptions(compilerOptions);
+      monaco.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
+
+      console.log('[MonacoConfig] Enhanced module resolution configured');
+    } catch (error) {
+      console.error('[MonacoConfig] Error setting up module resolution:', error);
+    }
+  }
 }

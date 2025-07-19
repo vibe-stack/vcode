@@ -7,6 +7,7 @@ export { MonacoConfig } from './monaco-config';
 export { FileManager } from './file-manager';
 export { DependencyLoader } from './dependency-loader';
 export { ProjectDetector } from './project-detector';
+export { PathResolver } from './path-resolver';
 export { TypeScriptProjectService } from './typescript-project-service';
 
 // Export singleton instance

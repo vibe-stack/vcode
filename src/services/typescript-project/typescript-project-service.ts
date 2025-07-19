@@ -1,10 +1,13 @@
 // Main TypeScript Project Service
 
+import * as monaco from 'monaco-editor';
+import { projectApi } from '@/services/project-api';
 import { TSConfigLoader } from './tsconfig-loader';
 import { MonacoConfig } from './monaco-config';
 import { FileManager } from './file-manager';
 import { DependencyLoader } from './dependency-loader';
 import { ProjectDetector } from './project-detector';
+import { PathResolver } from './path-resolver';
 import type { TSConfig, ProjectFileInfo } from './types';
 
 export class TypeScriptProjectService {
@@ -45,6 +48,9 @@ export class TypeScriptProjectService {
         // Apply tsconfig settings to Monaco
         await MonacoConfig.applyTSConfigToMonaco(this.tsConfig, projectPath);
         
+        // Setup enhanced module resolution
+        MonacoConfig.setupMonacoModuleResolution(projectPath, this.tsConfig);
+        
         // Load project files for better intellisense
         await FileManager.loadProjectFiles(projectPath, this.projectFiles, this.fileVersions, this.tsConfig);
         
@@ -62,6 +68,7 @@ export class TypeScriptProjectService {
       } else {
         console.log('No tsconfig.json found, using default TypeScript settings');
         // Still load type definitions even without tsconfig
+        MonacoConfig.setupMonacoModuleResolution(projectPath, null);
         await MonacoConfig.loadTypeScriptLibFiles(projectPath, null);
         await DependencyLoader.loadProjectDependencyTypes(projectPath);
         await FileManager.loadProjectTypeDefinitions(projectPath);
@@ -116,7 +123,7 @@ export class TypeScriptProjectService {
    */
   async loadFileOnDemand(importPath: string, fromFile: string): Promise<void> {
     if (!this.currentProject) return;
-    // await PathResolver.loadFileOnDemand(this.currentProject, this.tsConfig, importPath, fromFile);
+    await PathResolver.loadFileOnDemand(this.currentProject, this.tsConfig, importPath, fromFile);
   }
 
   /**
@@ -193,5 +200,99 @@ export class TypeScriptProjectService {
     console.log('- Loaded Files:', Array.from(this.projectFiles.keys()));
     console.log('- Is React Project:', this.isReactProject());
     console.log('- Is Node Project:', this.isNodeProject());
+  }
+
+  /**
+   * Debug method to help diagnose import issues
+   */
+  async debugImportIssue(importPath: string, fromFile: string): Promise<void> {
+    console.log(`\n=== Debugging Import Issue ===`);
+    console.log(`Import: "${importPath}"`);
+    console.log(`From file: "${fromFile}"`);
+    console.log(`Project: ${this.currentProject}`);
+    console.log(`Initialized: ${this.isInitialized}`);
+    
+    if (!this.currentProject) {
+      console.log('❌ No current project set');
+      return;
+    }
+
+    // Check if it's a relative import
+    if (importPath.startsWith('./') || importPath.startsWith('../')) {
+      console.log('🔍 Checking relative import...');
+      const fromDir = fromFile.substring(0, fromFile.lastIndexOf('/'));
+      console.log(`From directory: ${fromDir}`);
+      
+      const potentialPaths = [];
+      if (importPath.startsWith('./')) {
+        const relativePath = importPath.substring(2);
+        potentialPaths.push(
+          `${fromDir}/${relativePath}`,
+          `${fromDir}/${relativePath}.ts`,
+          `${fromDir}/${relativePath}.tsx`,
+          `${fromDir}/${relativePath}/index.ts`,
+          `${fromDir}/${relativePath}/index.tsx`
+        );
+      }
+      
+      console.log('Checking these potential paths:');
+      for (const path of potentialPaths) {
+        try {
+          await projectApi.openFile(path);
+          console.log(`✅ Found: ${path}`);
+        } catch {
+          console.log(`❌ Not found: ${path}`);
+        }
+      }
+    }
+    
+    // Check if it's a node_modules import
+    else if (!importPath.startsWith('.')) {
+      console.log('🔍 Checking node_modules import...');
+      const packageName = importPath.split('/')[0];
+      const packagePath = `${this.currentProject}/node_modules/${packageName}`;
+      
+      try {
+        const { content } = await projectApi.openFile(`${packagePath}/package.json`);
+        const packageJson = JSON.parse(content);
+        console.log(`✅ Package found: ${packageName}`);
+        console.log(`Package version: ${packageJson.version}`);
+        console.log(`Types entry: ${packageJson.types || packageJson.typings || 'none'}`);
+        console.log(`Main entry: ${packageJson.main || 'none'}`);
+        
+        // Check if types are loaded in Monaco
+        const extraLibs = monaco.languages.typescript.typescriptDefaults.getExtraLibs();
+        const typeLibs = Object.keys(extraLibs).filter(lib => lib.includes(packageName));
+        console.log(`Loaded type libraries for ${packageName}: ${typeLibs.length}`);
+        typeLibs.slice(0, 5).forEach(lib => console.log(`  - ${lib}`));
+        
+      } catch {
+        console.log(`❌ Package not found: ${packageName}`);
+      }
+    }
+    
+    // Check tsconfig paths
+    if (this.tsConfig?.compilerOptions?.paths) {
+      console.log('🔍 Checking tsconfig paths...');
+      for (const [pattern, mappings] of Object.entries(this.tsConfig.compilerOptions.paths)) {
+        if (this.matchesPattern(pattern, importPath)) {
+          console.log(`✅ Matches pattern: ${pattern} -> ${mappings.join(', ')}`);
+        }
+      }
+    }
+    
+    console.log(`=== End Debug ===\n`);
+  }
+
+  /**
+   * Helper method for pattern matching
+   */
+  private matchesPattern(pattern: string, importPath: string): boolean {
+    if (!pattern.includes('*')) {
+      return pattern === importPath;
+    }
+    const regexPattern = pattern.replace(/\*/g, '(.*)');
+    const regex = new RegExp(`^${regexPattern}$`);
+    return regex.test(importPath);
   }
 }
