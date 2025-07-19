@@ -130,19 +130,15 @@ export function FileExplorer() {
                 <TabsList className="grid w-full grid-cols-4 border-b rounded-none h-10">
                     <TabsTrigger value="files" className="flex items-center gap-2">
                         <Files className="h-3 w-3" />
-                        Files
                     </TabsTrigger>
                     <TabsTrigger value="search" className="flex items-center gap-2">
                         <Search className="h-3 w-3" />
-                        Search
                     </TabsTrigger>
                     <TabsTrigger value="ask" className="flex items-center gap-2">
                         <FileQuestionMarkIcon className="h-3 w-3" />
-                        Ask
                     </TabsTrigger>
                     <TabsTrigger value="git" className="flex items-center gap-2" disabled={!isGitRepo}>
                         <GitBranch className="h-3 w-3" />
-                        Git
                     </TabsTrigger>
                 </TabsList>
 
