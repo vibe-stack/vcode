@@ -153,7 +153,7 @@ export class DependencyLoader {
       return false;
     }
   }
-  
+
   /**
    * Load types from a corresponding @types package if it exists
    */
@@ -233,7 +233,7 @@ export class DependencyLoader {
           await Promise.allSettled(loadPromises);
           
           // Continue loading files until we hit reasonable limits
-          if (totalLoaded >= 50) {
+          if (totalLoaded >= 500) {
             break;
           }
           
