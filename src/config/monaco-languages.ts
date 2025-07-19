@@ -1,5 +1,6 @@
 import * as monaco from 'monaco-editor';
 import { typescriptProjectService } from '@/services/typescript-project';
+;
 
 // Enhanced language configurations for better syntax highlighting
 export const enhanceMonacoLanguages = () => {

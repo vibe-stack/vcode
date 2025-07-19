@@ -88,6 +88,9 @@ class TypeScriptProjectService {
         // Load project's own type definitions
         await this.loadProjectTypeDefinitions();
         
+        // Setup path mappings after all files are loaded
+        await this.setupPathMapping();
+        
         this.isInitialized = true;
         console.log('TypeScript project initialized successfully');
       } else {
@@ -238,9 +241,6 @@ class TypeScriptProjectService {
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions(monacoOptions);
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions(monacoOptions);
 
-    // Setup path mappings
-    this.setupPathMapping();
-
     console.log('Applied tsconfig compiler options to Monaco:', monacoOptions);
     console.log('Original tsconfig options:', options);
   }
@@ -251,14 +251,29 @@ class TypeScriptProjectService {
   private async loadProjectFiles(projectPath: string): Promise<void> {
     try {
       // Get all TypeScript/JavaScript files in the project
-      const files = await projectApi.searchFiles('*.{ts,tsx,js,jsx,d.ts}', projectPath, {
+      const files = await projectApi.searchFiles('**/*.{ts,tsx,js,jsx,d.ts}', projectPath, {
         excludePatterns: ['node_modules/**', 'dist/**', 'build/**', '**/*.min.js', '.git/**']
       });
 
       console.log(`Found ${files.length} TypeScript/JavaScript files`);
 
-      // Load content for a reasonable number of files (to avoid overwhelming Monaco)
-      const filesToLoad = files.slice(0, 50); // Reduced to 50 files for better performance
+      // Load more files for better import resolution - prioritize source files
+      const sourceFiles = files.filter(f => 
+        f.includes('/src/') || 
+        f.includes('/components/') || 
+        f.includes('/pages/') || 
+        f.includes('/lib/') ||
+        f.includes('/utils/') ||
+        !f.includes('/')  // Root level files
+      );
+      
+      const otherFiles = files.filter(f => !sourceFiles.includes(f));
+      
+      // Load source files first (up to 100), then other files (up to 50)
+      const filesToLoad = [
+        ...sourceFiles.slice(0, 100),
+        ...otherFiles.slice(0, 50)
+      ];
       
       const loadPromises = filesToLoad.map(async (filePath) => {
         try {
@@ -289,7 +304,7 @@ class TypeScriptProjectService {
       // Create a relative path from project root
       const relativePath = filePath.replace(this.currentProject, '').replace(/^\//, '');
       
-      // Generate Monaco URI
+      // Generate Monaco URI - use the actual file path for proper module resolution
       const uri = monaco.Uri.file(filePath);
       
       // Update file version
@@ -304,21 +319,24 @@ class TypeScriptProjectService {
         version: newVersion
       });
 
-      // Add to Monaco's extra libs if it's a .d.ts file
-      if (filePath.endsWith('.d.ts')) {
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(
-          content,
-          `file:///${relativePath}`
-        );
+      // Always create a model for TypeScript/JavaScript files so they can be imported
+      const existingModel = monaco.editor.getModel(uri);
+      if (!existingModel) {
+        // Monaco Editor uses 'typescript' for both .ts and .tsx files
+        // and 'javascript' for both .js and .jsx files
+        const language = (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) ? 'typescript' : 'javascript';
+        monaco.editor.createModel(content, language, uri);
+        console.log(`Created Monaco model for ${relativePath} with language ${language}`);
       } else {
-        // For regular TS/JS/TSX/JSX files, create a model if it doesn't exist
-        const existingModel = monaco.editor.getModel(uri);
-        if (!existingModel) {
-          // Monaco Editor uses 'typescript' for both .ts and .tsx files
-          // and 'javascript' for both .js and .jsx files
-          const language = (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) ? 'typescript' : 'javascript';
-          monaco.editor.createModel(content, language, uri);
-        }
+        // Update existing model
+        existingModel.setValue(content);
+      }
+
+      // Also add as extra lib if it's a .d.ts file for global types
+      if (filePath.endsWith('.d.ts')) {
+        const virtualPath = `file:///${relativePath}`;
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
+        console.log(`Added .d.ts file to extra libs: ${relativePath}`);
       }
 
     } catch (error) {
@@ -510,14 +528,20 @@ class TypeScriptProjectService {
         packageJson.types,
         packageJson.typings,
         packageJson.main?.replace(/\.js$/, '.d.ts'),
+        packageJson.main?.replace(/\.mjs$/, '.d.ts'),
+        packageJson.exports?.types,
+        packageJson.exports?.['.']?.types,
+        packageJson.exports?.['.']?.default?.replace(/\.js$/, '.d.ts'),
         'index.d.ts',
         'lib/index.d.ts',
         'dist/index.d.ts',
-        'types/index.d.ts'
+        'types/index.d.ts',
+        'typings/index.d.ts'
       ].filter(Boolean);
 
       let foundTypes = false;
 
+      // First, try to load the main entry point
       for (const entryPoint of typeEntryPoints) {
         const fullPath = entryPoint.startsWith('/') ? 
           `${packagePath}${entryPoint}` : 
@@ -533,9 +557,6 @@ class TypeScriptProjectService {
           console.log(`Loaded built-in types for ${packageName} from ${entryPoint}`);
           
           foundTypes = true;
-          
-          // Also load related .d.ts files in the same directory
-          await this.loadRelatedTypeFiles(packagePath, packageName, entryPoint);
           break;
           
         } catch (error) {
@@ -543,14 +564,44 @@ class TypeScriptProjectService {
         }
       }
 
-      // If we found a main type file, also scan for additional .d.ts files
-      if (foundTypes) {
-        await this.loadAllPackageTypeFiles(packagePath, packageName);
+      // Always scan for additional .d.ts files to catch re-exports and additional types
+      await this.loadAllPackageTypeFiles(packagePath, packageName);
+      
+      // For packages like Next.js, also check for specific type files
+      if (packageName === 'next') {
+        await this.loadNextJSSpecificTypes(packagePath, packageName);
       }
 
       return foundTypes;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * Load specific type files for Next.js which has a complex type structure
+   */
+  private async loadNextJSSpecificTypes(packagePath: string, packageName: string): Promise<void> {
+    const nextSpecificFiles = [
+      'types/global.d.ts',
+      'types/index.d.ts',
+      'dist/types/global.d.ts',
+      'dist/types/index.d.ts',
+      'dist/lib/metadata/types/metadata-types.d.ts',
+      'dist/lib/metadata/types/metadata-interface.d.ts'
+    ];
+
+    for (const filePath of nextSpecificFiles) {
+      try {
+        const fullPath = `${packagePath}/${filePath}`;
+        const { content } = await projectApi.openFile(fullPath);
+        
+        const virtualPath = `file:///node_modules/${packageName}/${filePath}`;
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
+        console.log(`Loaded Next.js specific types from ${filePath}`);
+      } catch (error) {
+        // File doesn't exist, continue
+      }
     }
   }
 
@@ -628,23 +679,25 @@ class TypeScriptProjectService {
       // Search for all .d.ts files in the package, prioritizing common directories
       const priorityPatterns = [
         '*.d.ts',           // Root level
-        'lib/*.d.ts',       // Lib directory
-        'dist/*.d.ts',      // Dist directory
-        'types/*.d.ts',     // Types directory
-        'src/*.d.ts',       // Source directory
-        '**/*.d.ts'         // Everything else
+        'types/**/*.d.ts',  // Types directory (comprehensive)
+        'lib/**/*.d.ts',    // Lib directory (comprehensive)
+        'dist/**/*.d.ts',   // Dist directory (comprehensive)
+        'src/**/*.d.ts',    // Source directory (comprehensive)
+        'typings/**/*.d.ts' // Typings directory (comprehensive)
       ];
 
       const loadedFiles = new Set<string>();
+      let totalLoaded = 0;
       
       for (const pattern of priorityPatterns) {
         try {
           const typeFiles = await projectApi.searchFiles(pattern, packagePath, {
-            excludePatterns: ['**/node_modules/**', '**/test/**', '**/tests/**', '**/spec/**', '**/__tests__/**']
+            excludePatterns: ['**/node_modules/**', '**/test/**', '**/tests/**', '**/spec/**', '**/__tests__/**', '**/*.test.d.ts', '**/*.spec.d.ts']
           });
 
-          // Limit the number of files per pattern to avoid overwhelming Monaco
-          const filesToLoad = typeFiles.slice(0, 20).filter(filePath => !loadedFiles.has(filePath));
+          // Load more files for important packages
+          const maxFiles = packageName === 'next' || packageName.startsWith('@types/') ? 100 : 30;
+          const filesToLoad = typeFiles.slice(0, maxFiles).filter(filePath => !loadedFiles.has(filePath));
           
           const loadPromises = filesToLoad.map(async (filePath) => {
             try {
@@ -658,6 +711,7 @@ class TypeScriptProjectService {
               
               monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
               loadedFiles.add(filePath);
+              totalLoaded++;
               
             } catch (error) {
               console.warn(`Failed to load type file ${filePath}:`, error);
@@ -666,8 +720,8 @@ class TypeScriptProjectService {
 
           await Promise.allSettled(loadPromises);
           
-          // Break early if we've loaded a reasonable number of files
-          if (loadedFiles.size >= 50) {
+          // Continue loading files until we hit reasonable limits
+          if (totalLoaded >= (packageName === 'next' ? 150 : 50)) {
             break;
           }
           
@@ -676,8 +730,8 @@ class TypeScriptProjectService {
         }
       }
       
-      if (loadedFiles.size > 0) {
-        console.log(`Loaded ${loadedFiles.size} type files for ${packageName}`);
+      if (totalLoaded > 0) {
+        console.log(`Loaded ${totalLoaded} type files for ${packageName}`);
       }
       
     } catch (error) {
@@ -726,7 +780,7 @@ class TypeScriptProjectService {
   /**
    * Setup path mapping for module resolution based on tsconfig paths
    */
-  private setupPathMapping(): void {
+  private async setupPathMapping(): Promise<void> {
     const compilerOptions = this.tsConfig?.compilerOptions;
     if (!compilerOptions?.paths || !compilerOptions?.baseUrl) {
       return;
@@ -734,13 +788,69 @@ class TypeScriptProjectService {
 
     console.log('Setting up path mapping for:', compilerOptions.paths);
     
-    // Monaco doesn't directly support path mapping, but we can create virtual files
-    // for the path mappings that point to the actual files
-    Object.entries(compilerOptions.paths).forEach(([pattern, mappings]) => {
-      console.log(`Path mapping: ${pattern} -> ${mappings.join(', ')}`);
-      // This would require more sophisticated handling to create virtual imports
-      // For now, we log the mappings so developers know they exist
-    });
+    // Create virtual modules for path mappings
+    for (const [pattern, mappings] of Object.entries(compilerOptions.paths)) {
+      try {
+        await this.createVirtualModulesForPathMapping(pattern, mappings);
+      } catch (error) {
+        console.warn(`Error setting up path mapping for ${pattern}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Create virtual modules for path mappings like @/* -> ./src/*
+   */
+  private async createVirtualModulesForPathMapping(pattern: string, mappings: string[]): Promise<void> {
+    if (!this.currentProject || !mappings.length) return;
+
+    const baseUrl = this.tsConfig?.compilerOptions?.baseUrl || '.';
+    const basePath = `${this.currentProject}/${baseUrl}`.replace(/\/\.$/, '');
+
+    for (const mapping of mappings) {
+      try {
+        // Remove the * from pattern and mapping to get the base paths
+        const patternBase = pattern.replace('/*', '');
+        const mappingBase = mapping.replace('/*', '');
+        
+        // Resolve the actual directory path
+        const actualPath = `${basePath}/${mappingBase}`;
+        
+        // Find all TypeScript/JavaScript files in this path
+        const files = await projectApi.searchFiles('**/*.{ts,tsx,js,jsx}', actualPath, {
+          excludePatterns: ['node_modules/**', 'dist/**', 'build/**', '.git/**']
+        });
+
+        // Create virtual modules for each file
+        for (const filePath of files) {
+          const relativePath = filePath.replace(actualPath, '').replace(/^\//, '');
+          const filePathWithoutExt = relativePath.replace(/\.(ts|tsx|js|jsx)$/, '');
+          
+          // Create virtual module path
+          const virtualModuleName = `${patternBase}/${filePathWithoutExt}`;
+          
+          try {
+            const { content } = await projectApi.openFile(filePath);
+            
+            // Create a virtual module that re-exports the actual file
+            const virtualContent = `export * from "${filePath}";`;
+            
+            monaco.languages.typescript.typescriptDefaults.addExtraLib(
+              virtualContent,
+              `file:///${virtualModuleName}.ts`
+            );
+            
+          } catch (error) {
+            // Ignore individual file errors
+          }
+        }
+        
+        console.log(`Created virtual modules for path mapping: ${pattern} -> ${mapping}`);
+        
+      } catch (error) {
+        console.warn(`Error creating virtual modules for ${pattern} -> ${mapping}:`, error);
+      }
+    }
   }
 
   /**
@@ -893,6 +1003,129 @@ class TypeScriptProjectService {
     } catch (error) {
       console.error('Error loading TypeScript lib files:', error);
     }
+  }
+
+  /**
+   * Load a file on-demand when it's imported but not yet loaded
+   */
+  async loadFileOnDemand(importPath: string, fromFile: string): Promise<void> {
+    if (!this.currentProject) return;
+
+    try {
+      // Resolve the import path to an actual file path
+      const resolvedPath = await this.resolveImportPath(importPath, fromFile);
+      
+      if (resolvedPath && !this.projectFiles.has(resolvedPath)) {
+        console.log(`Loading file on-demand: ${resolvedPath}`);
+        await this.loadFileIntoMonaco(resolvedPath);
+      }
+    } catch (error) {
+      console.warn(`Failed to load file on-demand for import "${importPath}":`, error);
+    }
+  }
+
+  /**
+   * Resolve an import path to an actual file path
+   */
+  private async resolveImportPath(importPath: string, fromFile: string): Promise<string | null> {
+    if (!this.currentProject) return null;
+
+    // Handle relative imports
+    if (importPath.startsWith('./') || importPath.startsWith('../')) {
+      const fromDir = fromFile.substring(0, fromFile.lastIndexOf('/'));
+      const basePath = this.resolveRelativePath(fromDir, importPath);
+      
+      // Try different extensions
+      const extensions = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js', '/index.jsx'];
+      
+      for (const ext of extensions) {
+        const fullPath = basePath + ext;
+        try {
+          await projectApi.getFileStats(fullPath);
+          return fullPath;
+        } catch {
+          // File doesn't exist, try next extension
+        }
+      }
+    }
+
+    // Handle absolute imports with path mapping
+    if (this.tsConfig?.compilerOptions?.paths) {
+      const resolved = await this.resolvePathMappedImport(importPath);
+      if (resolved) return resolved;
+    }
+
+    // Handle imports from src directory
+    const srcPath = `${this.currentProject}/src/${importPath}`;
+    const extensions = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js', '/index.jsx'];
+    
+    for (const ext of extensions) {
+      const fullPath = srcPath + ext;
+      try {
+        await projectApi.getFileStats(fullPath);
+        return fullPath;
+      } catch {
+        // File doesn't exist, try next extension
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Resolve a relative path
+   */
+  private resolveRelativePath(fromDir: string, relativePath: string): string {
+    const parts = fromDir.split('/');
+    const relativeParts = relativePath.split('/');
+
+    for (const part of relativeParts) {
+      if (part === '.') {
+        continue;
+      } else if (part === '..') {
+        parts.pop();
+      } else {
+        parts.push(part);
+      }
+    }
+
+    return parts.join('/');
+  }
+
+  /**
+   * Resolve imports using tsconfig path mapping
+   */
+  private async resolvePathMappedImport(importPath: string): Promise<string | null> {
+    const paths = this.tsConfig?.compilerOptions?.paths;
+    const baseUrl = this.tsConfig?.compilerOptions?.baseUrl || '.';
+    
+    if (!paths) return null;
+
+    for (const [pattern, mappings] of Object.entries(paths)) {
+      const patternRegex = new RegExp('^' + pattern.replace('*', '(.*)') + '$');
+      const match = importPath.match(patternRegex);
+      
+      if (match) {
+        for (const mapping of mappings) {
+          const resolvedPath = mapping.replace('*', match[1] || '');
+          const fullPath = `${this.currentProject}/${baseUrl}/${resolvedPath}`.replace(/\/\.$/, '');
+          
+          const extensions = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js', '/index.jsx'];
+          
+          for (const ext of extensions) {
+            const pathWithExt = fullPath + ext;
+            try {
+              await projectApi.getFileStats(pathWithExt);
+              return pathWithExt;
+            } catch {
+              // File doesn't exist, try next extension
+            }
+          }
+        }
+      }
+    }
+
+    return null;
   }
 }
 
