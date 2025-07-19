@@ -82,12 +82,16 @@ class TypeScriptProjectService {
         // Add common type definitions
         await this.addCommonTypeDefinitions();
         
+        // Add basic type definitions as fallback
+        await this.addBasicTypeDefinitions();
+        
         this.isInitialized = true;
         console.log('TypeScript project initialized successfully');
       } else {
         console.log('No tsconfig.json found, using default TypeScript settings');
         // Still add common type definitions even without tsconfig
         await this.addCommonTypeDefinitions();
+        await this.addBasicTypeDefinitions();
         this.isInitialized = false;
       }
     } catch (error) {
@@ -191,6 +195,7 @@ class TypeScriptProjectService {
       const moduleResolutionMap: Record<string, monaco.languages.typescript.ModuleResolutionKind> = {
         'Classic': monaco.languages.typescript.ModuleResolutionKind.Classic,
         'Node': monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        'bundler': monaco.languages.typescript.ModuleResolutionKind.NodeJs, // Treat bundler as Node for Monaco
       };
       monacoOptions.moduleResolution = moduleResolutionMap[options.moduleResolution] || monaco.languages.typescript.ModuleResolutionKind.NodeJs;
     }
@@ -230,6 +235,7 @@ class TypeScriptProjectService {
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions(monacoOptions);
 
     console.log('Applied tsconfig compiler options to Monaco:', monacoOptions);
+    console.log('Original tsconfig options:', options);
   }
 
   /**
@@ -701,6 +707,73 @@ class TypeScriptProjectService {
     console.log('- Loaded Files:', Array.from(this.projectFiles.keys()));
     console.log('- Is React Project:', this.isReactProject());
     console.log('- Is Node Project:', this.isNodeProject());
+  }
+
+  /**
+   * Add basic type definitions for common scenarios when full project loading fails
+   */
+  private async addBasicTypeDefinitions(): Promise<void> {
+    try {
+      // Basic React types for JSX support
+      const basicReactTypes = `
+declare namespace React {
+  interface Component<P = {}, S = {}> {}
+  interface FunctionComponent<P = {}> {
+    (props: P): JSX.Element | null;
+  }
+  type FC<P = {}> = FunctionComponent<P>;
+  interface ReactElement<P = any> {}
+}
+
+declare global {
+  namespace JSX {
+    interface Element extends React.ReactElement<any> {}
+    interface ElementClass extends React.Component<any> {}
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+}
+
+declare module 'react' {
+  export = React;
+}
+`;
+
+      // Add basic React types
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        basicReactTypes,
+        'file:///react-basic.d.ts'
+      );
+
+      // Basic DOM and global types
+      const basicGlobalTypes = `
+declare const console: {
+  log(...args: any[]): void;
+  error(...args: any[]): void;
+  warn(...args: any[]): void;
+  info(...args: any[]): void;
+};
+
+declare const window: Window & typeof globalThis;
+declare const document: Document;
+declare const process: any;
+declare const require: any;
+declare const module: any;
+declare const exports: any;
+declare const __dirname: string;
+declare const __filename: string;
+`;
+
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        basicGlobalTypes,
+        'file:///globals-basic.d.ts'
+      );
+
+      console.log('Added basic type definitions');
+    } catch (error) {
+      console.error('Error adding basic type definitions:', error);
+    }
   }
 }
 

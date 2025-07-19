@@ -122,7 +122,7 @@ const setDefaultTypeScriptConfiguration = () => {
         jsx: monaco.languages.typescript.JsxEmit.React,
         reactNamespace: 'React',
         allowJs: true,
-        strict: true,
+        strict: false, // Set to false initially to reduce errors
         skipLibCheck: true,
         lib: ['DOM', 'ES2022'],
         typeRoots: ['node_modules/@types'],
@@ -140,6 +140,8 @@ const setDefaultTypeScriptConfiguration = () => {
         jsx: monaco.languages.typescript.JsxEmit.React,
         checkJs: false,
     });
+    
+    console.log('Default TypeScript configuration applied to Monaco');
 };
 
 /**
