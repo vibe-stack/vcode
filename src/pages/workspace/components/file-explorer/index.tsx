@@ -16,7 +16,8 @@ import {
     GitBranch,
     FileText,
     FolderPlus,
-    MessageSquare
+    MessageSquare,
+    FileQuestionMarkIcon
 } from 'lucide-react';
 import { FileTreeNode } from './file-tree-node';
 import { GitPanel } from './git-panel';
@@ -136,7 +137,7 @@ export function FileExplorer() {
                         Search
                     </TabsTrigger>
                     <TabsTrigger value="ask" className="flex items-center gap-2">
-                        <MessageSquare className="h-3 w-3" />
+                        <FileQuestionMarkIcon className="h-3 w-3" />
                         Ask
                     </TabsTrigger>
                     <TabsTrigger value="git" className="flex items-center gap-2" disabled={!isGitRepo}>
