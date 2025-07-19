@@ -7,29 +7,8 @@ import { registerDarkMatrixTheme } from '@/themes/dark-matrix-monaco';
 import { getMonacoEditorOptions } from '@/config/monaco-config';
 import { enhanceMonacoLanguages, registerCustomLanguages, getCustomLanguageFromExtension } from '@/config/monaco-languages';
 import { setupMonacoEnvironment } from '@/config/monaco-environment';
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
-import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
-self.MonacoEnvironment = {
-  getWorker(_, label) {
-    if (label === 'json') {
-      return new jsonWorker();
-    }
-    if (label === 'css' || label === 'scss' || label === 'less') {
-      return new cssWorker();
-    }
-    if (label === 'html' || label === 'handlebars' || label === 'razor') {
-      return new htmlWorker();
-    }
-    if (label === 'typescript' || label === 'javascript') {
-      return new tsWorker();
-    }
-    return new editorWorker();
-  },
-};
+setupMonacoEnvironment();
 
 loader.config({ monaco });
 
@@ -49,28 +28,13 @@ export function Editor({ buffer, onChange }: EditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const saveBuffer = useBufferStore((s) => s.saveBuffer);
 
-    // Setup Monaco Environment for web workers on mount
-    useEffect(() => {
-
-    }, []);
+    
 
     const value = typeof buffer.content === 'string'
         ? buffer.content
         : new TextDecoder().decode(buffer.content!);
 
-    // Get the appropriate language for Monaco
-    const getEditorLanguage = (extension: string | null): string => {
-        if (!extension) return 'plaintext';
-        
-        // Check for custom language mappings first
-        const customLang = getCustomLanguageFromExtension(extension);
-        if (customLang) return customLang;
-        
-        // Use the standard mapping
-        return getLanguageFromExtension(extension);
-    };
-
-    const language = getEditorLanguage(buffer.extension);
+    const language = getLanguageFromExtension(buffer.extension ?? 'plaintext');
     const editorOptions = getMonacoEditorOptions({
         // Override any specific options based on file type or user preferences
         fontSize: 14,
@@ -94,6 +58,28 @@ export function Editor({ buffer, onChange }: EditorProps) {
         editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => {
             editor.getAction('editor.action.formatDocument')?.run();
         });
+
+        // For TypeScript files, set up additional language features
+        if (buffer.filePath && (
+            buffer.filePath.endsWith('.ts') || 
+            buffer.filePath.endsWith('.tsx') || 
+            buffer.filePath.endsWith('.js') || 
+            buffer.filePath.endsWith('.jsx')
+        )) {
+            // Enable additional TypeScript features
+            monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
+            monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
+            
+            // For TSX/JSX files, ensure JSX support is enabled
+            if (buffer.filePath.endsWith('.tsx') || buffer.filePath.endsWith('.jsx')) {
+                // Log the language being used for debugging
+                console.log(`TSX/JSX file detected: ${buffer.filePath}, using language: ${language}`);
+                
+                // Ensure TypeScript JSX configuration is properly applied
+                const currentTsOptions = monaco.languages.typescript.typescriptDefaults.getCompilerOptions();
+                console.log('Current TypeScript compiler options:', currentTsOptions);
+            }
+        }
     };
 
     return (
@@ -138,12 +124,7 @@ export function Editor({ buffer, onChange }: EditorProps) {
                     }
                 }}
                 onMount={handleEditorDidMount}
-                beforeMount={(monaco) => {
-                    // Register theme and enhance languages before mounting
-                    registerDarkMatrixTheme();
-                    enhanceMonacoLanguages();
-                    registerCustomLanguages();
-                }}
+                
             />
         </div>
     )

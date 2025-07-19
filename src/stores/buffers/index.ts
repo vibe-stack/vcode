@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { projectApi } from '@/services/project-api';
 import { BufferType, getFileType, getFileTypeFromExtension, getMimeType } from './utils';
+import { typescriptProjectService } from '@/services/typescript-project';
 
 
 const isTextFile = (type: BufferType): boolean => {
@@ -403,6 +404,19 @@ export const useBufferStore = create<BufferState>((set, get) => ({
                     }
                     return { buffers: newBuffers };
                 });
+
+                // Update TypeScript service if the file is a TypeScript/JavaScript file
+                if (buffer.filePath && (
+                    buffer.filePath.endsWith('.ts') || 
+                    buffer.filePath.endsWith('.tsx') || 
+                    buffer.filePath.endsWith('.js') || 
+                    buffer.filePath.endsWith('.jsx') ||
+                    buffer.filePath.endsWith('.d.ts')
+                )) {
+                    typescriptProjectService.updateFile(buffer.filePath, buffer.content as string).catch(error => {
+                        console.warn('Failed to update TypeScript service for file:', buffer.filePath, error);
+                    });
+                }
             }
 
             return success;
@@ -607,6 +621,27 @@ export const useBufferStore = create<BufferState>((set, get) => ({
                     isDirty: typeof content === 'string' ? content.length > 0 : (content instanceof Uint8Array ? content.length > 0 : false),
                     lastModified: new Date(),
                 });
+
+                // Update TypeScript service in real-time for TypeScript/JavaScript files
+                if (buffer.filePath && typeof content === 'string' && (
+                    buffer.filePath.endsWith('.ts') || 
+                    buffer.filePath.endsWith('.tsx') || 
+                    buffer.filePath.endsWith('.js') || 
+                    buffer.filePath.endsWith('.jsx') ||
+                    buffer.filePath.endsWith('.d.ts')
+                )) {
+                    // Debounce the TypeScript service update to avoid overwhelming it with rapid changes
+                    const updateKey = `ts-update-${buffer.filePath}`;
+                    if ((window as any)[updateKey]) {
+                        clearTimeout((window as any)[updateKey]);
+                    }
+                    (window as any)[updateKey] = setTimeout(() => {
+                        typescriptProjectService.updateFile(buffer.filePath!, content).catch(error => {
+                            console.warn('Failed to update TypeScript service for file:', buffer.filePath, error);
+                        });
+                        delete (window as any)[updateKey];
+                    }, 300); // 300ms debounce
+                }
             }
             return { buffers: newBuffers };
         });

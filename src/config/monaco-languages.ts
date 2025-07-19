@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor';
+import { typescriptProjectService } from '@/services/typescript-project';
 
 // Enhanced language configurations for better syntax highlighting
 export const enhanceMonacoLanguages = () => {
@@ -14,32 +15,10 @@ export const enhanceMonacoLanguages = () => {
         trailingCommas: 'error',
     });
 
-    // TypeScript/JavaScript configuration
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.Latest,
-        allowNonTsExtensions: true,
-        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-        module: monaco.languages.typescript.ModuleKind.CommonJS,
-        noEmit: true,
-        esModuleInterop: true,
-        jsx: monaco.languages.typescript.JsxEmit.React,
-        reactNamespace: 'React',
-        allowJs: true,
-        typeRoots: ['node_modules/@types'],
-    });
+    // Set default TypeScript/JavaScript configuration (will be overridden by project-specific settings)
+    setDefaultTypeScriptConfiguration();
 
-    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.Latest,
-        allowNonTsExtensions: true,
-        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-        module: monaco.languages.typescript.ModuleKind.CommonJS,
-        noEmit: true,
-        esModuleInterop: true,
-        allowJs: true,
-        jsx: monaco.languages.typescript.JsxEmit.React,
-    });
-
-    // Enable type checking and error reporting
+    // Enable type checking and error reporting for TypeScript
     monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: false,
         noSyntaxValidation: false,
@@ -125,6 +104,54 @@ export const enhanceMonacoLanguages = () => {
         },
         // validate: true, // This option might not be available in this Monaco version
     });
+};
+
+/**
+ * Set default TypeScript configuration when no project-specific config is available
+ */
+const setDefaultTypeScriptConfiguration = () => {
+    // Default TypeScript/JavaScript configuration
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.Latest,
+        allowNonTsExtensions: true,
+        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        module: monaco.languages.typescript.ModuleKind.ESNext,
+        noEmit: true,
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        jsx: monaco.languages.typescript.JsxEmit.React,
+        reactNamespace: 'React',
+        allowJs: true,
+        strict: true,
+        skipLibCheck: true,
+        lib: ['DOM', 'ES2022'],
+        typeRoots: ['node_modules/@types'],
+    });
+
+    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.Latest,
+        allowNonTsExtensions: true,
+        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        module: monaco.languages.typescript.ModuleKind.ESNext,
+        noEmit: true,
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        allowJs: true,
+        jsx: monaco.languages.typescript.JsxEmit.React,
+        checkJs: false,
+    });
+};
+
+/**
+ * Initialize TypeScript project integration for the current project
+ */
+export const initializeTypeScriptProject = async (projectPath: string) => {
+    try {
+        await typescriptProjectService.initializeProject(projectPath);
+        console.log('TypeScript project integration initialized');
+    } catch (error) {
+        console.error('Error initializing TypeScript project:', error);
+    }
 };
 
 // Custom language registration for common file types not supported by default
