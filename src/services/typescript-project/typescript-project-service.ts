@@ -253,7 +253,12 @@ export class TypeScriptProjectService {
       const packagePath = `${this.currentProject}/node_modules/${packageName}`;
       
       try {
-        const { content } = await projectApi.openFile(`${packagePath}/package.json`);
+        const result = await projectApi.openFile(`${packagePath}/package.json`);
+        if (!result || !result.content) {
+          console.log(`❌ Package.json not found: ${packageName}`);
+          return;
+        }
+        const { content } = result;
         const packageJson = JSON.parse(content);
         console.log(`✅ Package found: ${packageName}`);
         console.log(`Package version: ${packageJson.version}`);

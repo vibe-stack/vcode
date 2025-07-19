@@ -159,7 +159,12 @@ export class FileManager {
     fileVersions: Map<string, number>
   ): Promise<void> {
     try {
-      const { content } = await projectApi.openFile(filePath);
+      const result = await projectApi.openFile(filePath);
+      if (!result || !result.content) {
+        console.warn(`Failed to load file into Monaco: ${filePath}`);
+        return;
+      }
+      const { content } = result;
 
       // Create a relative path from project root
       const relativePath = filePath.replace(projectPath, '').replace(/^\//, '');
@@ -286,7 +291,9 @@ export class FileManager {
       // Load each project .d.ts file
       const loadPromises = projectTypeFiles.map(async (filePath) => {
         try {
-          const { content } = await projectApi.openFile(filePath);
+          const result = await projectApi.openFile(filePath);
+          if (!result || !result.content) return;
+          const { content } = result;
 
           // Create relative path from project root
           const relativePath = filePath.replace(projectPath, '').replace(/^\//, '');

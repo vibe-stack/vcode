@@ -19,7 +19,11 @@ export class TSConfigLoader {
 
       try {
         console.log("loading tsconfig from", configPath);
-        const { content } = await projectApi.openFile(configPath);
+        const result = await projectApi.openFile(configPath);
+        if (!result || !result.content) {
+          throw new Error(`Failed to read tsconfig from ${configPath}`);
+        }
+        const { content } = result;
         const cleanedContent = TSConfigLoader.removeJSONComments(content);
         
         // Debug logging for JSON parsing issues
@@ -172,7 +176,11 @@ export class TSConfigLoader {
    */
   static async parsePackageJson(packageJsonPath: string): Promise<any | null> {
     try {
-      const { content } = await projectApi.openFile(packageJsonPath);
+      const result = await projectApi.openFile(packageJsonPath);
+      if (!result || !result.content) {
+        return null;
+      }
+      const { content } = result;
       return JSON.parse(content);
     } catch (error) {
       console.log('Could not parse package.json:', error);

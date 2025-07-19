@@ -7,7 +7,12 @@ import type { PackageJson } from './types';
 
 export class DependencyLoader {
   /**
-   * Load type definitions from project dependencies by properly parsing package.json and node_modules
+   * Load type definitions from project dependencies by properly parsing package.json and             try {
+              if (loadedFiles.has(filePath)) return;
+              
+              const result = await projectApi.openFile(filePath);
+              if (!result || !result.content) return;
+              const { content } = result;_modules
    */
   static async loadProjectDependencyTypes(projectPath: string): Promise<void> {
     try {
@@ -180,7 +185,9 @@ export class DependencyLoader {
             if (loadedFiles.has(filePath)) return;
             
             try {
-              const { content } = await projectApi.openFile(filePath);
+              const result = await projectApi.openFile(filePath);
+              if (!result || !result.content) return;
+              const { content } = result;
               
               const relativePath = filePath.replace(nextPath, '').replace(/^\//, '');
               const virtualPath = `file:///node_modules/next/${relativePath}`;
@@ -248,28 +255,27 @@ export class DependencyLoader {
 
       let foundTypes = false;
 
-      // First, try to load the main entry point
-      for (const entryPoint of typeEntryPoints) {
+      // Try to load all entry points in parallel (truly parallel openFile)
+      const loadPromises = typeEntryPoints.map((entryPoint) => {
         const fullPath = entryPoint!.startsWith('/') ? 
           `${packagePath}${entryPoint}` : 
           `${packagePath}/${entryPoint}`;
 
-        try {
-          const { content } = await projectApi.openFile(fullPath);
-          
-          // Create virtual file path for Monaco
-          const virtualPath = `file:///node_modules/${packageName}/${entryPoint}`;
-          
-          monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
-          console.log(`Loaded built-in types for ${packageName} from ${entryPoint}`);
-          
-          foundTypes = true;
-          break;
-          
-        } catch (error) {
-          // Continue to next entry point
-        }
-      }
+        // Don't await here, just return the promise
+        return projectApi.openFile(fullPath)
+          .then(result => {
+        if (!result || !result.content) return false;
+        const { content } = result;
+        const virtualPath = `file:///node_modules/${packageName}/${entryPoint}`;
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
+        console.log(`Loaded built-in types for ${packageName} from ${entryPoint}`);
+        return true;
+          })
+          .catch(() => false);
+      });
+
+      const results = await Promise.all(loadPromises);
+      foundTypes = results.some(Boolean);
 
       // Always scan for additional .d.ts files to catch re-exports and additional types
       await DependencyLoader.loadAllPackageTypeFiles(packagePath, packageName);

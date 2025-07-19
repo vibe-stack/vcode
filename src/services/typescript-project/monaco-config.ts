@@ -140,7 +140,12 @@ export class MonacoConfig {
           const libFileName = `lib.${lib.toLowerCase()}.d.ts`;
           const libFilePath = `${typescriptLibPath}/${libFileName}`;
           
-          const { content } = await projectApi.openFile(libFilePath);
+          const result = await projectApi.openFile(libFilePath);
+          if (!result || !result.content) {
+            console.warn(`Failed to load TypeScript lib: ${libFileName}`);
+            continue;
+          }
+          const { content } = result;
           
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
             content,

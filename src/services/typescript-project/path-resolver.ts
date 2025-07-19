@@ -175,7 +175,11 @@ export class PathResolver {
     try {
       // Try to load package.json to find main entry point
       const packageJsonPath = `${projectPath}/node_modules/${packageName}/package.json`;
-      const { content } = await projectApi.openFile(packageJsonPath);
+      const result = await projectApi.openFile(packageJsonPath);
+      if (!result || !result.content) {
+        throw new Error('Package.json not found or empty');
+      }
+      const { content } = result;
       const packageJson = JSON.parse(content);
 
       let mainEntry = 'index.js';
@@ -245,7 +249,12 @@ export class PathResolver {
    */
   private static async loadResolvedFile(filePath: string, projectPath: string): Promise<void> {
     try {
-      const { content } = await projectApi.openFile(filePath);
+      const result = await projectApi.openFile(filePath);
+      if (!result || !result.content) {
+        console.warn(`Failed to load file: ${filePath}`);
+        return;
+      }
+      const { content } = result;
       const uri = monaco.Uri.file(filePath);
       
       const existingModel = monaco.editor.getModel(uri);

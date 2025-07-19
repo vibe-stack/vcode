@@ -183,9 +183,6 @@ export default function HomePage() {
       {/* Footer */}
       <div className="border-t p-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <ToggleTheme />
-          </div>
           <Footer />
         </div>
       </div>
