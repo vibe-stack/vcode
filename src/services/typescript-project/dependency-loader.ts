@@ -146,47 +146,16 @@ export class DependencyLoader {
 
       // Always scan for additional .d.ts files to catch re-exports and additional types
       await DependencyLoader.loadAllPackageTypeFiles(packagePath, packageName);
-      
-      // For packages like Next.js, also check for specific type files
-      if (packageName === 'next') {
-        await DependencyLoader.loadNextJSSpecificTypes(packagePath, packageName);
-      }
 
       return foundTypes;
     } catch (error) {
+      console.warn(`Error loading built-in types for ${packageName}:`, error);
       return false;
     }
   }
-
+  
   /**
-   * Load specific type files for Next.js which has a complex type structure
-   */
-  private static async loadNextJSSpecificTypes(packagePath: string, packageName: string): Promise<void> {
-    const nextSpecificFiles = [
-      'types/global.d.ts',
-      'types/index.d.ts',
-      'dist/types/global.d.ts',
-      'dist/types/index.d.ts',
-      'dist/lib/metadata/types/metadata-types.d.ts',
-      'dist/lib/metadata/types/metadata-interface.d.ts'
-    ];
-
-    for (const filePath of nextSpecificFiles) {
-      try {
-        const fullPath = `${packagePath}/${filePath}`;
-        const { content } = await projectApi.openFile(fullPath);
-        
-        const virtualPath = `file:///node_modules/${packageName}/${filePath}`;
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
-        console.log(`Loaded Next.js specific types from ${filePath}`);
-      } catch (error) {
-        // File doesn't exist, continue
-      }
-    }
-  }
-
-  /**
-   * Load type definitions from corresponding @types package
+   * Load types from a corresponding @types package if it exists
    */
   private static async loadCorrespondingTypesPackage(projectPath: string, packageName: string): Promise<void> {
     const typesPackageName = `@types/${packageName.replace('@', '').replace('/', '__')}`;
@@ -239,7 +208,7 @@ export class DependencyLoader {
           });
 
           // Load more files for important packages
-          const maxFiles = packageName === 'next' || packageName.startsWith('@types/') ? 100 : 30;
+          const maxFiles = packageName.startsWith('@types/') ? 100 : 30;
           const filesToLoad = typeFiles.slice(0, maxFiles).filter(filePath => !loadedFiles.has(filePath));
           
           const loadPromises = filesToLoad.map(async (filePath) => {
@@ -264,7 +233,7 @@ export class DependencyLoader {
           await Promise.allSettled(loadPromises);
           
           // Continue loading files until we hit reasonable limits
-          if (totalLoaded >= (packageName === 'next' ? 150 : 50)) {
+          if (totalLoaded >= 50) {
             break;
           }
           

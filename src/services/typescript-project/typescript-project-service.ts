@@ -4,7 +4,6 @@ import { TSConfigLoader } from './tsconfig-loader';
 import { MonacoConfig } from './monaco-config';
 import { FileManager } from './file-manager';
 import { DependencyLoader } from './dependency-loader';
-import { PathResolver } from './path-resolver';
 import { ProjectDetector } from './project-detector';
 import type { TSConfig, ProjectFileInfo } from './types';
 
@@ -44,10 +43,10 @@ export class TypeScriptProjectService {
       
       if (this.tsConfig) {
         // Apply tsconfig settings to Monaco
-        await MonacoConfig.applyTSConfigToMonaco(this.tsConfig);
+        await MonacoConfig.applyTSConfigToMonaco(this.tsConfig, projectPath);
         
         // Load project files for better intellisense
-        await FileManager.loadProjectFiles(projectPath, this.projectFiles, this.fileVersions);
+        await FileManager.loadProjectFiles(projectPath, this.projectFiles, this.fileVersions, this.tsConfig);
         
         // Load TypeScript lib files based on tsconfig
         await MonacoConfig.loadTypeScriptLibFiles(projectPath, this.tsConfig);
@@ -57,9 +56,6 @@ export class TypeScriptProjectService {
         
         // Load project's own type definitions
         await FileManager.loadProjectTypeDefinitions(projectPath);
-        
-        // Setup path mappings after all files are loaded
-        await PathResolver.setupPathMapping(projectPath, this.tsConfig);
         
         this.isInitialized = true;
         console.log('TypeScript project initialized successfully');
@@ -108,7 +104,7 @@ export class TypeScriptProjectService {
    */
   async loadFileOnDemand(importPath: string, fromFile: string): Promise<void> {
     if (!this.currentProject) return;
-    await PathResolver.loadFileOnDemand(this.currentProject, this.tsConfig, importPath, fromFile);
+    // await PathResolver.loadFileOnDemand(this.currentProject, this.tsConfig, importPath, fromFile);
   }
 
   /**

@@ -6,7 +6,6 @@ export { TSConfigLoader } from './tsconfig-loader';
 export { MonacoConfig } from './monaco-config';
 export { FileManager } from './file-manager';
 export { DependencyLoader } from './dependency-loader';
-export { PathResolver } from './path-resolver';
 export { ProjectDetector } from './project-detector';
 export { TypeScriptProjectService } from './typescript-project-service';
 

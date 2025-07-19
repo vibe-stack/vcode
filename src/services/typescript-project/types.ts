@@ -26,6 +26,7 @@ export interface TSConfig {
   include?: string[];
   exclude?: string[];
   extends?: string;
+  files?: string[];
 }
 
 export interface ProjectFileInfo {

@@ -5,53 +5,166 @@ import type { TSConfig } from './types';
 
 export class TSConfigLoader {
   /**
-   * Load and parse tsconfig.json from project
+   * Load and parse tsconfig.json from project, including extended configs.
    */
   static async loadTSConfig(projectPath: string): Promise<TSConfig | null> {
-    try {
-      // Try multiple possible tsconfig.json locations
-      const possiblePaths = [
-        `${projectPath}/tsconfig.json`,
-        `${projectPath}/tsconfig.app.json`,
-        `${projectPath}/jsconfig.json`
-      ];
-      
-      console.log('Looking for TypeScript config in:', possiblePaths);
-      
-      for (const tsconfigPath of possiblePaths) {
-        try {
-          const { content } = await projectApi.openFile(tsconfigPath);
-          
-          // Parse JSON with comments support (basic implementation)
-          const cleanedContent = TSConfigLoader.removeJSONComments(content);
-          const tsConfig = JSON.parse(cleanedContent);
-          
-          console.log(`Loaded ${tsconfigPath}:`, tsConfig);
-          return tsConfig;
-        } catch (error) {
-          console.log(`Failed to load ${tsconfigPath}:`, error instanceof Error ? error.message : String(error));
-        }
+    const loadedConfigs = new Set<string>();
+
+    const loadAndMerge = async (configPath: string): Promise<TSConfig | null> => {
+      if (loadedConfigs.has(configPath)) {
+        console.warn(`[TSConfigLoader] Circular dependency detected in tsconfig chain: ${configPath}`);
+        return {};
       }
-      
-      // If we get here, no tsconfig was found
-      console.log('No valid tsconfig.json found');
-      return null;
-    } catch (error) {
-      // tsconfig.json not found or invalid
-      console.log('No valid tsconfig.json found');
-      return null;
+      loadedConfigs.add(configPath);
+
+      try {
+        console.log("loading tsconfig from", configPath);
+        const { content } = await projectApi.openFile(configPath);
+        const cleanedContent = TSConfigLoader.removeJSONComments(content);
+        
+        // Debug logging for JSON parsing issues
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TSConfigLoader] Original content length:', content.length);
+          console.log('[TSConfigLoader] Cleaned content length:', cleanedContent.length);
+        }
+        
+        try {
+          const tsConfig = JSON.parse(cleanedContent) as TSConfig;
+          
+          if (tsConfig.extends) {
+            const extendedConfigPath = `${projectPath}/${tsConfig.extends}`;
+            const baseConfig = await loadAndMerge(extendedConfigPath);
+            
+            // Deep merge configs
+            return TSConfigLoader.mergeConfigs(baseConfig || {}, tsConfig);
+          }
+          
+          return tsConfig;
+          
+        } catch (parseError) {
+          if (parseError instanceof SyntaxError) {
+            console.error(`[TSConfigLoader] JSON parsing error in ${configPath}:`, parseError.message);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('[TSConfigLoader] Cleaned content that failed to parse:');
+              console.error(cleanedContent);
+            }
+          }
+          throw parseError;
+        }
+
+      } catch (error) {
+        console.log(`[TSConfigLoader] Failed to load ${configPath}:`, error instanceof Error ? error.message : String(error));
+        return null;
+      }
+    };
+
+    const possiblePaths = [
+      `${projectPath}/tsconfig.json`,
+      `${projectPath}/tsconfig.app.json`,
+      `${projectPath}/jsconfig.json`
+    ];
+
+    for (const path of possiblePaths) {
+      const tsConfig = await loadAndMerge(path);
+      if (tsConfig) {
+        console.log(`[TSConfigLoader] Loaded final tsconfig from ${path}:`, tsConfig);
+        return tsConfig;
+      }
     }
+
+    console.log('[TSConfigLoader] No valid tsconfig.json or jsconfig.json found.');
+    return null;
   }
 
   /**
-   * Remove comments from JSON (basic implementation)
+   * Deeply merge two TSConfig objects.
+   */
+  private static mergeConfigs(base: TSConfig, extended: TSConfig): TSConfig {
+    const merged: TSConfig = { ...base };
+
+    // Merge compilerOptions
+    if (extended.compilerOptions) {
+      merged.compilerOptions = { ...base.compilerOptions, ...extended.compilerOptions };
+      // Special handling for paths to ensure they are merged correctly
+      if (base.compilerOptions?.paths && extended.compilerOptions.paths) {
+        merged.compilerOptions.paths = { ...base.compilerOptions.paths, ...extended.compilerOptions.paths };
+      }
+    }
+
+    // Override or merge other top-level properties
+    if (extended.include) merged.include = extended.include;
+    if (extended.exclude) merged.exclude = extended.exclude;
+    if (extended.files) merged.files = extended.files;
+
+    return merged;
+  }
+
+  /**
+   * Remove comments from JSON (JSONC format support)
    */
   private static removeJSONComments(content: string): string {
-    // Remove single-line comments
-    content = content.replace(/\/\/.*$/gm, '');
-    // Remove multi-line comments
-    content = content.replace(/\/\*[\s\S]*?\*\//g, '');
-    return content;
+    let result = '';
+    let i = 0;
+    let inString = false;
+    let inSingleLineComment = false;
+    let inMultiLineComment = false;
+    let stringDelimiter = '';
+
+    while (i < content.length) {
+      const char = content[i];
+      const nextChar = content[i + 1];
+
+      // Handle string detection
+      if (!inSingleLineComment && !inMultiLineComment) {
+        if ((char === '"' || char === "'") && (i === 0 || content[i - 1] !== '\\')) {
+          if (!inString) {
+            inString = true;
+            stringDelimiter = char;
+          } else if (char === stringDelimiter) {
+            inString = false;
+            stringDelimiter = '';
+          }
+        }
+      }
+
+      // Handle comments only if we're not inside a string
+      if (!inString) {
+        // Start of single-line comment
+        if (char === '/' && nextChar === '/' && !inMultiLineComment) {
+          inSingleLineComment = true;
+          i += 2;
+          continue;
+        }
+
+        // Start of multi-line comment
+        if (char === '/' && nextChar === '*' && !inSingleLineComment) {
+          inMultiLineComment = true;
+          i += 2;
+          continue;
+        }
+
+        // End of multi-line comment
+        if (char === '*' && nextChar === '/' && inMultiLineComment) {
+          inMultiLineComment = false;
+          i += 2;
+          continue;
+        }
+
+        // End of single-line comment
+        if (inSingleLineComment && (char === '\n' || char === '\r')) {
+          inSingleLineComment = false;
+        }
+      }
+
+      // Add character to result if not in a comment
+      if (!inSingleLineComment && !inMultiLineComment) {
+        result += char;
+      }
+
+      i++;
+    }
+
+    return result;
   }
 
   /**

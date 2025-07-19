@@ -2,7 +2,7 @@
 
 import * as monaco from 'monaco-editor';
 import { projectApi } from '@/services/project-api';
-import type { ProjectFileInfo } from './types';
+import type { ProjectFileInfo, TSConfig } from './types';
 
 export class FileManager {
   /**
@@ -11,48 +11,55 @@ export class FileManager {
   static async loadProjectFiles(
     projectPath: string,
     projectFiles: Map<string, ProjectFileInfo>,
-    fileVersions: Map<string, number>
+    fileVersions: Map<string, number>,
+    tsConfig: TSConfig | null
   ): Promise<void> {
     try {
-      // Get all TypeScript/JavaScript files in the project
+      // Determine file patterns from tsconfig or use defaults
+      const includePatterns = tsConfig?.include || ['**/*'];
+      const excludePatterns = tsConfig?.exclude || ['node_modules/**', 'dist/**', 'build/**', '**/*.min.js', '.git/**'];
+
+      console.log(`[FileManager] Searching for files with include: ${includePatterns} and exclude: ${excludePatterns}`);
+
+      // Get all TypeScript/JavaScript files in the project based on tsconfig
       const files = await projectApi.searchFiles('**/*.{ts,tsx,js,jsx,d.ts}', projectPath, {
-        excludePatterns: ['node_modules/**', 'dist/**', 'build/**', '**/*.min.js', '.git/**']
+        includePatterns: includePatterns,
+        excludePatterns: excludePatterns,
       });
 
-      console.log(`Found ${files.length} TypeScript/JavaScript files`);
+      console.log(`[FileManager] Found ${files.length} files matching tsconfig patterns.`);
 
-      // Load more files for better import resolution - prioritize source files
-      const sourceFiles = files.filter(f => 
-        f.includes('/src/') || 
-        f.includes('/components/') || 
-        f.includes('/pages/') || 
+      // Prioritize loading files from common source directories
+      const sourceFiles = files.filter(f =>
+        f.includes('/src/') ||
+        f.includes('/components/') ||
+        f.includes('/pages/') ||
         f.includes('/lib/') ||
         f.includes('/utils/') ||
         !f.includes('/')  // Root level files
       );
-      
+
       const otherFiles = files.filter(f => !sourceFiles.includes(f));
-      
-      // Load source files first (up to 100), then other files (up to 50)
+
+      // Load source files first (up to 150), then other files (up to 100)
       const filesToLoad = [
-        ...sourceFiles.slice(0, 100),
-        ...otherFiles.slice(0, 50)
+        ...sourceFiles.slice(0, 150),
+        ...otherFiles.slice(0, 100)
       ];
-      
+
       const loadPromises = filesToLoad.map(async (filePath) => {
         try {
           await FileManager.loadFileIntoMonaco(filePath, projectPath, projectFiles, fileVersions);
         } catch (error) {
-          console.warn(`Failed to load file ${filePath}:`, error);
+          console.warn(`[FileManager] Failed to load file ${filePath}:`, error);
         }
       });
 
-      // Load files in parallel but with a reasonable limit
       await Promise.allSettled(loadPromises);
 
-      console.log(`Loaded ${projectFiles.size} files into Monaco TypeScript service`);
+      console.log(`[FileManager] Loaded ${projectFiles.size} files into Monaco.`);
     } catch (error) {
-      console.error('Error loading project files:', error);
+      console.error('[FileManager] Error loading project files:', error);
     }
   }
 
@@ -67,13 +74,13 @@ export class FileManager {
   ): Promise<void> {
     try {
       const { content } = await projectApi.openFile(filePath);
-      
+
       // Create a relative path from project root
       const relativePath = filePath.replace(projectPath, '').replace(/^\//, '');
-      
+
       // Generate Monaco URI - use the actual file path for proper module resolution
       const uri = monaco.Uri.file(filePath);
-      
+
       // Update file version
       const currentVersion = fileVersions.get(filePath) || 0;
       const newVersion = currentVersion + 1;
@@ -110,10 +117,6 @@ export class FileManager {
       console.error(`Error loading file ${filePath} into Monaco:`, error);
     }
   }
-
-  /**
-   * Update a file in Monaco when it changes
-   */
   static async updateFile(
     filePath: string,
     content: string,
@@ -122,7 +125,7 @@ export class FileManager {
   ): Promise<void> {
     const uri = monaco.Uri.file(filePath);
     const model = monaco.editor.getModel(uri);
-    
+
     if (model) {
       // Update existing model
       model.setValue(content);
@@ -153,7 +156,7 @@ export class FileManager {
   ): void {
     const uri = monaco.Uri.file(filePath);
     const model = monaco.editor.getModel(uri);
-    
+
     if (model) {
       model.dispose();
     }
@@ -178,21 +181,21 @@ export class FileManager {
       const loadPromises = projectTypeFiles.map(async (filePath) => {
         try {
           const { content } = await projectApi.openFile(filePath);
-          
+
           // Create relative path from project root
           const relativePath = filePath.replace(projectPath, '').replace(/^\//, '');
           const virtualPath = `file:///${relativePath}`;
-          
+
           monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
           console.log(`Loaded project type definitions from ${relativePath}`);
-          
+
         } catch (error) {
           console.warn(`Failed to load project type file ${filePath}:`, error);
         }
       });
 
       await Promise.allSettled(loadPromises);
-      
+
     } catch (error) {
       console.error('Error loading project type definitions:', error);
     }

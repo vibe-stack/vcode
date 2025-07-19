@@ -8,7 +8,7 @@ export class MonacoConfig {
   /**
    * Apply tsconfig.json settings to Monaco Editor
    */
-  static async applyTSConfigToMonaco(tsConfig: TSConfig | null): Promise<void> {
+  static async applyTSConfigToMonaco(tsConfig: TSConfig | null, projectPath: string): Promise<void> {
     if (!tsConfig?.compilerOptions) {
       return;
     }
@@ -83,6 +83,20 @@ export class MonacoConfig {
         // Monaco expects lib files without the "lib." prefix and ".d.ts" suffix
         return lib.replace(/^lib\./, '').replace(/\.d\.ts$/, '');
       });
+    }
+
+    // Properly configure baseUrl and paths for module resolution
+    if (options.baseUrl) {
+      monacoOptions.baseUrl = `${projectPath}${options.baseUrl.replace(/^\./, '')}`;
+      console.log(`[MonacoConfig] Set baseUrl to: ${monacoOptions.baseUrl}`);
+    }
+
+    if (options.paths) {
+      monacoOptions.paths = {};
+      for (const [key, value] of Object.entries(options.paths)) {
+        monacoOptions.paths[key] = value.map(p => `${projectPath}${p.replace(/^\./, '')}`);
+      }
+      console.log(`[MonacoConfig] Set paths to:`, monacoOptions.paths);
     }
 
     // Apply to both TypeScript and JavaScript defaults
