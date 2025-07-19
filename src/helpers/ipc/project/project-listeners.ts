@@ -441,7 +441,7 @@ export function addProjectEventListeners(window: BrowserWindow): void {
       const content = await fs.readFile(filePath, 'utf8');
       return { content, path: filePath };
     } catch (error) {
-      throw new Error(`Failed to open file: ${(error as Error).message}`);
+      // throw new Error(`Failed to open file: ${(error as Error).message}`);
     }
   });
 

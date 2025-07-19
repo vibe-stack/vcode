@@ -1,5 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as os from 'os';
+import * as crypto from 'crypto';
 import { IndexFlatIP } from 'faiss-node'; // Using Inner Product for Cosine Similarity
 import fg from 'fast-glob';
 import { pipeline, env } from '@xenova/transformers';
@@ -14,20 +16,21 @@ interface FileChunk {
   filePath: string;
   content: string;
   lineNumber: number;
-  embedding?: Float32Array; // Embedding is now stored with the chunk
+  embedding?: number[] | Float32Array; // Support both for serialization and runtime
+  modifiedTime: number;
 }
 
 interface IndexMetadata {
   chunks: FileChunk[];
   projectPath: string;
-  lastUpdated: Date;
+  lastUpdated: string; // Storing date as ISO string
   modelName: string;
 }
 
 // Singleton to manage the embedding pipeline
 class EmbeddingPipeline {
   static task = 'feature-extraction' as const;
-  static model = 'Xenova/all-MiniLM-L6-v2';
+  static model = 'Xenova/bge-small-en-v1.5';
   static instance: any = null;
 
   static async getInstance(progress_callback?: Function) {
@@ -41,18 +44,17 @@ class EmbeddingPipeline {
 export class SmartIndexService {
   private index: IndexFlatIP | null = null;
   private metadata: IndexMetadata | null = null;
-  private readonly embeddingDim = 384; // Dimension for all-MiniLM-L6-v2
+  private readonly embeddingDim = 384;
   private isIndexing = false;
   private shouldCancel = false;
 
-  // Default patterns for code files - expanded to be more comprehensive
   private readonly defaultIncludePatterns = [
     '**/*.{js,ts,jsx,tsx,mjs,cjs}',
     '**/*.{py,java,cpp,c,h,cs,php,rb,go,rs,swift,kt,scala,clj}',
     '**/*.{html,css,scss,less,json,yaml,yml,xml,md,txt,sql,sh}',
     '**/package.json', '**/README.md',
   ];
-  
+
   private readonly defaultExcludePatterns = [
     '**/node_modules/**', '**/dist/**', '**/build/**', '**/out/**',
     '**/.git/**', '**/coverage/**', '**/target/**', '**/.vite/**',
@@ -60,8 +62,68 @@ export class SmartIndexService {
     '**/vendor/**', '**/third_party/**', '**/.next/**', '**/.nuxt/**',
   ];
 
-  constructor() {
-    // Initialization is handled by the EmbeddingPipeline singleton
+  constructor() { }
+
+  private getCachePath(projectPath: string): string {
+    const projectName = path.basename(projectPath);
+    const cacheDir = path.join(os.homedir(), '.vcode', 'index-cache', `${projectName}`);
+    return path.join(cacheDir, 'index.json');
+  }
+
+  private async saveIndexToCache(): Promise<void> {
+    if (!this.metadata) return;
+
+    const cachePath = this.getCachePath(this.metadata.projectPath);
+    try {
+      await fs.mkdir(path.dirname(cachePath), { recursive: true });
+      const serializedMetadata = {
+        ...this.metadata,
+        lastUpdated: new Date().toISOString(),
+        chunks: this.metadata.chunks.map(chunk => ({
+          ...chunk,
+          embedding: chunk.embedding ? Array.from(chunk.embedding) : undefined,
+        })),
+      };
+      await fs.writeFile(cachePath, JSON.stringify(serializedMetadata, null, 2));
+      console.log(`Index saved to cache at ${cachePath}`);
+    } catch (error) {
+      console.error(`Failed to save index to cache: ${error}`);
+    }
+  }
+
+  private async loadIndexFromCache(projectPath: string): Promise<boolean> {
+    const cachePath = this.getCachePath(projectPath);
+    try {
+      const data = await fs.readFile(cachePath, 'utf-8');
+      const parsed = JSON.parse(data) as IndexMetadata;
+
+      if (parsed.modelName !== EmbeddingPipeline.model) {
+        console.log('Model has changed. Rebuilding index from scratch.');
+        await this.clearIndex(projectPath); // Clear old cache
+        return false;
+      }
+
+      this.metadata = {
+        ...parsed,
+        lastUpdated: parsed.lastUpdated,
+        chunks: parsed.chunks.map(chunk => ({
+          ...chunk,
+          embedding: chunk.embedding ? new Float32Array(chunk.embedding) : undefined,
+        })),
+      };
+
+      await this.rebuildIndexFromMetadata();
+      console.log(`Index loaded from cache. Found ${this.metadata?.chunks.length} chunks.`);
+      return true;
+    } catch (error) {
+      // Expected error when cache doesn't exist yet - this is normal for the first run
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        console.log('No cached index found. Will build from scratch.');
+      } else {
+        console.log('Could not load index from cache. Building from scratch.', error);
+      }
+      return false;
+    }
   }
 
   private async generateEmbedding(text: string): Promise<Float32Array> {
@@ -71,7 +133,6 @@ export class SmartIndexService {
   }
 
   private calculateRelevanceScore(similarity: number): number {
-    // For Inner Product (IP), a higher score is better. The raw score is meaningful.
     return Math.max(0, Math.min(1, similarity));
   }
 
@@ -105,19 +166,15 @@ export class SmartIndexService {
   ): { text: string; lineNumber: number }[] {
     const fileName = path.basename(filePath);
 
-    // For key files like package.json, treat the whole file as one chunk.
-    // This provides maximum context for questions about project setup.
     if (fileName === 'package.json' || fileName.endsWith('.lock')) {
       return [{ text: content, lineNumber: 1 }];
     }
-    
-    // For other JSONs, if they are small enough, don't chunk.
+
     if (fileName.endsWith('.json') && content.length < chunkSize * 1.5) {
-        return [{ text: content, lineNumber: 1 }];
+      return [{ text: content, lineNumber: 1 }];
     }
 
-    // Basic text chunker based on lines. A more advanced strategy could use AST for code.
-    const lines = content.split('\n');
+    const lines = content.split('');
     const chunks: { text: string; lineNumber: number }[] = [];
     let currentChunkLines: string[] = [];
     let chunkStartLine = 1;
@@ -125,36 +182,37 @@ export class SmartIndexService {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (
-        currentChunkLines.join('\n').length + line.length > chunkSize &&
+        currentChunkLines.join('').length + line.length > chunkSize &&
         currentChunkLines.length > 0
-      ) {
-        chunks.push({ text: currentChunkLines.join('\n'), lineNumber: chunkStartLine });
+        ) {
+        chunks.push({
+          text: currentChunkLines.join(''), lineNumber: chunkStartLine });
         
-        // Simple overlap: take the last few lines of the previous chunk.
         const overlapLineCount = currentChunkLines.length > 10 ? 5 : Math.floor(currentChunkLines.length / 2);
-        currentChunkLines = currentChunkLines.slice(-overlapLineCount);
-        chunkStartLine = i - overlapLineCount + 1;
-      }
+          currentChunkLines = currentChunkLines.slice(-overlapLineCount);
+          chunkStartLine = i - overlapLineCount + 1;
+        }
       
       if (currentChunkLines.length === 0) {
-        chunkStartLine = i + 1;
+          chunkStartLine = i + 1;
+        }
+        currentChunkLines.push(line);
       }
-      currentChunkLines.push(line);
-    }
 
-    if (currentChunkLines.length > 0) {
-      chunks.push({ text: currentChunkLines.join('\n'), lineNumber: chunkStartLine });
+      if (currentChunkLines.length > 0) {
+        chunks.push({
+          text: currentChunkLines.join(''), lineNumber: chunkStartLine });
     }
 
     return chunks;
-  }
+      }
 
   private safeOnProgress(
-    onProgress?: (progress: number, currentFile?: string, message?: string) => void,
-    progress?: number,
-    currentFile?: string,
-    message?: string
-  ): void {
+        onProgress?: (progress: number, currentFile?: string, message?: string) => void,
+        progress?: number,
+        currentFile?: string,
+        message?: string
+      ): void {
     if (!onProgress) return;
     try {
       onProgress(progress || 0, currentFile, message);
@@ -180,6 +238,10 @@ export class SmartIndexService {
     this.shouldCancel = true;
   }
 
+  public isIndexingInProgress(): boolean {
+    return this.isIndexing;
+  }
+
   async buildIndex(
     options: BuildIndexOptions,
     onProgress?: (progress: number, currentFile?: string, message?: string) => void,
@@ -200,93 +262,164 @@ export class SmartIndexService {
           this.safeOnProgress(onProgress, data.progress, data.file, `Downloading model...`);
         }
       });
-      
+
       if (this.shouldCancel) throw new Error('Indexing cancelled during model download.');
 
-      this.safeOnProgress(onProgress, 5, undefined, 'Finding files to index...');
-      const {
-        projectPath,
-        includePatterns = this.defaultIncludePatterns,
-        excludePatterns = this.defaultExcludePatterns,
-        chunkSize = 1024, // Increased for better context
-        chunkOverlap = 128, // Increased for better context
-      } = options;
+      const { projectPath } = options;
+      this.safeOnProgress(onProgress, 1, undefined, 'Checking for cached index...');
+      const loadedFromCache = await this.loadIndexFromCache(projectPath);
 
-      const files = await this.getFiles(projectPath, includePatterns, excludePatterns);
-      if (files.length === 0) {
-        throw new Error(`No files found for the given patterns in ${projectPath}`);
+      if (loadedFromCache) {
+        await this.performIncrementalUpdate(options, onProgress, onError);
+      } else {
+        await this.performFullBuild(options, onProgress, onError);
       }
-
-      if (this.shouldCancel) throw new Error('Indexing cancelled during file discovery.');
-
-      this.index = new IndexFlatIP(this.embeddingDim);
-      this.metadata = {
-        chunks: [],
-        projectPath,
-        lastUpdated: new Date(),
-        modelName: EmbeddingPipeline.model,
-      };
-
-      const totalFiles = files.length;
-      let processedFiles = 0;
-
-      for (const filePath of files) {
-        if (this.shouldCancel) throw new Error('Indexing cancelled.');
-        
-        const progress = 10 + (processedFiles / totalFiles) * 85;
-        this.safeOnProgress(onProgress, progress, path.basename(filePath), `Processing ${path.basename(filePath)}`);
-
-        try {
-          const content = await fs.readFile(filePath, 'utf-8');
-          if (content.trim().length === 0) continue;
-
-          const chunksData = this.chunkContent(content, filePath, chunkSize, chunkOverlap);
-          if (chunksData.length === 0) continue;
-
-          const chunks: FileChunk[] = chunksData.map(chunk => ({
-            id: `${filePath}:${chunk.lineNumber}`,
-            filePath,
-            content: chunk.text,
-            lineNumber: chunk.lineNumber,
-          }));
-
-          const embeddings = await Promise.all(chunks.map(c => this.generateEmbedding(c.content)));
-
-          for(let i = 0; i < chunks.length; i++) {
-            chunks[i].embedding = embeddings[i];
-          }
-
-          if (embeddings.length > 0) {
-            const embeddingMatrix = new Float32Array(embeddings.length * this.embeddingDim);
-            embeddings.forEach((emb, i) => embeddingMatrix.set(emb, i * this.embeddingDim));
-            this.index.add(Array.from(embeddingMatrix));
-            this.metadata.chunks.push(...chunks);
-          }
-        } catch (error) {
-          const errorMsg = `Error processing file ${filePath}: ${error}`;
-          console.error(errorMsg);
-          this.safeOnError(onError, errorMsg, filePath);
-        } finally {
-          processedFiles++;
-        }
-      }
-
-      if (this.shouldCancel) throw new Error('Indexing cancelled.');
-
-      if (this.metadata.chunks.length === 0) {
-        throw new Error('No content could be processed for indexing.');
-      }
-
-      this.metadata.lastUpdated = new Date();
-      this.safeOnProgress(onProgress, 100, undefined, `Index built successfully with ${this.metadata.chunks.length} chunks from ${totalFiles} files.`);
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error during indexing';
       this.safeOnError(onError, errorMsg);
-      // Don't re-throw, as it's handled by onError. Let the caller decide.
+      throw error; // Re-throw the error so it can be handled properly by the caller
     } finally {
       this.isIndexing = false;
       this.shouldCancel = false;
+    }
+  }
+
+  private async performFullBuild(
+    options: BuildIndexOptions,
+    onProgress?: (progress: number, currentFile?: string, message?: string) => void,
+    onError?: (error: string, filePath?: string) => void
+  ): Promise<void> {
+    this.safeOnProgress(onProgress, 5, undefined, 'Performing full index build...');
+    const {
+      projectPath,
+      includePatterns = this.defaultIncludePatterns,
+      excludePatterns = this.defaultExcludePatterns,
+      chunkSize = 1024,
+      chunkOverlap = 128,
+    } = options;
+
+    const files = await this.getFiles(projectPath, includePatterns, excludePatterns);
+    if (files.length === 0) {
+      throw new Error(`No files found for the given patterns in ${projectPath}`);
+    }
+
+    if (this.shouldCancel) throw new Error('Indexing cancelled during file discovery.');
+
+    this.index = new IndexFlatIP(this.embeddingDim);
+    this.metadata = {
+      chunks: [],
+      projectPath,
+      lastUpdated: new Date().toISOString(),
+      modelName: EmbeddingPipeline.model,
+    };
+
+    const totalFiles = files.length;
+    for (let i = 0; i < totalFiles; i++) {
+      const filePath = files[i];
+      if (this.shouldCancel) throw new Error('Indexing cancelled.');
+
+      const progress = 10 + (i / totalFiles) * 85;
+      this.safeOnProgress(onProgress, progress, path.basename(filePath), `Processing ${path.basename(filePath)}`);
+
+      await this.processFile(filePath, chunkSize, chunkOverlap, onError);
+    }
+
+    if (this.shouldCancel) throw new Error('Indexing cancelled.');
+
+    if (this.metadata.chunks.length === 0) {
+      throw new Error('No content could be processed for indexing.');
+    }
+
+    await this.rebuildIndexFromMetadata();
+    await this.saveIndexToCache();
+    this.safeOnProgress(onProgress, 100, undefined, `Index built successfully with ${this.metadata.chunks.length} chunks from ${totalFiles} files.`);
+  }
+
+  private async performIncrementalUpdate(
+    options: BuildIndexOptions,
+    onProgress?: (progress: number, currentFile?: string, message?: string) => void,
+    onError?: (error: string, filePath?: string) => void
+  ): Promise<void> {
+    if (!this.metadata) throw new Error("Cannot perform incremental update without loaded metadata.");
+
+    this.safeOnProgress(onProgress, 10, undefined, 'Scanning for file changes...');
+    const { projectPath, includePatterns = this.defaultIncludePatterns, excludePatterns = this.defaultExcludePatterns, chunkSize = 1024, chunkOverlap = 128 } = options;
+
+    const allFiles = await this.getFiles(projectPath, includePatterns, excludePatterns);
+    const indexedFiles = new Map(this.metadata.chunks.map(c => [c.filePath, c.modifiedTime]));
+    const filesToUpdate: string[] = [];
+    const newFiles: string[] = [];
+
+    for (const file of allFiles) {
+      const stats = await fs.stat(file);
+      const lastModified = stats.mtime.getTime();
+      if (!indexedFiles.has(file)) {
+        newFiles.push(file);
+      } else if (lastModified > (indexedFiles.get(file) || 0)) {
+        filesToUpdate.push(file);
+      }
+    }
+
+    const filesToRemove = Array.from(indexedFiles.keys()).filter(f => !allFiles.includes(f));
+
+    if (filesToUpdate.length === 0 && newFiles.length === 0 && filesToRemove.length === 0) {
+      this.safeOnProgress(onProgress, 100, undefined, 'Index is up to date.');
+      return;
+    }
+
+    this.safeOnProgress(onProgress, 20, undefined, `Found ${newFiles.length} new, ${filesToUpdate.length} modified, and ${filesToRemove.length} deleted files.`);
+
+    // Remove deleted files
+    for (const filePath of filesToRemove) {
+      await this.removeFile(filePath, false); // Don't save cache yet
+    }
+
+    // Update modified files
+    for (const filePath of filesToUpdate) {
+      await this.updateFile(filePath, chunkSize, chunkOverlap, onError, false); // Don't save cache yet
+    }
+
+    // Add new files
+    const totalNew = newFiles.length;
+    for (let i = 0; i < totalNew; i++) {
+      const filePath = newFiles[i];
+      if (this.shouldCancel) throw new Error('Indexing cancelled.');
+      const progress = 30 + (i / totalNew) * 65;
+      this.safeOnProgress(onProgress, progress, path.basename(filePath), `Indexing new file: ${path.basename(filePath)}`);
+      await this.processFile(filePath, chunkSize, chunkOverlap, onError);
+    }
+
+    await this.rebuildIndexFromMetadata();
+    await this.saveIndexToCache();
+    this.safeOnProgress(onProgress, 100, undefined, 'Incremental update complete.');
+  }
+
+  private async processFile(filePath: string, chunkSize: number, chunkOverlap: number, onError?: (error: string, filePath?: string) => void): Promise<void> {
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      if (content.trim().length === 0) return;
+
+      const stats = await fs.stat(filePath);
+      const chunksData = this.chunkContent(content, filePath, chunkSize, chunkOverlap);
+      if (chunksData.length === 0) return;
+
+      const embeddings = await Promise.all(chunksData.map(c => this.generateEmbedding(c.text)));
+
+      const newChunks: FileChunk[] = chunksData.map((chunk, i) => ({
+        id: `${filePath}:${chunk.lineNumber}`,
+        filePath,
+        content: chunk.text,
+        lineNumber: chunk.lineNumber,
+        embedding: Array.from(embeddings[i]),
+        modifiedTime: stats.mtime.getTime(),
+      }));
+
+      this.metadata?.chunks.push(...newChunks);
+    } catch (error) {
+      const errorMsg = `Error processing file ${filePath}: ${error}`;
+      console.error(errorMsg);
+      this.safeOnError(onError, errorMsg, filePath);
     }
   }
 
@@ -326,12 +459,11 @@ export class SmartIndexService {
   }
 
   private createSnippet(content: string, query: string, maxLength: number = 250): string {
-    // This is a simple implementation. A more advanced one could highlight matches.
     if (content.length <= maxLength) return content;
-    
+
     const queryLower = query.toLowerCase();
     const contentLower = content.toLowerCase();
-    
+
     const index = contentLower.indexOf(queryLower);
     if (index !== -1) {
       const start = Math.max(0, index - Math.floor((maxLength - query.length) / 2));
@@ -341,8 +473,7 @@ export class SmartIndexService {
       if (end < content.length) snippet = snippet + '...';
       return snippet;
     }
-    
-    // If query not found verbatim, return the beginning of the content.
+
     return content.substring(0, maxLength) + '...';
   }
 
@@ -350,7 +481,7 @@ export class SmartIndexService {
     return {
       isBuilt: !!(this.index && this.metadata),
       projectPath: this.metadata?.projectPath,
-      lastUpdated: this.metadata?.lastUpdated
+      lastUpdated: this.metadata?.lastUpdated ? new Date(this.metadata.lastUpdated) : undefined
     };
   }
 
@@ -360,22 +491,38 @@ export class SmartIndexService {
       totalFiles: new Set(this.metadata.chunks.map(c => c.filePath)).size,
       totalChunks: this.metadata.chunks.length,
       indexSize: this.index.ntotal(),
-      lastUpdated: this.metadata.lastUpdated
+      lastUpdated: new Date(this.metadata.lastUpdated)
     };
   }
 
-  async clearIndex(): Promise<void> {
+  async clearIndex(projectPath?: string): Promise<void> {
+    // Use provided projectPath or get it from metadata
+    const pathToClear = projectPath || this.metadata?.projectPath;
+    
     this.index = null;
     this.metadata = null;
+    
+    if (pathToClear) {
+      const cachePath = this.getCachePath(pathToClear);
+      try {
+        await fs.unlink(cachePath);
+        console.log('Index cache cleared.');
+      } catch (error) {
+        if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') {
+          console.error(`Failed to clear index cache: ${error}`);
+        }
+        // Ignore ENOENT errors - file doesn't exist, which is fine
+      }
+    }
   }
 
   private async rebuildIndexFromMetadata(): Promise<void> {
     if (!this.metadata) {
       throw new Error("Cannot rebuild index without metadata.");
     }
-    
+
     this.index = new IndexFlatIP(this.embeddingDim);
-    const chunksWithEmbeddings = this.metadata.chunks.filter(c => c.embedding);
+    const chunksWithEmbeddings = this.metadata.chunks.filter(c => c.embedding && c.embedding.length > 0);
 
     if (chunksWithEmbeddings.length === 0) {
       console.warn("No chunks with embeddings found to rebuild index.");
@@ -387,62 +534,44 @@ export class SmartIndexService {
       embeddingMatrix.set(chunk.embedding!, i * this.embeddingDim);
     });
 
+    // Convert Float32Array to number array for FAISS compatibility
     this.index.add(Array.from(embeddingMatrix));
-    this.metadata.lastUpdated = new Date();
+    this.metadata.lastUpdated = new Date().toISOString();
     console.log(`Index rebuilt with ${this.index.ntotal()} chunks.`);
   }
 
-  async updateFile(filePath: string): Promise<void> {
+  async updateFile(filePath: string, chunkSize: number = 1024, chunkOverlap: number = 128, onError?: (error: string, filePath?: string) => void, save: boolean = true): Promise<void> {
     if (!this.metadata || !this.index) {
       throw new Error('Index not built. Cannot update file.');
     }
-    
-    // 1. Remove existing chunks for this file from metadata
+
     this.metadata.chunks = this.metadata.chunks.filter(chunk => chunk.filePath !== filePath);
-    
-    // 2. Read new content and create new chunks with embeddings
-    try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      if (content.trim().length === 0) {
-        console.log(`File ${filePath} is empty, removing from index.`);
-      } else {
-        const chunksData = this.chunkContent(content, filePath, 1024, 128);
-        const newChunks: FileChunk[] = chunksData.map(chunk => ({
-          id: `${filePath}:${chunk.lineNumber}`,
-          filePath,
-          content: chunk.text,
-          lineNumber: chunk.lineNumber,
-        }));
 
-        if (newChunks.length > 0) {
-          const embeddings = await Promise.all(newChunks.map(c => this.generateEmbedding(c.content)));
-          newChunks.forEach((chunk, i) => chunk.embedding = embeddings[i]);
-          this.metadata.chunks.push(...newChunks);
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to read file for update ${filePath}: ${error}`);
-      // File might have been deleted, which is fine.
-    }
+    await this.processFile(filePath, chunkSize, chunkOverlap, onError);
 
-    // 3. Rebuild the entire index from the updated metadata
     await this.rebuildIndexFromMetadata();
+    if (save) await this.saveIndexToCache();
   }
 
-  async removeFile(filePath: string): Promise<void> {
+  async removeFile(filePath: string, save: boolean = true): Promise<void> {
     if (!this.metadata) {
       throw new Error('Index not built. Cannot remove file.');
     }
     const initialCount = this.metadata.chunks.length;
     this.metadata.chunks = this.metadata.chunks.filter(chunk => chunk.filePath !== filePath);
-    
+
     if (initialCount > this.metadata.chunks.length) {
       await this.rebuildIndexFromMetadata();
+      if (save) await this.saveIndexToCache();
     }
   }
 
   async rebuildIndex(options: BuildIndexOptions, onProgress?: (progress: number, currentFile?: string, message?: string) => void, onError?: (error: string, filePath?: string) => void): Promise<void> {
-    await this.clearIndex();
+    if (this.isIndexing) {
+      throw new Error('Indexing is already in progress. Cannot rebuild while indexing.');
+    }
+    
+    await this.clearIndex(options.projectPath);
     await this.buildIndex(options, onProgress, onError);
   }
 }

@@ -10,6 +10,7 @@ import {
   INDEX_UPDATE_FILE_CHANNEL,
   INDEX_REMOVE_FILE_CHANNEL,
   INDEX_CANCEL_CHANNEL,
+  INDEX_IS_INDEXING_CHANNEL,
 } from './index-channels';
 import { SmartIndexService } from './smart-index-service';
 import { BuildIndexOptions } from './index-context';
@@ -40,6 +41,11 @@ export function addIndexEventListeners() {
   ipcMain.handle(INDEX_BUILD_CHANNEL, async (event, options: BuildIndexOptions) => {
     try {
       const service = getIndexService();
+      
+      // Check if indexing is already in progress
+      if (service.isIndexingInProgress()) {
+        throw new Error('Indexing is already in progress. Please wait for the current operation to complete.');
+      }
       
       // Set up progress callback with safe sending
       const onProgress = (progress: number, currentFile?: string, message?: string) => {
@@ -129,6 +135,16 @@ export function addIndexEventListeners() {
       const service = getIndexService();
       await service.removeFile(filePath);
       return { success: true };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  // Check if indexing is in progress
+  ipcMain.handle(INDEX_IS_INDEXING_CHANNEL, async () => {
+    try {
+      const service = getIndexService();
+      return { isIndexing: service.isIndexingInProgress() };
     } catch (error) {
       throw error;
     }

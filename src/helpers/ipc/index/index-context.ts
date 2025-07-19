@@ -9,6 +9,7 @@ import {
   INDEX_UPDATE_FILE_CHANNEL,
   INDEX_REMOVE_FILE_CHANNEL,
   INDEX_CANCEL_CHANNEL,
+  INDEX_IS_INDEXING_CHANNEL,
 } from "./index-channels";
 
 export interface SearchResult {
@@ -28,8 +29,8 @@ export interface IndexStats {
 
 export interface BuildIndexOptions {
   projectPath: string;
-  excludePatterns?: string[];
   includePatterns?: string[];
+  excludePatterns?: string[];
   chunkSize?: number;
   chunkOverlap?: number;
 }
@@ -65,6 +66,10 @@ export function exposeIndexContext() {
     // Remove a file from the index
     removeFile: (filePath: string) => 
       ipcRenderer.invoke(INDEX_REMOVE_FILE_CHANNEL, { filePath }),
+    
+    // Check if indexing is in progress
+    isIndexing: () => 
+      ipcRenderer.invoke(INDEX_IS_INDEXING_CHANNEL),
     
     // Cancel ongoing indexing
     cancelIndexing: () => 

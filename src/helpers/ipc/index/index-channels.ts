@@ -8,3 +8,4 @@ export const INDEX_CLEAR_CHANNEL = "index:clear";
 export const INDEX_UPDATE_FILE_CHANNEL = "index:update-file";
 export const INDEX_REMOVE_FILE_CHANNEL = "index:remove-file";
 export const INDEX_CANCEL_CHANNEL = "index:cancel";
+export const INDEX_IS_INDEXING_CHANNEL = "index:is-indexing";

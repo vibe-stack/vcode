@@ -12,10 +12,28 @@ import {
 const inDevelopment = process.env.NODE_ENV === "development";
 
 function createWindow() {
+  const { screen } = require("electron");
+  const fs = require("fs");
+  const userDataPath = app.getPath("userData");
+  const windowStatePath = path.join(userDataPath, "window-state.json");
+
+  let windowState = null;
+  try {
+    if (fs.existsSync(windowStatePath)) {
+      windowState = JSON.parse(fs.readFileSync(windowStatePath, "utf8"));
+    }
+  } catch (e) {
+    windowState = null;
+  }
+
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
   const preload = path.join(__dirname, "preload.js");
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: windowState?.width || width,
+    height: windowState?.height || height,
+    x: windowState?.x ?? primaryDisplay.workArea.x,
+    y: windowState?.y ?? primaryDisplay.workArea.y,
     webPreferences: {
       devTools: inDevelopment,
       contextIsolation: true,
@@ -26,6 +44,17 @@ function createWindow() {
     },
     frame: true,
   });
+
+  // Save window size/position on close
+  mainWindow.on("close", () => {
+    const bounds = mainWindow.getBounds();
+    try {
+      fs.writeFileSync(windowStatePath, JSON.stringify(bounds));
+    } catch (e) {
+      // ignore
+    }
+  });
+
   registerListeners(mainWindow);
 
   // Let the renderer process keymap system handle Cmd+W entirely
