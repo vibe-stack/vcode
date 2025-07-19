@@ -79,19 +79,23 @@ class TypeScriptProjectService {
         // Load project files for better intellisense
         await this.loadProjectFiles(projectPath);
         
-        // Add common type definitions
-        await this.addCommonTypeDefinitions();
+        // Load TypeScript lib files based on tsconfig
+        await this.loadTypeScriptLibFiles();
         
-        // Add basic type definitions as fallback
-        await this.addBasicTypeDefinitions();
+        // Load actual type definitions from dependencies
+        await this.loadProjectDependencyTypes();
+        
+        // Load project's own type definitions
+        await this.loadProjectTypeDefinitions();
         
         this.isInitialized = true;
         console.log('TypeScript project initialized successfully');
       } else {
         console.log('No tsconfig.json found, using default TypeScript settings');
-        // Still add common type definitions even without tsconfig
-        await this.addCommonTypeDefinitions();
-        await this.addBasicTypeDefinitions();
+        // Still load type definitions even without tsconfig
+        await this.loadTypeScriptLibFiles();
+        await this.loadProjectDependencyTypes();
+        await this.loadProjectTypeDefinitions();
         this.isInitialized = false;
       }
     } catch (error) {
@@ -233,6 +237,9 @@ class TypeScriptProjectService {
     // Apply to both TypeScript and JavaScript defaults
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions(monacoOptions);
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions(monacoOptions);
+
+    // Setup path mappings
+    this.setupPathMapping();
 
     console.log('Applied tsconfig compiler options to Monaco:', monacoOptions);
     console.log('Original tsconfig options:', options);
@@ -387,167 +394,291 @@ class TypeScriptProjectService {
   }
 
   /**
-   * Load actual type definitions from the project's dependencies
+   * Load type definitions from project dependencies by properly parsing package.json and node_modules
    */
-  private async addCommonTypeDefinitions(): Promise<void> {
-    try {
-      // Load type definitions from node_modules
-      await this.loadNodeModulesTypeDefinitions();
-      
-      // Load type definitions from project's own .d.ts files
-      await this.loadProjectTypeDefinitions();
-      
-      console.log('Loaded actual type definitions from project');
-    } catch (error) {
-      console.error('Error loading type definitions:', error);
-    }
-  }
-
-  /**
-   * Load type definitions from node_modules
-   */
-  private async loadNodeModulesTypeDefinitions(): Promise<void> {
+  private async loadProjectDependencyTypes(): Promise<void> {
     if (!this.currentProject) return;
 
     try {
-      const nodeModulesPath = `${this.currentProject}/node_modules`;
+      console.log('Loading project dependency types...');
       
-      // Check if node_modules exists
-      try {
-        await projectApi.openFile(`${nodeModulesPath}/package.json`);
-      } catch {
-        console.log('No node_modules found, skipping type definitions loading');
+      // Parse package.json to get actual dependencies
+      const packageJsonPath = `${this.currentProject}/package.json`;
+      const packageJson = await this.parsePackageJson(packageJsonPath);
+      
+      if (!packageJson) {
+        console.log('No package.json found, skipping dependency type loading');
         return;
       }
 
-      // Load package.json to discover dependencies
-      const packageJsonPath = `${this.currentProject}/package.json`;
-      try {
-        const { content } = await projectApi.openFile(packageJsonPath);
-        const packageJson = JSON.parse(content);
+      // Get all dependencies
+      const allDependencies = this.getAllDependencies(packageJson);
+      console.log(`Found ${Object.keys(allDependencies).length} dependencies to analyze for types`);
+
+      // Process dependencies in batches to avoid overwhelming the system
+      const batchSize = 10;
+      const dependencyNames = Object.keys(allDependencies);
+      
+      for (let i = 0; i < dependencyNames.length; i += batchSize) {
+        const batch = dependencyNames.slice(i, i + batchSize);
+        const batchPromises = batch.map(depName => this.loadDependencyTypes(depName, allDependencies[depName]));
+        await Promise.allSettled(batchPromises);
         
-        // Get all dependencies (dependencies, devDependencies, peerDependencies)
-        const allDeps = {
-          ...packageJson.dependencies,
-          ...packageJson.devDependencies,
-          ...packageJson.peerDependencies
-        };
-
-        // Load type definitions for each dependency
-        const typeLoadPromises = Object.keys(allDeps).map(async (depName) => {
-          await this.loadPackageTypeDefinitions(depName);
-        });
-
-        // Also load common @types packages
-        const commonTypes = ['@types/node', '@types/react', '@types/react-dom'];
-        for (const typePkg of commonTypes) {
-          if (!allDeps[typePkg]) {
-            typeLoadPromises.push(this.loadPackageTypeDefinitions(typePkg));
-          }
+        // Small delay between batches to prevent overwhelming
+        if (i + batchSize < dependencyNames.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-
-        await Promise.allSettled(typeLoadPromises);
-        
-      } catch (error) {
-        console.log('Could not read package.json, loading common types only');
-        // Fallback: try to load common type packages
-        const commonTypes = ['@types/node', '@types/react', '@types/react-dom'];
-        const fallbackPromises = commonTypes.map(pkg => this.loadPackageTypeDefinitions(pkg));
-        await Promise.allSettled(fallbackPromises);
       }
 
+      console.log('Finished loading dependency types');
     } catch (error) {
-      console.error('Error loading node_modules type definitions:', error);
+      console.error('Error loading project dependency types:', error);
     }
   }
 
   /**
-   * Load type definitions for a specific package
+   * Parse package.json file
    */
-  private async loadPackageTypeDefinitions(packageName: string): Promise<void> {
+  private async parsePackageJson(packageJsonPath: string): Promise<any | null> {
+    try {
+      const { content } = await projectApi.openFile(packageJsonPath);
+      return JSON.parse(content);
+    } catch (error) {
+      console.log('Could not parse package.json:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Extract all dependencies from package.json
+   */
+  private getAllDependencies(packageJson: any): Record<string, string> {
+    const dependencies = packageJson.dependencies || {};
+    const devDependencies = packageJson.devDependencies || {};
+    const peerDependencies = packageJson.peerDependencies || {};
+    const optionalDependencies = packageJson.optionalDependencies || {};
+
+    return {
+      ...dependencies,
+      ...devDependencies,
+      ...peerDependencies,
+      ...optionalDependencies
+    };
+  }
+
+  /**
+   * Load types for a specific dependency
+   */
+  private async loadDependencyTypes(dependencyName: string, version: string): Promise<void> {
     if (!this.currentProject) return;
 
     try {
-      const packagePath = `${this.currentProject}/node_modules/${packageName}`;
+      const depPath = `${this.currentProject}/node_modules/${dependencyName}`;
       
-      // Try to find the main .d.ts file
-      const possibleIndexFiles = [
-        `${packagePath}/index.d.ts`,
-        `${packagePath}/lib/index.d.ts`,
-        `${packagePath}/dist/index.d.ts`,
-        `${packagePath}/types/index.d.ts`,
-        `${packagePath}/typings/index.d.ts`
-      ];
-
-      // Check package.json for types field
-      try {
-        const { content: pkgContent } = await projectApi.openFile(`${packagePath}/package.json`);
-        const pkgJson = JSON.parse(pkgContent);
-        
-        if (pkgJson.types) {
-          possibleIndexFiles.unshift(`${packagePath}/${pkgJson.types}`);
-        }
-        if (pkgJson.typings) {
-          possibleIndexFiles.unshift(`${packagePath}/${pkgJson.typings}`);
-        }
-      } catch {
-        // Package.json not found or invalid, continue with default paths
+      // Check if the package exists
+      const depPackageJson = await this.parsePackageJson(`${depPath}/package.json`);
+      if (!depPackageJson) {
+        console.log(`Package ${dependencyName} not found in node_modules`);
+        return;
       }
 
-      // Try to load the main type definition file
-      for (const indexFile of possibleIndexFiles) {
-        try {
-          const { content } = await projectApi.openFile(indexFile);
-          
-          // Create a virtual file path for Monaco
-          const virtualPath = `file:///node_modules/${packageName}/index.d.ts`;
-          
-          monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
-          console.log(`Loaded types for ${packageName} from ${indexFile}`);
-          
-          // Try to load additional .d.ts files from the package
-          await this.loadAllPackageTypeFiles(packagePath, packageName);
-          break;
-          
-        } catch {
-          // Try next possible location
-          continue;
-        }
+      // Strategy 1: Check if the package has its own type definitions
+      const hasBuiltInTypes = await this.loadBuiltInTypes(dependencyName, depPath, depPackageJson);
+      
+      if (!hasBuiltInTypes) {
+        // Strategy 2: Look for corresponding @types package
+        await this.loadCorrespondingTypesPackage(dependencyName);
+      }
+
+      // Strategy 3: For scoped packages, also check @types equivalents
+      if (dependencyName.startsWith('@')) {
+        await this.loadScopedTypesPackage(dependencyName);
       }
 
     } catch (error) {
-      // Package not found or no types available
-      console.log(`No type definitions found for ${packageName}`);
+      console.log(`Error loading types for ${dependencyName}:`, error);
     }
   }
 
   /**
-   * Load all .d.ts files from a package
+   * Load built-in type definitions from a package
    */
-  private async loadAllPackageTypeFiles(packagePath: string, packageName: string): Promise<void> {
+  private async loadBuiltInTypes(packageName: string, packagePath: string, packageJson: any): Promise<boolean> {
     try {
-      // Search for all .d.ts files in the package
-      const typeFiles = await projectApi.searchFiles('**/*.d.ts', packagePath, {
-        excludePatterns: ['**/node_modules/**', '**/test/**', '**/tests/**', '**/spec/**']
+      // Check package.json for type definition entry points
+      const typeEntryPoints = [
+        packageJson.types,
+        packageJson.typings,
+        packageJson.main?.replace(/\.js$/, '.d.ts'),
+        'index.d.ts',
+        'lib/index.d.ts',
+        'dist/index.d.ts',
+        'types/index.d.ts'
+      ].filter(Boolean);
+
+      let foundTypes = false;
+
+      for (const entryPoint of typeEntryPoints) {
+        const fullPath = entryPoint.startsWith('/') ? 
+          `${packagePath}${entryPoint}` : 
+          `${packagePath}/${entryPoint}`;
+
+        try {
+          const { content } = await projectApi.openFile(fullPath);
+          
+          // Create virtual file path for Monaco
+          const virtualPath = `file:///node_modules/${packageName}/${entryPoint}`;
+          
+          monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
+          console.log(`Loaded built-in types for ${packageName} from ${entryPoint}`);
+          
+          foundTypes = true;
+          
+          // Also load related .d.ts files in the same directory
+          await this.loadRelatedTypeFiles(packagePath, packageName, entryPoint);
+          break;
+          
+        } catch (error) {
+          // Continue to next entry point
+        }
+      }
+
+      // If we found a main type file, also scan for additional .d.ts files
+      if (foundTypes) {
+        await this.loadAllPackageTypeFiles(packagePath, packageName);
+      }
+
+      return foundTypes;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Load type definitions from corresponding @types package
+   */
+  private async loadCorrespondingTypesPackage(packageName: string): Promise<void> {
+    const typesPackageName = `@types/${packageName.replace('@', '').replace('/', '__')}`;
+    const typesPath = `${this.currentProject}/node_modules/${typesPackageName}`;
+
+    try {
+      const typesPackageJson = await this.parsePackageJson(`${typesPath}/package.json`);
+      if (typesPackageJson) {
+        await this.loadBuiltInTypes(typesPackageName, typesPath, typesPackageJson);
+      }
+    } catch (error) {
+      // @types package doesn't exist, which is fine
+    }
+  }
+
+  /**
+   * Load type definitions for scoped packages
+   */
+  private async loadScopedTypesPackage(scopedPackageName: string): Promise<void> {
+    // For @scope/package-name, look for @types/scope__package-name
+    const normalizedName = scopedPackageName
+      .substring(1) // Remove leading @
+      .replace('/', '__');
+    
+    await this.loadCorrespondingTypesPackage(normalizedName);
+  }
+
+  /**
+   * Load related type files in the same directory as the main type file
+   */
+  private async loadRelatedTypeFiles(packagePath: string, packageName: string, mainTypeFile: string): Promise<void> {
+    try {
+      const directory = mainTypeFile.includes('/') ? 
+        mainTypeFile.substring(0, mainTypeFile.lastIndexOf('/')) : '';
+      
+      const searchPath = directory ? `${packagePath}/${directory}` : packagePath;
+      
+      // Find all .d.ts files in the same directory
+      const typeFiles = await projectApi.searchFiles('*.d.ts', searchPath, {
+        excludePatterns: ['node_modules/**']
       });
 
-      // Load each type file
-      const loadPromises = typeFiles.slice(0, 20).map(async (filePath) => {
+      const loadPromises = typeFiles.slice(0, 50).map(async (filePath) => {
         try {
+          if (filePath === `${packagePath}/${mainTypeFile}`) {
+            return; // Skip the main file we already loaded
+          }
+
           const { content } = await projectApi.openFile(filePath);
-          
-          // Create relative path from package root
-          const relativePath = filePath.replace(packagePath, '').replace(/^\//, '');
+          const relativePath = filePath.replace(`${packagePath}/`, '');
           const virtualPath = `file:///node_modules/${packageName}/${relativePath}`;
           
           monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
-          
         } catch (error) {
-          console.warn(`Failed to load type file ${filePath}:`, error);
+          // Ignore individual file errors
         }
       });
 
       await Promise.allSettled(loadPromises);
+    } catch (error) {
+      // Ignore directory scanning errors
+    }
+  }
+
+  /**
+   * Load all .d.ts files from a package intelligently
+   */
+  private async loadAllPackageTypeFiles(packagePath: string, packageName: string): Promise<void> {
+    try {
+      // Search for all .d.ts files in the package, prioritizing common directories
+      const priorityPatterns = [
+        '*.d.ts',           // Root level
+        'lib/*.d.ts',       // Lib directory
+        'dist/*.d.ts',      // Dist directory
+        'types/*.d.ts',     // Types directory
+        'src/*.d.ts',       // Source directory
+        '**/*.d.ts'         // Everything else
+      ];
+
+      const loadedFiles = new Set<string>();
+      
+      for (const pattern of priorityPatterns) {
+        try {
+          const typeFiles = await projectApi.searchFiles(pattern, packagePath, {
+            excludePatterns: ['**/node_modules/**', '**/test/**', '**/tests/**', '**/spec/**', '**/__tests__/**']
+          });
+
+          // Limit the number of files per pattern to avoid overwhelming Monaco
+          const filesToLoad = typeFiles.slice(0, 20).filter(filePath => !loadedFiles.has(filePath));
+          
+          const loadPromises = filesToLoad.map(async (filePath) => {
+            try {
+              if (loadedFiles.has(filePath)) return;
+              
+              const { content } = await projectApi.openFile(filePath);
+              
+              // Create relative path from package root
+              const relativePath = filePath.replace(packagePath, '').replace(/^\//, '');
+              const virtualPath = `file:///node_modules/${packageName}/${relativePath}`;
+              
+              monaco.languages.typescript.typescriptDefaults.addExtraLib(content, virtualPath);
+              loadedFiles.add(filePath);
+              
+            } catch (error) {
+              console.warn(`Failed to load type file ${filePath}:`, error);
+            }
+          });
+
+          await Promise.allSettled(loadPromises);
+          
+          // Break early if we've loaded a reasonable number of files
+          if (loadedFiles.size >= 50) {
+            break;
+          }
+          
+        } catch (error) {
+          console.warn(`Failed to search for type files with pattern ${pattern} in ${packagePath}:`, error);
+        }
+      }
+      
+      if (loadedFiles.size > 0) {
+        console.log(`Loaded ${loadedFiles.size} type files for ${packageName}`);
+      }
       
     } catch (error) {
       console.warn(`Failed to search for type files in ${packagePath}:`, error);
@@ -590,6 +721,26 @@ class TypeScriptProjectService {
     } catch (error) {
       console.error('Error loading project type definitions:', error);
     }
+  }
+
+  /**
+   * Setup path mapping for module resolution based on tsconfig paths
+   */
+  private setupPathMapping(): void {
+    const compilerOptions = this.tsConfig?.compilerOptions;
+    if (!compilerOptions?.paths || !compilerOptions?.baseUrl) {
+      return;
+    }
+
+    console.log('Setting up path mapping for:', compilerOptions.paths);
+    
+    // Monaco doesn't directly support path mapping, but we can create virtual files
+    // for the path mappings that point to the actual files
+    Object.entries(compilerOptions.paths).forEach(([pattern, mappings]) => {
+      console.log(`Path mapping: ${pattern} -> ${mappings.join(', ')}`);
+      // This would require more sophisticated handling to create virtual imports
+      // For now, we log the mappings so developers know they exist
+    });
   }
 
   /**
@@ -710,69 +861,37 @@ class TypeScriptProjectService {
   }
 
   /**
-   * Add basic type definitions for common scenarios when full project loading fails
+   * Load TypeScript lib files that match the project's target configuration
    */
-  private async addBasicTypeDefinitions(): Promise<void> {
+  private async loadTypeScriptLibFiles(): Promise<void> {
     try {
-      // Basic React types for JSX support
-      const basicReactTypes = `
-declare namespace React {
-  interface Component<P = {}, S = {}> {}
-  interface FunctionComponent<P = {}> {
-    (props: P): JSX.Element | null;
-  }
-  type FC<P = {}> = FunctionComponent<P>;
-  interface ReactElement<P = any> {}
-}
+      const compilerOptions = this.tsConfig?.compilerOptions;
+      const libsToLoad = compilerOptions?.lib || ['DOM', 'ES2022'];
 
-declare global {
-  namespace JSX {
-    interface Element extends React.ReactElement<any> {}
-    interface ElementClass extends React.Component<any> {}
-    interface IntrinsicElements {
-      [elemName: string]: any;
-    }
-  }
-}
+      console.log('Loading TypeScript lib files:', libsToLoad);
 
-declare module 'react' {
-  export = React;
-}
-`;
-
-      // Add basic React types
-      monaco.languages.typescript.typescriptDefaults.addExtraLib(
-        basicReactTypes,
-        'file:///react-basic.d.ts'
-      );
-
-      // Basic DOM and global types
-      const basicGlobalTypes = `
-declare const console: {
-  log(...args: any[]): void;
-  error(...args: any[]): void;
-  warn(...args: any[]): void;
-  info(...args: any[]): void;
-};
-
-declare const window: Window & typeof globalThis;
-declare const document: Document;
-declare const process: any;
-declare const require: any;
-declare const module: any;
-declare const exports: any;
-declare const __dirname: string;
-declare const __filename: string;
-`;
-
-      monaco.languages.typescript.typescriptDefaults.addExtraLib(
-        basicGlobalTypes,
-        'file:///globals-basic.d.ts'
-      );
-
-      console.log('Added basic type definitions');
+      // Map lib names to their actual files in node_modules/typescript/lib
+      const typescriptLibPath = `${this.currentProject}/node_modules/typescript/lib`;
+      
+      for (const lib of libsToLoad) {
+        try {
+          const libFileName = `lib.${lib.toLowerCase()}.d.ts`;
+          const libFilePath = `${typescriptLibPath}/${libFileName}`;
+          
+          const { content } = await projectApi.openFile(libFilePath);
+          
+          monaco.languages.typescript.typescriptDefaults.addExtraLib(
+            content,
+            `file:///node_modules/typescript/lib/${libFileName}`
+          );
+          
+          console.log(`Loaded TypeScript lib: ${libFileName}`);
+        } catch (error) {
+          console.warn(`Could not load TypeScript lib ${lib}:`, error);
+        }
+      }
     } catch (error) {
-      console.error('Error adding basic type definitions:', error);
+      console.error('Error loading TypeScript lib files:', error);
     }
   }
 }
