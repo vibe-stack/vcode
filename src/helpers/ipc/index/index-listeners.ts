@@ -9,6 +9,7 @@ import {
   INDEX_CLEAR_CHANNEL,
   INDEX_UPDATE_FILE_CHANNEL,
   INDEX_REMOVE_FILE_CHANNEL,
+  INDEX_CANCEL_CHANNEL,
 } from './index-channels';
 import { SmartIndexService } from './smart-index-service';
 import { BuildIndexOptions } from './index-context';
@@ -22,19 +23,31 @@ function getIndexService(): SmartIndexService {
   return indexService;
 }
 
+// Helper function to safely send to webContents
+function safeSend(webContents: WebContents, channel: string, data: any): void {
+  try {
+    if (!webContents.isDestroyed()) {
+      webContents.send(channel, data);
+    }
+  } catch (error) {
+    // Silently ignore errors when sending to destroyed webContents
+    console.warn(`Failed to send on channel ${channel}:`, error instanceof Error ? error.message : 'Unknown error');
+  }
+}
+
 export function addIndexEventListeners() {
   // Build index
   ipcMain.handle(INDEX_BUILD_CHANNEL, async (event, options: BuildIndexOptions) => {
     try {
       const service = getIndexService();
       
-      // Set up progress callback
+      // Set up progress callback with safe sending
       const onProgress = (progress: number, currentFile?: string, message?: string) => {
-        event.sender.send(INDEX_PROGRESS_CHANNEL, { progress, currentFile, message });
+        safeSend(event.sender, INDEX_PROGRESS_CHANNEL, { progress, currentFile, message });
       };
       
       const onError = (error: string, filePath?: string) => {
-        event.sender.send(INDEX_ERROR_CHANNEL, { error, filePath });
+        safeSend(event.sender, INDEX_ERROR_CHANNEL, { error, filePath });
       };
       
       await service.buildIndex(options, onProgress, onError);
@@ -42,7 +55,18 @@ export function addIndexEventListeners() {
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      event.sender.send(INDEX_ERROR_CHANNEL, { error: errorMessage });
+      safeSend(event.sender, INDEX_ERROR_CHANNEL, { error: errorMessage });
+      throw error;
+    }
+  });
+
+  // Cancel indexing
+  ipcMain.handle(INDEX_CANCEL_CHANNEL, async () => {
+    try {
+      const service = getIndexService();
+      service.cancelIndexing();
+      return { success: true };
+    } catch (error) {
       throw error;
     }
   });

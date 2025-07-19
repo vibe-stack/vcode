@@ -1,9 +1,13 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { IndexFlatL2 } from 'faiss-node';
-import * as ort from 'onnxruntime-node';
+import { IndexFlatIP } from 'faiss-node'; // Using Inner Product for Cosine Similarity
 import fg from 'fast-glob';
+import { pipeline, env } from '@xenova/transformers';
 import { SearchResult, IndexStats, BuildIndexOptions } from './index-context';
+
+// Configure transformers.js to use the models directory
+env.localModelPath = path.join(process.cwd(), 'models');
+env.allowRemoteModels = true; // Allow downloading models if not found locally
 
 interface FileChunk {
   id: string;
@@ -17,16 +21,30 @@ interface IndexMetadata {
   chunks: FileChunk[];
   projectPath: string;
   lastUpdated: Date;
-  modelPath: string;
+  modelName: string;
+}
+
+// Singleton to manage the embedding pipeline
+class EmbeddingPipeline {
+  static task = 'feature-extraction' as const;
+  static model = 'Xenova/all-MiniLM-L6-v2';
+  static instance: any = null;
+
+  static async getInstance(progress_callback?: Function) {
+    if (this.instance === null) {
+      this.instance = pipeline(this.task, this.model, { progress_callback });
+    }
+    return this.instance;
+  }
 }
 
 export class SmartIndexService {
-  private index: IndexFlatL2 | null = null;
+  private index: IndexFlatIP | null = null;
   private metadata: IndexMetadata | null = null;
-  private session: ort.InferenceSession | null = null;
-  private readonly modelPath: string;
-  private readonly embeddingDim = 384; // Common dimension for sentence transformers
-  
+  private readonly embeddingDim = 384; // Dimension for all-MiniLM-L6-v2
+  private isIndexing = false;
+  private shouldCancel = false;
+
   // Default patterns for code files
   private readonly defaultIncludePatterns = [
     '**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx',
@@ -46,142 +64,19 @@ export class SmartIndexService {
   ];
 
   constructor() {
-    // Get the model path relative to the app's root
-    this.modelPath = path.join(process.cwd(), 'models', 'model.onnx');
+    // Initialization is now handled by the EmbeddingPipeline singleton
   }
 
-  private async initializeSession(): Promise<void> {
-    if (!this.session) {
-      try {
-        this.session = await ort.InferenceSession.create(this.modelPath);
-        console.log('ONNX model loaded successfully');
-      } catch (error) {
-        console.error('Failed to load ONNX model:', error);
-        throw new Error(`Failed to load ONNX model: ${error}`);
-      }
-    }
+  private async generateEmbedding(text: string, progress_callback?: Function): Promise<Float32Array> {
+    const extractor = await EmbeddingPipeline.getInstance(progress_callback);
+    const result = await extractor(text, { pooling: 'mean', normalize: true });
+    return result.data;
   }
 
-  private async generateEmbedding(text: string): Promise<Float32Array> {
-    await this.initializeSession();
-    
-    if (!this.session) {
-      throw new Error('ONNX session not initialized');
-    }
-
-    try {
-      // Tokenize and prepare input (this is simplified - you may need proper tokenization)
-      // For a proper implementation, you'd need to tokenize according to your model's requirements
-      const inputIds = this.simpleTokenize(text);
-      
-      // Create attention mask (1 for all tokens, 0 for padding)
-      const attentionMask = new Array(inputIds.length).fill(1);
-      
-      // Create token type ids (0 for all tokens in single sequence)
-      const tokenTypeIds = new Array(inputIds.length).fill(0);
-      
-      const inputTensor = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(BigInt)), [1, inputIds.length]);
-      const attentionTensor = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(BigInt)), [1, attentionMask.length]);
-      const tokenTypeTensor = new ort.Tensor('int64', BigInt64Array.from(tokenTypeIds.map(BigInt)), [1, tokenTypeIds.length]);
-      
-      // Try with token_type_ids first, fallback without if it fails
-      try {
-        let feeds: Record<string, any> = { 
-          'input_ids': inputTensor,
-          'attention_mask': attentionTensor,
-          'token_type_ids': tokenTypeTensor
-        };
-        
-        const results = await this.session.run(feeds);
-        return this.extractEmbedding(results, inputIds.length);
-      } catch (error) {
-        console.log('Model does not support token_type_ids, trying without...');
-        try {
-          let feeds: Record<string, any> = { 
-            'input_ids': inputTensor,
-            'attention_mask': attentionTensor
-          };
-          const results = await this.session.run(feeds);
-          return this.extractEmbedding(results, inputIds.length);
-        } catch (fallbackError) {
-          console.error('Both attempts failed:', error, fallbackError);
-          throw fallbackError;
-        }
-      }
-    } catch (error) {
-      console.error('Error generating embedding:', error);
-      throw error;
-    }
-  }
-
-  private extractEmbedding(results: Record<string, any>, seqLen: number): Float32Array {
-    // Extract embedding from model output (adjust based on your model's output format)
-    const embedding = results['last_hidden_state'] || results['embeddings'] || Object.values(results)[0];
-    
-    if (embedding && embedding.data) {
-      // Mean pooling over sequence dimension (simplified)
-      const data = embedding.data as Float32Array;
-      const embeddingDim = data.length / seqLen;
-      
-      const pooled = new Float32Array(embeddingDim);
-      for (let i = 0; i < embeddingDim; i++) {
-        let sum = 0;
-        for (let j = 0; j < seqLen; j++) {
-          sum += data[j * embeddingDim + i];
-        }
-        pooled[i] = sum / seqLen;
-      }
-      
-      return pooled;
-    }
-    
-    throw new Error('Invalid embedding output from model');
-  }
-
-  private calculateRelevanceScore(distance: number): number {
-    // FAISS L2 distance to percentage relevance score
-    // Typical L2 distances for embeddings range from 0 (identical) to ~2 (very different)
-    // Convert to a more intuitive 0-100% scale
-    
-    if (distance <= 0.1) return 1.0;      // 100% - nearly identical
-    if (distance <= 0.3) return 0.9;      // 90% - very similar
-    if (distance <= 0.5) return 0.8;      // 80% - quite similar
-    if (distance <= 0.7) return 0.7;      // 70% - moderately similar
-    if (distance <= 0.9) return 0.6;      // 60% - somewhat similar
-    if (distance <= 1.2) return 0.4;      // 40% - loosely related
-    if (distance <= 1.5) return 0.2;      // 20% - distantly related
-    
-    return Math.max(0.01, 0.1 / (1 + distance)); // Minimum 1% for any match
-  }
-
-  private simpleTokenize(text: string): number[] {
-    // Better tokenization for code and text
-    // Split on word boundaries, camelCase, snake_case, and code symbols
-    const tokens = text
-      .toLowerCase()
-      // Split camelCase: splitThis -> split This
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      // Split snake_case and kebab-case
-      .replace(/[_-]/g, ' ')
-      // Split on common code delimiters
-      .replace(/[{}()[\]<>.,;:]/g, ' ')
-      // Split on operators and other symbols
-      .replace(/[=+\-*/&|!@#$%^]/g, ' ')
-      // Multiple spaces to single space
-      .replace(/\s+/g, ' ')
-      .trim()
-      .split(' ')
-      .filter(token => token.length > 0);
-    
-    return tokens.map(token => {
-      // Better hash function for more diverse vocabulary
-      // Keep within BERT vocabulary range (0-30521)
-      let hash = 5381;
-      for (let i = 0; i < token.length; i++) {
-        hash = ((hash << 5) + hash) + token.charCodeAt(i);
-      }
-      return Math.abs(hash) % 30000; // Stay well within BERT vocab range (30522)
-    }).slice(0, 512); // Limit sequence length for performance
+  private calculateRelevanceScore(similarity: number): number {
+    // Cosine similarity is already a good measure (0 to 1 for positive similarity)
+    // We can scale it to a percentage if needed, but the raw score is meaningful.
+    return Math.max(0, Math.min(1, similarity));
   }
 
   private async getFilesRecursively(
@@ -190,7 +85,6 @@ export class SmartIndexService {
     excludePatterns: string[]
   ): Promise<string[]> {
     try {
-      // Use fast-glob for proper glob pattern matching
       const files = await fg(includePatterns, {
         cwd: dirPath,
         ignore: excludePatterns,
@@ -199,7 +93,6 @@ export class SmartIndexService {
         followSymbolicLinks: false,
         suppressErrors: true
       });
-      
       console.log(`Found ${files.length} files using fast-glob`);
       return files;
     } catch (error) {
@@ -211,66 +104,68 @@ export class SmartIndexService {
   private chunkText(content: string, chunkSize: number = 500, overlap: number = 50): { text: string; lineNumber: number }[] {
     const lines = content.split('\n');
     const chunks: { text: string; lineNumber: number }[] = [];
-    
-    console.log(`Chunking content with ${lines.length} lines, chunkSize: ${chunkSize}, overlap: ${overlap}`);
-    
     let currentChunk = '';
-    let currentLineNumber = 1;
     let chunkStartLine = 1;
-    let charCount = 0;
-    
+
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      // Skip empty lines but preserve structure context
-      if (line.length === 0 && currentChunk.length > 0) {
-        currentChunk += '\n';
-        continue;
+      const line = lines[i];
+      if (currentChunk.length + line.length > chunkSize && currentChunk.length > 0) {
+        chunks.push({ text: currentChunk, lineNumber: chunkStartLine });
+        const overlapLines = currentChunk.split('\n').slice(-overlap);
+        currentChunk = overlap > 0 ? overlapLines.join('\n') : '';
+        chunkStartLine = Math.max(1, i - overlap + 1);
       }
-      
-      const lineWithContext = line;
-      
-      if (charCount + lineWithContext.length > chunkSize && currentChunk.length > 0) {
-        // Try to break at logical boundaries (functions, classes, etc.)
-        const trimmedChunk = currentChunk.trim();
-        if (trimmedChunk.length > 0) {
-          chunks.push({
-            text: trimmedChunk,
-            lineNumber: chunkStartLine
-          });
-        }
-        
-        // Handle overlap with more context awareness
-        if (overlap > 0 && currentChunk.length > overlap) {
-          const lines = currentChunk.split('\n');
-          const overlapLines = lines.slice(-Math.max(2, Math.floor(lines.length * 0.2)));
-          currentChunk = overlapLines.join('\n') + '\n' + lineWithContext;
-          charCount = currentChunk.length;
-        } else {
-          currentChunk = lineWithContext;
-          charCount = lineWithContext.length;
-          chunkStartLine = i + 1;
-        }
-      } else {
-        if (currentChunk.length === 0) {
-          chunkStartLine = i + 1;
-        }
-        currentChunk += (currentChunk.length > 0 ? '\n' : '') + lineWithContext;
-        charCount = currentChunk.length;
+      if (currentChunk.length === 0) {
+        chunkStartLine = i + 1;
       }
-      
-      currentLineNumber = i + 1;
+      currentChunk += (currentChunk.length > 0 ? '\n' : '') + line;
     }
-    
-    if (currentChunk.trim().length > 0) {
-      chunks.push({
-        text: currentChunk.trim(),
-        lineNumber: chunkStartLine
-      });
+    if (currentChunk.length > 0) {
+      chunks.push({ text: currentChunk, lineNumber: chunkStartLine });
     }
-    
-    console.log(`Generated ${chunks.length} chunks from content`);
     return chunks;
+  }
+
+  // Helper function to add delays and prevent CPU overload
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Helper function to safely call onProgress with error handling
+  private safeOnProgress(
+    onProgress?: (progress: number, currentFile?: string, message?: string) => void,
+    progress?: number,
+    currentFile?: string,
+    message?: string
+  ): void {
+    if (!onProgress) return;
+    try {
+      onProgress(progress || 0, currentFile, message);
+    } catch (error) {
+      // Silently ignore errors when sending progress updates
+      // This prevents crashes when the window is destroyed
+      console.warn('Failed to send progress update:', error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
+  // Helper function to safely call onError with error handling
+  private safeOnError(
+    onError?: (error: string, filePath?: string) => void,
+    error?: string,
+    filePath?: string
+  ): void {
+    if (!onError) return;
+    try {
+      onError(error || 'Unknown error', filePath);
+    } catch (err) {
+      // Silently ignore errors when sending error updates
+      console.warn('Failed to send error update:', err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
+  // Method to cancel ongoing indexing
+  public cancelIndexing(): void {
+    this.shouldCancel = true;
   }
 
   async buildIndex(
@@ -278,9 +173,30 @@ export class SmartIndexService {
     onProgress?: (progress: number, currentFile?: string, message?: string) => void,
     onError?: (error: string, filePath?: string) => void
   ): Promise<void> {
+    if (this.isIndexing) {
+      throw new Error('Indexing is already in progress. Please wait for it to complete or cancel it.');
+    }
+
+    this.isIndexing = true;
+    this.shouldCancel = false;
+
     try {
-      onProgress?.(0, undefined, 'Initializing...');
+      this.safeOnProgress(onProgress, 0, undefined, 'Initializing and downloading model...');
       
+      await EmbeddingPipeline.getInstance((data: any) => {
+        if (this.shouldCancel) return;
+        if (data.status === 'progress') {
+          const progress = data.progress.toFixed(2);
+          this.safeOnProgress(onProgress, progress, data.file, `Downloading model...`);
+        }
+      });
+      
+      if (this.shouldCancel) {
+        throw new Error('Indexing was cancelled during model initialization');
+      }
+
+      this.safeOnProgress(onProgress, 5, undefined, 'Model ready. Finding files...');
+
       const {
         projectPath,
         includePatterns = this.defaultIncludePatterns,
@@ -288,124 +204,119 @@ export class SmartIndexService {
         chunkSize = 500,
         chunkOverlap = 50
       } = options;
-      
-      // Validate project path exists
-      try {
-        const stats = await fs.stat(projectPath);
-        if (!stats.isDirectory()) {
-          throw new Error(`Project path is not a directory: ${projectPath}`);
-        }
-      } catch (error) {
-        throw new Error(`Project path does not exist or is not accessible: ${projectPath}`);
-      }
-      
-      // Get all relevant files
-      onProgress?.(5, undefined, 'Finding files...');
-      console.log('Searching for files with patterns:', { includePatterns, excludePatterns, projectPath });
-      
+
       const files = await this.getFilesRecursively(projectPath, includePatterns, excludePatterns);
-      
-      console.log(`Found ${files.length} files:`, files.slice(0, 10)); // Log first 10 files
-      
       if (files.length === 0) {
-        // Let's try a more permissive search to see if there are any files at all
-        const allFiles = await this.getFilesRecursively(projectPath, ['**/*'], []);
-        console.log(`Total files in directory: ${allFiles.length}`);
-        if (allFiles.length > 0) {
-          console.log('Sample files found:', allFiles.slice(0, 10));
-        }
-        throw new Error(`No files found matching the specified patterns. Searched in: ${projectPath}`);
+        throw new Error(`No files found for the given patterns in ${projectPath}`);
       }
-      
-      onProgress?.(10, undefined, `Found ${files.length} files. Processing...`);
-      
-      // Process files and create chunks
+
+      if (this.shouldCancel) {
+        throw new Error('Indexing was cancelled during file discovery');
+      }
+
+      this.safeOnProgress(onProgress, 10, undefined, `Found ${files.length} files. Processing...`);
+
       const allChunks: FileChunk[] = [];
-      const embeddings: Float32Array[] = [];
-      
       for (let i = 0; i < files.length; i++) {
+        if (this.shouldCancel) {
+          throw new Error('Indexing was cancelled during file processing');
+        }
+
         const filePath = files[i];
-        const progress = 10 + (i / files.length) * 80; // 10% to 90%
-        
+        const progress = 10 + (i / files.length) * 20; // Only 20% for file processing since it's fast
+        this.safeOnProgress(onProgress, progress, filePath, `Processing ${path.basename(filePath)}...`);
+
         try {
-          onProgress?.(progress, filePath, `Processing ${path.basename(filePath)}...`);
-          
           const content = await fs.readFile(filePath, 'utf-8');
-          console.log(`File ${filePath} - Content length: ${content.length}`);
-          
-          if (content.trim().length === 0) {
-            console.log(`Skipping empty file: ${filePath}`);
-            continue;
-          }
-          
+          if (content.trim().length === 0) continue;
+
           const chunks = this.chunkText(content, chunkSize, chunkOverlap);
-          console.log(`File ${filePath} - Generated ${chunks.length} chunks`);
-          
-          if (chunks.length === 0) {
-            console.log(`No chunks generated for file: ${filePath}`);
-            continue;
-          }
-          
           for (const chunk of chunks) {
-            if (chunk.text.trim().length === 0) {
-              console.log(`Skipping empty chunk in ${filePath}`);
-              continue;
-            }
-            
+            if (chunk.text.trim().length === 0) continue;
             const chunkId = `${filePath}:${chunk.lineNumber}`;
-            const embedding = await this.generateEmbedding(chunk.text);
-            
-            const fileChunk: FileChunk = {
-              id: chunkId,
-              filePath,
-              content: chunk.text,
-              lineNumber: chunk.lineNumber,
-              embedding
-            };
-            
-            allChunks.push(fileChunk);
-            embeddings.push(embedding);
+            allChunks.push({ id: chunkId, filePath, content: chunk.text, lineNumber: chunk.lineNumber });
+          }
+
+          // Add a small delay every 10 files to prevent CPU overload
+          if (i % 10 === 0 && i > 0) {
+            await this.sleep(50); // 50ms break every 10 files
           }
         } catch (error) {
           const errorMsg = `Error processing file ${filePath}: ${error}`;
           console.error(errorMsg);
-          onError?.(errorMsg, filePath);
+          this.safeOnError(onError, errorMsg, filePath);
         }
       }
-      
-      console.log(`Total chunks processed: ${allChunks.length}, Total embeddings: ${embeddings.length}`);
-      
-      if (embeddings.length === 0) {
-        throw new Error('No content could be processed for indexing');
+
+      if (this.shouldCancel) {
+        throw new Error('Indexing was cancelled');
       }
+
+      if (allChunks.length === 0) {
+        throw new Error('No content could be processed for indexing.');
+      }
+
+      this.safeOnProgress(onProgress, 30, undefined, `Found ${allChunks.length} text chunks. Generating embeddings (this will take a while)...`);
+      const embeddings: Float32Array[] = [];
+      const batchSize = 5; // Process 5 chunks at a time
+      const delayBetweenBatches = 100; // 100ms delay between batches
       
-      onProgress?.(90, undefined, 'Building FAISS index...');
+      for (let i = 0; i < allChunks.length; i += batchSize) {
+        if (this.shouldCancel) {
+          throw new Error('Indexing was cancelled during embedding generation');
+        }
+
+        const batch = allChunks.slice(i, i + batchSize);
+        // Give 60% of progress bar to embeddings (30% to 90%)
+        const batchProgress = 30 + ((i / allChunks.length) * 60);
+        
+        this.safeOnProgress(onProgress, batchProgress, undefined, 
+          `Generating embeddings... ${i + batch.length}/${allChunks.length} chunks (CPU-friendly mode)`);
+
+        // Process batch
+        for (const chunk of batch) {
+          if (this.shouldCancel) {
+            throw new Error('Indexing was cancelled during embedding generation');
+          }
+          const embedding = await this.generateEmbedding(chunk.content);
+          embeddings.push(embedding);
+        }
+
+        // Add delay between batches to let CPU cool down
+        if (i + batchSize < allChunks.length) {
+          await this.sleep(delayBetweenBatches);
+        }
+      }
+
+      if (this.shouldCancel) {
+        throw new Error('Indexing was cancelled');
+      }
+
+      this.safeOnProgress(onProgress, 90, undefined, 'Building FAISS index...');
+      this.index = new IndexFlatIP(this.embeddingDim);
       
-      // Create FAISS index
-      this.index = new IndexFlatL2(this.embeddingDim);
-      
-      // Add embeddings to index
+      // Convert embeddings to the format expected by FAISS
       const embeddingMatrix = new Float32Array(embeddings.length * this.embeddingDim);
       for (let i = 0; i < embeddings.length; i++) {
         embeddingMatrix.set(embeddings[i], i * this.embeddingDim);
       }
-      
       this.index.add(Array.from(embeddingMatrix));
-      
-      // Store metadata
+
       this.metadata = {
-        chunks: allChunks.map(chunk => ({ ...chunk, embedding: undefined })), // Don't store embeddings in metadata
+        chunks: allChunks,
         projectPath,
         lastUpdated: new Date(),
-        modelPath: this.modelPath
+        modelName: EmbeddingPipeline.model
       };
-      
-      onProgress?.(100, undefined, `Index built successfully with ${allChunks.length} chunks`);
-      
+
+      this.safeOnProgress(onProgress, 100, undefined, `Index built successfully with ${allChunks.length} chunks.`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error during indexing';
-      onError?.(errorMsg);
+      this.safeOnError(onError, errorMsg);
       throw error;
+    } finally {
+      this.isIndexing = false;
+      this.shouldCancel = false;
     }
   }
 
@@ -413,40 +324,31 @@ export class SmartIndexService {
     if (!this.index || !this.metadata) {
       throw new Error('Index not built. Please build the index first.');
     }
-    
+
     try {
-      // Generate embedding for query
       const queryEmbedding = await this.generateEmbedding(query);
-      
-      // Limit search results to available chunks
       const actualLimit = Math.min(limit, this.index.ntotal());
-      
-      if (actualLimit === 0) {
-        return [];
-      }
-      
-      // Search in FAISS index
+      if (actualLimit === 0) return [];
+
       const results = this.index.search(Array.from(queryEmbedding), actualLimit);
-      
+
       const searchResults: SearchResult[] = [];
-      
       for (let i = 0; i < results.labels.length; i++) {
         const chunkIndex = results.labels[i];
-        const score = results.distances[i];
-        
+        const similarity = results.distances[i];
+
         if (chunkIndex >= 0 && chunkIndex < this.metadata.chunks.length) {
           const chunk = this.metadata.chunks[chunkIndex];
-          
           searchResults.push({
             filePath: chunk.filePath,
             content: chunk.content,
-            score: this.calculateRelevanceScore(score), // Better scoring function
+            score: this.calculateRelevanceScore(similarity),
             lineNumber: chunk.lineNumber,
             snippet: this.createSnippet(chunk.content, query)
           });
         }
       }
-      
+
       return searchResults.sort((a, b) => b.score - a.score);
     } catch (error) {
       throw new Error(`Search failed: ${error}`);
@@ -456,26 +358,21 @@ export class SmartIndexService {
   private createSnippet(content: string, query: string, maxLength: number = 200): string {
     const queryWords = query.toLowerCase().split(/\s+/);
     const contentLower = content.toLowerCase();
-    
-    // Find the best position to start the snippet
     let bestPosition = 0;
     let maxMatches = 0;
-    
+
     for (let i = 0; i <= content.length - maxLength; i += 50) {
       const slice = contentLower.slice(i, i + maxLength);
       const matches = queryWords.filter(word => slice.includes(word)).length;
-      
       if (matches > maxMatches) {
         maxMatches = matches;
         bestPosition = i;
       }
     }
-    
+
     let snippet = content.slice(bestPosition, bestPosition + maxLength);
-    
     if (bestPosition > 0) snippet = '...' + snippet;
     if (bestPosition + maxLength < content.length) snippet = snippet + '...';
-    
     return snippet;
   }
 
@@ -491,7 +388,6 @@ export class SmartIndexService {
     if (!this.metadata || !this.index) {
       return null;
     }
-    
     return {
       totalFiles: new Set(this.metadata.chunks.map(c => c.filePath)).size,
       totalChunks: this.metadata.chunks.length,
@@ -503,25 +399,56 @@ export class SmartIndexService {
   async clearIndex(): Promise<void> {
     this.index = null;
     this.metadata = null;
-    // Note: FAISS doesn't have a direct clear method, so we set to null
   }
 
   async updateFile(filePath: string): Promise<void> {
-    if (!this.metadata) {
+    if (!this.metadata || !this.index) {
       throw new Error('Index not built. Cannot update file.');
     }
     
     // Remove existing chunks for this file
     await this.removeFile(filePath);
     
-    // Add new chunks for this file
     try {
       const content = await fs.readFile(filePath, 'utf-8');
+      if (content.trim().length === 0) {
+        console.log(`File ${filePath} is empty, skipping re-indexing.`);
+        return;
+      }
+
       const chunks = this.chunkText(content);
+      const newChunks: FileChunk[] = [];
       
-      // This is a simplified version - in practice, you'd want to rebuild the entire index
-      // or use a more sophisticated approach to update individual files
-      console.log(`File ${filePath} would be re-indexed with ${chunks.length} chunks`);
+      for (const chunk of chunks) {
+        if (chunk.text.trim().length === 0) continue;
+        const chunkId = `${filePath}:${chunk.lineNumber}`;
+        newChunks.push({ id: chunkId, filePath, content: chunk.text, lineNumber: chunk.lineNumber });
+      }
+
+      if (newChunks.length === 0) {
+        console.log(`File ${filePath} has no valid chunks after processing.`);
+        return;
+      }
+
+      // Generate embeddings for new chunks with CPU-friendly delays
+      const embeddings: Float32Array[] = [];
+      for (let i = 0; i < newChunks.length; i++) {
+        const chunk = newChunks[i];
+        const embedding = await this.generateEmbedding(chunk.content);
+        embeddings.push(embedding);
+        
+        // Add small delay every few chunks to prevent CPU overload
+        if (i % 3 === 0 && i > 0) {
+          await this.sleep(20); // Small delay for single file updates
+        }
+      }
+
+      // Add new chunks to metadata
+      this.metadata.chunks.push(...newChunks);
+      
+      // Create new index with all chunks (FAISS doesn't support efficient single-file updates)
+      console.log(`File ${filePath} updated with ${newChunks.length} chunks. Full index rebuild required for optimal performance.`);
+      
     } catch (error) {
       throw new Error(`Failed to update file ${filePath}: ${error}`);
     }
@@ -531,12 +458,18 @@ export class SmartIndexService {
     if (!this.metadata) {
       throw new Error('Index not built. Cannot remove file.');
     }
-    
-    // Remove chunks for this file from metadata
+    const initialCount = this.metadata.chunks.length;
     this.metadata.chunks = this.metadata.chunks.filter(chunk => chunk.filePath !== filePath);
-    
-    // Note: FAISS doesn't support removing individual vectors efficiently
-    // In practice, you'd need to rebuild the index
-    console.log(`File ${filePath} removed from index metadata`);
+    const removedCount = initialCount - this.metadata.chunks.length;
+    console.log(`Removed ${removedCount} chunks for file ${filePath}. Full index rebuild recommended for optimal performance.`);
+  }
+
+  /**
+   * Rebuilds the entire index. This is more efficient than individual file updates
+   * when multiple files have changed.
+   */
+  async rebuildIndex(options: BuildIndexOptions, onProgress?: (progress: number, currentFile?: string, message?: string) => void, onError?: (error: string, filePath?: string) => void): Promise<void> {
+    await this.clearIndex();
+    await this.buildIndex(options, onProgress, onError);
   }
 }

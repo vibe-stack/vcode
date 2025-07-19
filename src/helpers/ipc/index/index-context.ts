@@ -8,6 +8,7 @@ import {
   INDEX_CLEAR_CHANNEL,
   INDEX_UPDATE_FILE_CHANNEL,
   INDEX_REMOVE_FILE_CHANNEL,
+  INDEX_CANCEL_CHANNEL,
 } from "./index-channels";
 
 export interface SearchResult {
@@ -64,6 +65,10 @@ export function exposeIndexContext() {
     // Remove a file from the index
     removeFile: (filePath: string) => 
       ipcRenderer.invoke(INDEX_REMOVE_FILE_CHANNEL, { filePath }),
+    
+    // Cancel ongoing indexing
+    cancelIndexing: () => 
+      ipcRenderer.invoke(INDEX_CANCEL_CHANNEL),
     
     // Listen for progress updates during indexing
     onProgress: (callback: (data: { progress: number; currentFile?: string; message?: string }) => void) => {

@@ -21,6 +21,7 @@ export default defineConfig({
         // Native modules for indexing
         "faiss-node",
         "onnxruntime-node",
+        "@xenova/transformers",
         // Additional native dependencies that might be needed
         "@mapbox/node-pre-gyp",
         "bindings",
