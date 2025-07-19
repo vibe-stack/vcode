@@ -11,7 +11,6 @@ import { useEditorContentStore } from "@/stores/editor-content";
 
 
 export function WorkspaceFooter() {
-    const { currentProject } = useProjectStore();
     const { buffers, activeBufferId } = useBufferStore();
     const { view, setView } = useEditorContentStore();
     const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } = useTerminalStore();
@@ -83,58 +82,6 @@ export function WorkspaceFooter() {
             window.indexApi?.removeAllListeners();
         };
     }, []);
-
-    useEffect(() => {
-        if (currentProject) {
-            window.indexApi.buildIndex({
-                projectPath: currentProject,
-                includePatterns: [
-                    '**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx',
-                    '**/*.html', '**/*.css', '**/*.scss', '**/*.less',
-                    '**/*.md', '**/*.json', '**/*.yaml', '**/*.yml'
-                ],
-                excludePatterns: [
-                    '**/node_modules/**', 
-                    '**/dist/**', 
-                    '**/build/**', 
-                    '**/.git/**',
-                    '**/.next/**',
-                    '**/out/**',
-                    '**/target/**',
-                    '**/.vscode/**',
-                    '**/.idea/**',
-                    '**/coverage/**',
-                    '**/*.log',
-                    '**/.DS_Store',
-                    // Lock files and package manager artifacts
-                    '**/package-lock.json',
-                    '**/yarn.lock',
-                    '**/pnpm-lock.yaml',
-                    '**/Cargo.lock',
-                    '**/Gemfile.lock',
-                    '**/composer.lock',
-                    '**/Pipfile.lock',
-                    '**/poetry.lock',
-                    // Build and cache directories
-                    '**/.cache/**',
-                    '**/tmp/**',
-                    '**/temp/**',
-                    '**/.tmp/**',
-                    '**/.nuxt/**',
-                    '**/.svelte-kit/**',
-                    // More artifacts
-                    '**/*.min.js',
-                    '**/*.min.css',
-                    '**/*.bundle.*',
-                    '**/*.chunk.*',
-                    '**/*.map'
-                ],
-                chunkOverlap: 50,
-                chunkSize: 400,
-            });
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentProject])
 
     const handleToggleTerminal = () => {
         setTerminalVisible(!isTerminalVisible);

@@ -108,6 +108,36 @@ interface ShellApi {
   openExternal: (url: string) => Promise<void>;
 }
 
+interface IndexApi {
+  buildIndex: (options: {
+    projectPath: string;
+    excludePatterns?: string[];
+    includePatterns?: string[];
+    chunkSize?: number;
+    chunkOverlap?: number;
+  }) => Promise<{ success: boolean }>;
+  search: (query: string, limit?: number) => Promise<{
+    filePath: string;
+    content: string;
+    score: number;
+    lineNumber?: number;
+    snippet?: string;
+  }[]>;
+  getStatus: () => Promise<{ isBuilt: boolean; projectPath?: string; lastUpdated?: Date }>;
+  getStats: () => Promise<{
+    totalFiles: number;
+    totalChunks: number;
+    indexSize: number;
+    lastUpdated: Date;
+  } | null>;
+  clearIndex: () => Promise<{ success: boolean }>;
+  updateFile: (filePath: string) => Promise<{ success: boolean }>;
+  removeFile: (filePath: string) => Promise<{ success: boolean }>;
+  onProgress: (callback: (data: { progress: number; currentFile?: string; message?: string }) => void) => void;
+  onError: (callback: (data: { error: string; filePath?: string }) => void) => void;
+  removeAllListeners: () => void;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
@@ -116,4 +146,5 @@ declare interface Window {
   settingsApi: SettingsApi;
   terminalApi: TerminalApi;
   shellApi: ShellApi;
+  indexApi: IndexApi;
 }

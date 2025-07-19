@@ -99,3 +99,7 @@ out/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# rag
+faiss_index/
+models/model.onnx

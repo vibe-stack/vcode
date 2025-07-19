@@ -7,6 +7,7 @@ import { addSettingsEventListeners } from "./settings/settings-listeners";
 import { addGitEventListeners } from "./git/git-listeners";
 import { addTerminalEventListeners } from "./terminal/terminal-listeners";
 import { addAgentEventListeners } from "./agents/agent-listeners";
+import { addIndexEventListeners } from "./index/index-listeners";
 import registerShellListeners from "./shell/shell-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
@@ -18,5 +19,6 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addGitEventListeners(mainWindow);
   addTerminalEventListeners(mainWindow);
   addAgentEventListeners(mainWindow);
+  addIndexEventListeners();
   registerShellListeners();
 }

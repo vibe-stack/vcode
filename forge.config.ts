@@ -19,6 +19,8 @@ const config: ForgeConfig = {
     extraModules: [
       "node-pty",
       "better-sqlite3",
+      "faiss-node",
+      "onnxruntime-node",
     ],
   },
   makers: [

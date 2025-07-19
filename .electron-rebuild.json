@@ -1,0 +1,10 @@
+{
+  "targets": [
+    {
+      "name": "vcode-ide",
+      "version": "37.2.1",
+      "arch": "x64",
+      "platform": "darwin"
+    }
+  ]
+}

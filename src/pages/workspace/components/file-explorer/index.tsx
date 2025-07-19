@@ -15,11 +15,13 @@ import {
     Files,
     GitBranch,
     FileText,
-    FolderPlus
+    FolderPlus,
+    MessageSquare
 } from 'lucide-react';
 import { FileTreeNode } from './file-tree-node';
 import { GitPanel } from './git-panel';
 import { SearchPanel } from './search-panel';
+import { AskPanel } from './ask-panel';
 import { CreateFilePopover } from './create-file-popover';
 import { useEditorContentStore } from '@/stores/editor-content';
 
@@ -30,7 +32,7 @@ export function FileExplorer() {
     const setView = useEditorContentStore((s) => s.setView);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-    const [activeTab, setActiveTab] = useState<'files' | 'search' | 'git'>('files');
+    const [activeTab, setActiveTab] = useState<'files' | 'search' | 'ask' | 'git'>('files');
 
     const handleFileClick = useCallback(async (filePath: string) => {
         try {
@@ -123,8 +125,8 @@ export function FileExplorer() {
 
     return (
         <div className="h-full flex flex-col border-r">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'files' | 'search' | 'git')} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-3 border-b rounded-none h-10">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'files' | 'search' | 'ask' | 'git')} className="h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-4 border-b rounded-none h-10">
                     <TabsTrigger value="files" className="flex items-center gap-2">
                         <Files className="h-3 w-3" />
                         Files
@@ -132,6 +134,10 @@ export function FileExplorer() {
                     <TabsTrigger value="search" className="flex items-center gap-2">
                         <Search className="h-3 w-3" />
                         Search
+                    </TabsTrigger>
+                    <TabsTrigger value="ask" className="flex items-center gap-2">
+                        <MessageSquare className="h-3 w-3" />
+                        Ask
                     </TabsTrigger>
                     <TabsTrigger value="git" className="flex items-center gap-2" disabled={!isGitRepo}>
                         <GitBranch className="h-3 w-3" />
@@ -203,6 +209,11 @@ export function FileExplorer() {
                 {/* Search Tab */}
                 <TabsContent value="search" className="flex-1 flex flex-col m-0 p-0 overflow-y-auto">
                     <SearchPanel />
+                </TabsContent>
+
+                {/* Ask Tab */}
+                <TabsContent value="ask" className="flex-1 flex flex-col m-0 p-0 overflow-y-auto">
+                    <AskPanel />
                 </TabsContent>
 
                 {/* Git Tab */}

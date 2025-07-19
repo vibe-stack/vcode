@@ -18,6 +18,13 @@ export default defineConfig({
         "os",
         "child_process",
         "better-sqlite3",
+        // Native modules for indexing
+        "faiss-node",
+        "onnxruntime-node",
+        // Additional native dependencies that might be needed
+        "@mapbox/node-pre-gyp",
+        "bindings",
+        "nan"
       ]
     }
   }
