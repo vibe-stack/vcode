@@ -85,6 +85,18 @@ export class TypeScriptProjectService {
   }
 
   /**
+   * Update file content in the service cache without modifying Monaco models
+   * Use this when the change originates from Monaco editor to avoid circular updates
+   */
+  updateFileFromEditor(filePath: string, content: string): void {
+    if (!this.isInitialized || !this.currentProject) {
+      return;
+    }
+
+    FileManager.updateFileCache(filePath, content, this.projectFiles, this.fileVersions);
+  }
+
+  /**
    * Remove a file from Monaco when it's deleted
    */
   removeFile(filePath: string): void {

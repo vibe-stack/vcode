@@ -43,7 +43,9 @@ export function Editor({ buffer, onChange }: EditorProps) {
                 ? buffer.content
                 : new TextDecoder().decode(buffer.content!);
             
-            typescriptProjectService.updateFile(buffer.filePath, content);
+            // Use updateFileFromEditor since this is triggered by buffer content changes
+            // which likely originated from Monaco editor
+            typescriptProjectService.updateFileFromEditor(buffer.filePath, content);
         }
     }, [buffer.content, buffer.filePath, buffer.extension, currentProject]);
 
@@ -156,10 +158,11 @@ export function Editor({ buffer, onChange }: EditorProps) {
                     if (value !== undefined) {
                         onChange(value);
                         // Update TypeScript service when content changes
+                        // Use updateFileFromEditor to avoid circular updates with Monaco
                         if (buffer.filePath && currentProject && 
                             (buffer.extension === 'ts' || buffer.extension === 'tsx' || 
                              buffer.extension === 'js' || buffer.extension === 'jsx')) {
-                            typescriptProjectService.updateFile(buffer.filePath, value);
+                            typescriptProjectService.updateFileFromEditor(buffer.filePath, value);
                         }
                     }
                 }}

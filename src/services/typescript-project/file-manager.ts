@@ -123,20 +123,40 @@ export class FileManager {
     projectFiles: Map<string, ProjectFileInfo>,
     fileVersions: Map<string, number>
   ): Promise<void> {
+    // This method should only be used for files that are NOT currently open in Monaco
+    // For files open in Monaco, use updateFileCache instead to avoid circular updates
     const uri = monaco.Uri.file(filePath);
     const model = monaco.editor.getModel(uri);
 
-    if (model) {
-      // Update existing model
-      model.setValue(content);
-    } else {
-      // Create new model with proper language detection
+    if (!model) {
+      // Only create new model if it doesn't exist
       // Monaco Editor uses 'typescript' for both .ts and .tsx files
       const language = (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) ? 'typescript' : 'javascript';
       monaco.editor.createModel(content, language, uri);
     }
+    // If model exists, don't update it - assume the editor is managing it
 
-    // Update our cache
+    // Always update our cache
+    const currentVersion = fileVersions.get(filePath) || 0;
+    fileVersions.set(filePath, currentVersion + 1);
+    projectFiles.set(filePath, {
+      path: filePath,
+      content,
+      version: currentVersion + 1
+    });
+  }
+
+  /**
+   * Update internal file cache without modifying Monaco models
+   * Use this when the change originates from Monaco to avoid circular updates
+   */
+  static updateFileCache(
+    filePath: string,
+    content: string,
+    projectFiles: Map<string, ProjectFileInfo>,
+    fileVersions: Map<string, number>
+  ): void {
+    // Update our cache only
     const currentVersion = fileVersions.get(filePath) || 0;
     fileVersions.set(filePath, currentVersion + 1);
     projectFiles.set(filePath, {
