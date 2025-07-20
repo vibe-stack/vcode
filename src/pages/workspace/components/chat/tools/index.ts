@@ -69,6 +69,18 @@ export const searchFiles = tool({
   // No execute function - requires frontend confirmation
 });
 
+// Search Codebase Tool
+const searchCodebaseParams = z.object({
+  query: z.string().describe('Natural language query to search the codebase semantically'),
+  limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
+});
+
+export const searchCodebase = tool({
+  description: 'Search the codebase using natural language queries via semantic indexing',
+  parameters: searchCodebaseParams,
+  // No execute function - requires frontend confirmation
+});
+
 // Get Project Info Tool
 const getProjectInfoParams = z.object({
   includeStats: z.boolean().optional().describe('Whether to include file statistics'),
@@ -87,6 +99,7 @@ export const tools = {
   createDirectory,
   deleteFile,
   searchFiles,
+  searchCodebase,
   getProjectInfo,
 };
 

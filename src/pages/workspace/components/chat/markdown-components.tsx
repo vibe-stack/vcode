@@ -55,8 +55,8 @@ const CodeBlock = ({ children, className, ...props }: any) => {
 
 const InlineCode = ({ children, ...props }: any) => (
     <code 
-        className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono break-words" 
-        {...props}
+    {...props}
+        className="inline bg-accent/40 text-muted-foreground/90 px-1.5 py-0.5 rounded break-words border border-border/50" 
     >
         {children}
     </code>
@@ -230,12 +230,22 @@ export const markdownComponents: Components = {
     th: TableHeaderCell,
     
     // Code elements
-    code: ({ inline, className, children, ...props }: any) => {
-        return inline ? (
-            <InlineCode className={className} {...props}>
-                {children}
-            </InlineCode>
-        ) : (
+    code: ({ inline, className, children, node, ...props }: any) => {
+        // Check if this code element is wrapped in a pre tag (block code)
+        // or if it has a language class (block code)
+        const hasLanguageClass = className && className.startsWith('language-');
+        const isBlockCode = hasLanguageClass || inline === false;
+        
+        if (!isBlockCode && inline !== false) {
+            return (
+                <InlineCode className={className} {...props}>
+                    {children}
+                </InlineCode>
+            );
+        }
+        
+        // Block code
+        return (
             <CodeBlock className={className} {...props}>
                 {children}
             </CodeBlock>
@@ -246,6 +256,7 @@ export const markdownComponents: Components = {
         if (React.isValidElement(children) && children.type === 'code') {
             return children;
         }
+
         return (
             <pre className="overflow-x-auto bg-muted/50 rounded-md p-4 text-sm font-mono my-4" {...props}>
                 {children}

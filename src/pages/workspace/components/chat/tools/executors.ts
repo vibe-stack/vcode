@@ -208,6 +208,92 @@ export const frontendToolExecutors = {
     }
   },
 
+  async searchCodebase(args: { query: string; limit?: number }): Promise<ToolExecutionResult> {
+    try {
+      // Check if index API is available
+      if (!window.indexApi) {
+        return {
+          message: `No relevant code found for query: "${args.query}" (semantic index not available)`
+        };
+      }
+
+      // Check if index is built
+      const status = await window.indexApi.getStatus();
+      if (!status?.isBuilt) {
+        return {
+          message: `No relevant code found for query: "${args.query}" (semantic index not built)`
+        };
+      }
+
+      // Perform the search with a higher limit to allow for filtering
+      const results = await window.indexApi.search(args.query, 50);
+      
+      if (!results || results.length === 0) {
+        return {
+          message: `No relevant code found for query: "${args.query}"`
+        };
+      }
+
+      // Group results by file and limit to max 4 files with max 2 hits each
+      const groupedResults: { [filePath: string]: typeof results } = {};
+      const maxFiles = 4;
+      const maxHitsPerFile = 2;
+      
+      for (const result of results) {
+        if (Object.keys(groupedResults).length >= maxFiles) break;
+        
+        if (!groupedResults[result.filePath]) {
+          groupedResults[result.filePath] = [];
+        }
+        
+        if (groupedResults[result.filePath].length < maxHitsPerFile) {
+          groupedResults[result.filePath].push(result);
+        }
+      }
+
+      // Format the results
+      const formattedResults = Object.entries(groupedResults).map(([filePath, fileResults]) => {
+        const relativePath = filePath.split('/').slice(-3).join('/'); // Show last 3 path segments
+        
+        const fileSection = fileResults.map((result, index) => {
+          const scorePercent = Math.round(result.score * 100);
+          
+          let resultText = `**${relativePath}**`;
+          if (result.lineNumber) {
+            resultText += ` (line ${result.lineNumber})`;
+          }
+          resultText += ` - ${scorePercent}% relevance\n`;
+          
+          if (result.snippet) {
+            resultText += `\`\`\`\n${result.snippet}\n\`\`\`\n`;
+          } else if (result.content) {
+            // Truncate content if it's too long
+            const content = result.content.length > 200 
+              ? result.content.substring(0, 200) + '...'
+              : result.content;
+            resultText += `\`\`\`\n${content}\n\`\`\`\n`;
+          }
+          
+          return resultText;
+        }).join('\n');
+        
+        return fileSection;
+      }).join('\n---\n\n');
+
+      const totalHits = Object.values(groupedResults).reduce((sum, fileResults) => sum + fileResults.length, 0);
+      const totalFiles = Object.keys(groupedResults).length;
+
+      return {
+        message: `Found ${totalHits} relevant code snippet${totalHits !== 1 ? 's' : ''} in ${totalFiles} file${totalFiles !== 1 ? 's' : ''} for query: "${args.query}"\n\n${formattedResults}`
+      };
+    } catch (error) {
+      console.error('[searchCodebase tool] Error:', error);
+      return {
+        message: `No relevant code found for query: "${args.query}" (search failed: ${error instanceof Error ? error.message : 'Unknown error'})`
+      };
+    }
+  },
+
   async getProjectInfo(args: { includeStats?: boolean }): Promise<ToolExecutionResult> {
     try {
       const currentProject = await window.projectApi.getCurrentProject();

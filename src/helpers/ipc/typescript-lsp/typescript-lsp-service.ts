@@ -30,6 +30,7 @@ export class TypeScriptLSPService extends EventEmitter {
   private requestId = 0;
   private pendingRequests = new Map<number, { resolve: Function; reject: Function; timeout: NodeJS.Timeout }>();
   private projectPath: string | null = null;
+  private initializationPromise: Promise<void> | null = null;
 
   private constructor() {
     super();
@@ -43,15 +44,35 @@ export class TypeScriptLSPService extends EventEmitter {
   }
 
   public async initialize(projectPath: string): Promise<void> {
+    // If the same project is already initialized, return immediately
     if (this.isInitialized && this.projectPath === projectPath) {
       return;
     }
 
+    // If there's already an initialization in progress for the same project, wait for it
+    if (this.initializationPromise && this.projectPath === projectPath) {
+      return this.initializationPromise;
+    }
+
     console.log('Initializing TypeScript LSP for project:', projectPath);
+    
+    // Create a new initialization promise
+    this.initializationPromise = this.doInitialize(projectPath);
+    
+    try {
+      await this.initializationPromise;
+    } finally {
+      this.initializationPromise = null;
+    }
+  }
+
+  private async doInitialize(projectPath: string): Promise<void> {
     this.projectPath = projectPath;
     
     try {
       await this.stopServer();
+      // Small delay to ensure the previous server has fully stopped
+      await new Promise(resolve => setTimeout(resolve, 200));
       await this.startServer();
       await this.sendInitialize();
       console.log('TypeScript LSP initialization completed successfully');
@@ -66,12 +87,28 @@ export class TypeScriptLSPService extends EventEmitter {
     return new Promise((resolve, reject) => {
       try {
         // Find typescript-language-server executable
-        const tsServerPath = require.resolve('typescript-language-server/lib/cli.mjs');
+        let tsServerPath: string;
+        try {
+          tsServerPath = require.resolve('typescript-language-server/lib/cli.mjs');
+          console.log('TypeScript LSP server path:', tsServerPath);
+        } catch (error) {
+          reject(new Error(`Failed to resolve typescript-language-server: ${error}`));
+          return;
+        }
         
+        console.log('Starting TypeScript LSP server process...');
         this.tsServerProcess = spawn('node', [tsServerPath, '--stdio'], {
           cwd: this.projectPath || process.cwd(),
           stdio: ['pipe', 'pipe', 'pipe'],
+          env: { ...process.env, NODE_ENV: 'development' }
         });
+
+        if (!this.tsServerProcess) {
+          reject(new Error('Failed to spawn TypeScript LSP server process'));
+          return;
+        }
+
+        console.log('TypeScript LSP server process started with PID:', this.tsServerProcess.pid);
 
         let buffer = '';
         let serverReady = false;
@@ -83,7 +120,14 @@ export class TypeScriptLSPService extends EventEmitter {
         });
 
         this.tsServerProcess.stderr?.on('data', (data) => {
-          console.error('TypeScript LSP stderr:', data.toString());
+          const errorMessage = data.toString();
+          console.error('TypeScript LSP stderr:', errorMessage);
+          // If there's a critical error, reject the promise
+          if (errorMessage.includes('Error:') || errorMessage.includes('SyntaxError:')) {
+            if (!serverReady) {
+              reject(new Error(`TypeScript LSP startup error: ${errorMessage}`));
+            }
+          }
         });
 
         this.tsServerProcess.on('error', (error) => {
@@ -93,11 +137,15 @@ export class TypeScriptLSPService extends EventEmitter {
           }
         });
 
-        this.tsServerProcess.on('exit', (code) => {
-          console.log('TypeScript LSP process exited with code:', code);
+        this.tsServerProcess.on('exit', (code, signal) => {
+          console.log(`TypeScript LSP process exited with code: ${code}, signal: ${signal}`);
           this.isInitialized = false;
           this.tsServerProcess = null;
           this.rejectAllPendingRequests();
+          
+          if (!serverReady) {
+            reject(new Error(`TypeScript LSP server exited early with code: ${code}, signal: ${signal}`));
+          }
         });
 
         // Wait a bit longer for the server to be ready for requests
@@ -361,8 +409,7 @@ export class TypeScriptLSPService extends EventEmitter {
           useLabelDetailsInCompletionEntries: true,
           allowIncompleteCompletions: true,
           displayPartsForJSDoc: true,
-          disableLineTextInReferences: true,
-          includeInlayParameterNameHintsWhenArgumentMatchesName: false
+          disableLineTextInReferences: true
         },
         hostInfo: 'vcode-ide'
       }
@@ -514,14 +561,19 @@ export class TypeScriptLSPService extends EventEmitter {
 
   public async stopServer(): Promise<void> {
     if (this.tsServerProcess) {
+      console.log('Stopping TypeScript LSP server...');
       this.rejectAllPendingRequests();
       
       if (!this.tsServerProcess.killed) {
-        this.tsServerProcess.kill();
+        this.tsServerProcess.kill('SIGTERM');
+        
+        // Give the process a moment to gracefully exit
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       this.tsServerProcess = null;
       this.isInitialized = false;
+      console.log('TypeScript LSP server stopped');
     }
   }
 

@@ -65,6 +65,15 @@ export const toolConfigs: Record<ToolName, ToolConfig> = {
     dangerLevel: 'safe',
     enabled: true,
   },
+  searchCodebase: {
+    name: 'searchCodebase',
+    displayName: 'Search Codebase',
+    description: 'Search the codebase using natural language queries',
+    category: 'search',
+    requiresConfirmation: false,
+    dangerLevel: 'safe',
+    enabled: true,
+  },
   getProjectInfo: {
     name: 'getProjectInfo',
     displayName: 'Get Project Info',

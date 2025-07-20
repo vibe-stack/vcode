@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { projectApi, DirectoryNode, RecentProject } from '../services/project-api';
+import { useProjectStore } from '@/stores/project';
 
 interface ProjectManagerProps {
   onProjectOpen?: (projectPath: string) => void;
@@ -11,6 +12,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectOpen })
   const [directoryTree, setDirectoryTree] = useState<DirectoryNode | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get the setCurrentProject function from the project store
+  const { setCurrentProject: setProjectStoreCurrentProject } = useProjectStore();
 
   // Load current project and recent projects on mount
   useEffect(() => {
@@ -87,7 +91,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectOpen })
       
       const projectPath = await projectApi.openFolder();
       if (projectPath) {
-        setCurrentProject(projectPath);
+        // Use the project store's setCurrentProject method instead of local state
+        // This ensures unified LSP initialization and avoids race conditions
+        await setProjectStoreCurrentProject(projectPath);
         await loadDirectoryTree(projectPath);
         
         // Update recent projects
@@ -111,8 +117,10 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectOpen })
       setLoading(true);
       setError(null);
       
-      setCurrentProject(project.path);
-      await projectApi.setCurrentProject(project.path);
+      // Use the project store's setCurrentProject method instead of direct API call
+      // This avoids the race condition where both home page and ProjectManager
+      // try to initialize the TypeScript LSP simultaneously
+      await setProjectStoreCurrentProject(project.path);
       await loadDirectoryTree(project.path);
       
       // Update recent projects (move to top)

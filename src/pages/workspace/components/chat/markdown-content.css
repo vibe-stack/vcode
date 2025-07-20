@@ -42,8 +42,8 @@
   background: hsl(var(--border) / 0.8);
 }
 
-/* Inline code improvements */
-.markdown-content code {
+/* Inline code improvements - only apply to code elements without custom classes */
+.markdown-content code:not([class*="bg-"]) {
   font-family: 'Fira Code', 'Monaco', 'Menlo', monospace;
   font-size: 0.875rem;
 }
