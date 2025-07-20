@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/command";
 import { Settings, Terminal } from "lucide-react";
 import { useTerminalStore } from "@/stores/terminal";
+import { useProjectStore } from "@/stores/project";
 
 interface GlobalCommandsProps {
   onOpenSettings?: () => void;
@@ -19,10 +20,33 @@ interface GlobalCommandsProps {
 export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) {
   const [focused, setFocused] = React.useState(false);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } = useTerminalStore();
+  const { isVisible: isTerminalVisible, setVisible: setTerminalVisible, tabs, createTab } = useTerminalStore();
+  const { currentProject } = useProjectStore();
 
-  const handleToggleTerminal = () => {
-    setTerminalVisible(!isTerminalVisible);
+  const handleToggleTerminal = async () => {
+    if (!isTerminalVisible) {
+      // If terminal is not visible and we're about to show it, check if we have any terminals
+      if (tabs.length === 0) {
+        // No terminals exist, create one automatically
+        try {
+          const terminalInfo = await window.terminalApi.create({
+            title: 'Terminal 1',
+            cwd: currentProject || undefined
+          });
+          createTab(terminalInfo);
+        } catch (error) {
+          console.error('Failed to create default terminal:', error);
+          // Still show the terminal UI even if creation fails
+          setTerminalVisible(true);
+        }
+      } else {
+        // Terminals exist, just show the panel
+        setTerminalVisible(true);
+      }
+    } else {
+      // Hide the terminal
+      setTerminalVisible(false);
+    }
     setFocused(false);
   };
 

@@ -9,13 +9,14 @@ import { GitBranchSwitcher } from "./git-branch-switcher";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useEditorContentStore } from "@/stores/editor-content";
 
+let indexingRun: string | null = null; // Flag to prevent multiple indexing runs
 
 export function WorkspaceFooter() {
-    const { currentProject } = useProjectStore();
+    const { currentProject } = useProjectStore();
     const { buffers, activeBufferId } = useBufferStore();
     const { view, setView } = useEditorContentStore();
-    const { isVisible: isTerminalVisible, setVisible: setTerminalVisible } = useTerminalStore();
-    
+    const { isVisible: isTerminalVisible, setVisible: setTerminalVisible, tabs, createTab } = useTerminalStore();
+
     // Index status state
     const [indexStatus, setIndexStatus] = useState<{
         isBuilt: boolean;
@@ -85,7 +86,8 @@ export function WorkspaceFooter() {
     }, []);
 
     useEffect(() => {
-        if (currentProject) {
+        if (currentProject && indexingRun !== currentProject) {
+            indexingRun = currentProject; // Set the flag to prevent multiple runs
             window.indexApi.buildIndex({
                 projectPath: currentProject,
                 includePatterns: [
@@ -94,9 +96,9 @@ export function WorkspaceFooter() {
                     '**/*.md', '**/*.json', '**/*.yaml', '**/*.yml'
                 ],
                 excludePatterns: [
-                    '**/node_modules/**', 
-                    '**/dist/**', 
-                    '**/build/**', 
+                    '**/node_modules/**',
+                    '**/dist/**',
+                    '**/build/**',
                     '**/.git/**',
                     '**/.next/**',
                     '**/out/**',
@@ -133,11 +135,33 @@ export function WorkspaceFooter() {
                 chunkSize: 400,
             });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentProject])
 
-    const handleToggleTerminal = () => {
-        setTerminalVisible(!isTerminalVisible);
+    const handleToggleTerminal = async () => {
+        if (!isTerminalVisible) {
+            // If terminal is not visible and we're about to show it, check if we have any terminals
+            if (tabs.length === 0) {
+                // No terminals exist, create one automatically
+                try {
+                    const terminalInfo = await window.terminalApi.create({
+                        title: 'Terminal 1',
+                        cwd: currentProject || undefined
+                    });
+                    createTab(terminalInfo);
+                } catch (error) {
+                    console.error('Failed to create default terminal:', error);
+                    // Still show the terminal UI even if creation fails
+                    setTerminalVisible(true);
+                }
+            } else {
+                // Terminals exist, just show the panel
+                setTerminalVisible(true);
+            }
+        } else {
+            // Hide the terminal
+            setTerminalVisible(false);
+        }
     };
 
     // Get active buffer reactively from the store

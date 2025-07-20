@@ -47,6 +47,7 @@ export class SmartIndexService {
   private readonly embeddingDim = 384;
   private isIndexing = false;
   private shouldCancel = false;
+  private chunkIndexMapping: number[] = []; // Maps FAISS index positions to chunk indices
 
   private readonly defaultIncludePatterns = [
     '**/*.{js,ts,jsx,tsx,mjs,cjs}',
@@ -437,18 +438,22 @@ export class SmartIndexService {
 
       const searchResults: SearchResult[] = [];
       for (let i = 0; i < results.labels.length; i++) {
-        const chunkIndex = results.labels[i];
+        const faissIndex = results.labels[i];
         const similarity = results.distances[i];
 
-        if (chunkIndex >= 0 && chunkIndex < this.metadata.chunks.length) {
-          const chunk = this.metadata.chunks[chunkIndex];
-          searchResults.push({
-            filePath: chunk.filePath,
-            content: chunk.content,
-            score: this.calculateRelevanceScore(similarity),
-            lineNumber: chunk.lineNumber,
-            snippet: this.createSnippet(chunk.content, query)
-          });
+        // Use the mapping to get the correct chunk index
+        if (faissIndex >= 0 && faissIndex < this.chunkIndexMapping.length) {
+          const chunkIndex = this.chunkIndexMapping[faissIndex];
+          if (chunkIndex >= 0 && chunkIndex < this.metadata.chunks.length) {
+            const chunk = this.metadata.chunks[chunkIndex];
+            searchResults.push({
+              filePath: chunk.filePath,
+              content: chunk.content,
+              score: this.calculateRelevanceScore(similarity),
+              lineNumber: chunk.lineNumber,
+              snippet: this.createSnippet(chunk.content, query)
+            });
+          }
         }
       }
 
@@ -501,6 +506,7 @@ export class SmartIndexService {
     
     this.index = null;
     this.metadata = null;
+    this.chunkIndexMapping = [];
     
     if (pathToClear) {
       const cachePath = this.getCachePath(pathToClear);
@@ -522,15 +528,21 @@ export class SmartIndexService {
     }
 
     this.index = new IndexFlatIP(this.embeddingDim);
-    const chunksWithEmbeddings = this.metadata.chunks.filter(c => c.embedding && c.embedding.length > 0);
+    const chunksWithEmbeddings = this.metadata.chunks
+      .map((chunk, index) => ({ chunk, originalIndex: index }))
+      .filter(({ chunk }) => chunk.embedding && chunk.embedding.length > 0);
 
     if (chunksWithEmbeddings.length === 0) {
       console.warn("No chunks with embeddings found to rebuild index.");
+      this.chunkIndexMapping = [];
       return;
     }
 
+    // Build the mapping from FAISS index to original chunk index
+    this.chunkIndexMapping = chunksWithEmbeddings.map(({ originalIndex }) => originalIndex);
+
     const embeddingMatrix = new Float32Array(chunksWithEmbeddings.length * this.embeddingDim);
-    chunksWithEmbeddings.forEach((chunk, i) => {
+    chunksWithEmbeddings.forEach(({ chunk }, i) => {
       embeddingMatrix.set(chunk.embedding!, i * this.embeddingDim);
     });
 

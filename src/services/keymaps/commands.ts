@@ -413,7 +413,31 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
   commands.set('terminal.toggle', {
     execute: async () => {
       const terminalStore = useTerminalStore.getState();
-      terminalStore.setVisible(!terminalStore.isVisible);
+      const projectStore = useProjectStore.getState();
+      
+      if (!terminalStore.isVisible) {
+        // If terminal is not visible and we're about to show it, check if we have any terminals
+        if (terminalStore.tabs.length === 0) {
+          // No terminals exist, create one automatically
+          try {
+            const terminalInfo = await window.terminalApi.create({
+              title: 'Terminal 1',
+              cwd: projectStore.currentProject || undefined
+            });
+            terminalStore.createTab(terminalInfo);
+          } catch (error) {
+            console.error('Failed to create default terminal:', error);
+            // Still show the terminal UI even if creation fails
+            terminalStore.setVisible(true);
+          }
+        } else {
+          // Terminals exist, just show the panel
+          terminalStore.setVisible(true);
+        }
+      } else {
+        // Hide the terminal
+        terminalStore.setVisible(false);
+      }
     },
     canExecute: () => true
   });
