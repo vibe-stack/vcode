@@ -4,7 +4,6 @@ import { DirectoryNode, RecentProject, projectApi } from '@/services/project-api
 import { router } from '@/routes/router';
 import { useGitStore } from '@/stores/git';
 import { initializeTypeScriptProject } from '@/config/monaco-languages';
-import { typescriptProjectService } from '@/services/typescript-project';
 
 export interface ProjectState {
     // Current project
@@ -109,9 +108,6 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
         
         // Clear git store
         useGitStore.getState().clearGitState();
-        
-        // Clear TypeScript project
-        typescriptProjectService.clearProject();
         
         set((state) => {
             state.currentProject = null;

@@ -7,8 +7,8 @@ import { registerDarkMatrixTheme } from '@/themes/dark-matrix-monaco';
 import { getMonacoEditorOptions } from '@/config/monaco-config';
 import { enhanceMonacoLanguages, registerCustomLanguages, getCustomLanguageFromExtension } from '@/config/monaco-languages';
 import { setupMonacoEnvironment } from '@/config/monaco-environment';
-import { typescriptProjectService } from '@/services/typescript-project';
 import { useProjectStore } from '@/stores/project';
+import { typescriptLSPClient } from '@/services/typescript-lsp';
 
 setupMonacoEnvironment();
 
@@ -34,20 +34,30 @@ export function Editor({ buffer, onChange }: EditorProps) {
     const saveBuffer = useBufferStore((s) => s.saveBuffer);
     const currentProject = useProjectStore((s) => s.currentProject);
 
-    // Update TypeScript project service when file content changes
+    // Handle TypeScript/JavaScript files with LSP
     useEffect(() => {
         if (buffer.filePath && currentProject && 
             (buffer.extension === 'ts' || buffer.extension === 'tsx' || 
              buffer.extension === 'js' || buffer.extension === 'jsx')) {
+            
             const content = typeof buffer.content === 'string'
                 ? buffer.content
                 : new TextDecoder().decode(buffer.content!);
             
-            // Use updateFileFromEditor since this is triggered by buffer content changes
-            // which likely originated from Monaco editor
-            typescriptProjectService.updateFileFromEditor(buffer.filePath, content);
+            const languageId = buffer.extension === 'ts' ? 'typescript' :
+                              buffer.extension === 'tsx' ? 'typescriptreact' :
+                              buffer.extension === 'js' ? 'javascript' :
+                              buffer.extension === 'jsx' ? 'javascriptreact' :
+                              'typescript';
+            
+            const uri = `file://${buffer.filePath}`;
+            
+            // Open document in LSP if not already open
+            if (!typescriptLSPClient.isDocumentOpen(uri)) {
+                typescriptLSPClient.openDocument(uri, languageId, content);
+            }
         }
-    }, [buffer.content, buffer.filePath, buffer.extension, currentProject]);
+    }, [buffer.filePath, buffer.content, buffer.extension, currentProject]);
 
     const value = typeof buffer.content === 'string'
         ? buffer.content
@@ -71,21 +81,47 @@ export function Editor({ buffer, onChange }: EditorProps) {
         // Focus the editor
         editor.focus();
         
-        // Debug: Check Monaco TypeScript configuration
-        console.log('Monaco TypeScript configuration:');
-        console.log('- Language for file:', detectedLanguage);
-        console.log('- Original language detection:', language);
-        console.log('- File extension:', buffer.extension);
-        console.log('- File path:', buffer.filePath);
-        console.log('- TS compiler options:', monaco.languages.typescript.typescriptDefaults.getCompilerOptions());
-        console.log('- JS compiler options:', monaco.languages.typescript.javascriptDefaults.getCompilerOptions());
-        
-        // Load file into TypeScript service if it's a TypeScript/JavaScript file
-        if (buffer.filePath && currentProject && 
+        // Set up LSP integration for TypeScript/JavaScript files
+        if (buffer.filePath && 
             (buffer.extension === 'ts' || buffer.extension === 'tsx' || 
              buffer.extension === 'js' || buffer.extension === 'jsx')) {
-            console.log('Loading file into TypeScript service:', buffer.filePath);
-            await typescriptProjectService.loadFileIntoMonaco(buffer.filePath);
+            
+            const model = editor.getModel();
+            if (model) {
+                const uri = `file://${buffer.filePath}`;
+                const languageId = buffer.extension === 'ts' ? 'typescript' :
+                                  buffer.extension === 'tsx' ? 'typescriptreact' :
+                                  buffer.extension === 'js' ? 'javascript' :
+                                  buffer.extension === 'jsx' ? 'javascriptreact' :
+                                  'typescript';
+                
+                // Ensure document is opened in LSP
+                await typescriptLSPClient.openDocument(uri, languageId, model.getValue());
+                
+                // Handle content changes for LSP
+                model.onDidChangeContent((e) => {
+                    const changes = e.changes.map(change => ({
+                        range: {
+                            start: {
+                                line: change.range.startLineNumber - 1,
+                                character: change.range.startColumn - 1
+                            },
+                            end: {
+                                line: change.range.endLineNumber - 1,
+                                character: change.range.endColumn - 1
+                            }
+                        },
+                        text: change.text
+                    }));
+                    
+                    typescriptLSPClient.updateDocument(uri, changes);
+                });
+                
+                // Clean up when model is disposed
+                model.onWillDispose(() => {
+                    typescriptLSPClient.closeDocument(uri);
+                });
+            }
         }
         
         // Add some useful keybindings
@@ -100,23 +136,6 @@ export function Editor({ buffer, onChange }: EditorProps) {
             editor.getAction('editor.action.formatDocument')?.run();
         });
     };
-
-    // Debug function to check current TypeScript project state
-    const debugTypeScriptState = () => {
-        console.log('=== TypeScript Debug Info ===');
-        console.log('Current project:', currentProject);
-        console.log('TS Project Service initialized:', typescriptProjectService.isProjectInitialized());
-        console.log('TS Config:', typescriptProjectService.getTSConfig());
-        typescriptProjectService.debugInfo();
-        console.log('========================');
-    };
-
-    // Trigger debug info when project changes
-    useEffect(() => {
-        if (currentProject) {
-            debugTypeScriptState();
-        }
-    }, [currentProject]);
 
     return (
         <div className="h-full flex flex-col relative">
@@ -157,13 +176,6 @@ export function Editor({ buffer, onChange }: EditorProps) {
                 onChange={(value) => {
                     if (value !== undefined) {
                         onChange(value);
-                        // Update TypeScript service when content changes
-                        // Use updateFileFromEditor to avoid circular updates with Monaco
-                        if (buffer.filePath && currentProject && 
-                            (buffer.extension === 'ts' || buffer.extension === 'tsx' || 
-                             buffer.extension === 'js' || buffer.extension === 'jsx')) {
-                            typescriptProjectService.updateFileFromEditor(buffer.filePath, value);
-                        }
                     }
                 }}
                 onMount={handleEditorDidMount}

@@ -138,6 +138,48 @@ interface IndexApi {
   removeAllListeners: () => void;
 }
 
+interface TypeScriptLSPApi {
+  initialize: (projectPath: string) => Promise<{ success: boolean; error?: string }>;
+  didOpen: (params: {
+    uri: string;
+    languageId: string;
+    version: number;
+    text: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  didChange: (params: {
+    uri: string;
+    version: number;
+    changes: any[];
+  }) => Promise<{ success: boolean; error?: string }>;
+  didClose: (uri: string) => Promise<{ success: boolean; error?: string }>;
+  completion: (params: {
+    uri: string;
+    position: { line: number; character: number };
+  }) => Promise<{ success: boolean; result?: any; error?: string }>;
+  hover: (params: {
+    uri: string;
+    position: { line: number; character: number };
+  }) => Promise<{ success: boolean; result?: any; error?: string }>;
+  definition: (params: {
+    uri: string;
+    position: { line: number; character: number };
+  }) => Promise<{ success: boolean; result?: any; error?: string }>;
+  references: (params: {
+    uri: string;
+    position: { line: number; character: number };
+  }) => Promise<{ success: boolean; result?: any; error?: string }>;
+  signatureHelp: (params: {
+    uri: string;
+    position: { line: number; character: number };
+  }) => Promise<{ success: boolean; result?: any; error?: string }>;
+  status: () => Promise<{ isRunning: boolean }>;
+}
+
+interface ElectronAPI {
+  typescriptLSP: TypeScriptLSPApi;
+  onTypescriptLSPNotification: (callback: (notification: any) => void) => void;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
@@ -147,4 +189,5 @@ declare interface Window {
   terminalApi: TerminalApi;
   shellApi: ShellApi;
   indexApi: IndexApi;
+  electronAPI: ElectronAPI;
 }

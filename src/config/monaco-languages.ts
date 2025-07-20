@@ -1,6 +1,5 @@
 import * as monaco from 'monaco-editor';
-import { typescriptProjectService } from '@/services/typescript-project';
-;
+import { typescriptLSPClient, registerLSPProviders } from '@/services/typescript-lsp';
 
 // Enhanced language configurations for better syntax highlighting
 export const enhanceMonacoLanguages = () => {
@@ -16,21 +15,24 @@ export const enhanceMonacoLanguages = () => {
         trailingCommas: 'error',
     });
 
-    // Set default TypeScript/JavaScript configuration (will be overridden by project-specific settings)
-    setDefaultTypeScriptConfiguration();
-
-    // Enable type checking and error reporting for TypeScript
+    // Disable Monaco's built-in TypeScript service - we'll use LSP instead
     monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-        noSemanticValidation: false,
-        noSyntaxValidation: false,
-        noSuggestionDiagnostics: false,
+        noSemanticValidation: true,  // Disable - LSP will handle this
+        noSyntaxValidation: false,   // Keep basic syntax validation as fallback
+        noSuggestionDiagnostics: true, // Disable - LSP will handle this
     });
 
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-        noSemanticValidation: false,
-        noSyntaxValidation: false,
-        noSuggestionDiagnostics: false,
+        noSemanticValidation: true,  // Disable - LSP will handle this
+        noSyntaxValidation: false,   // Keep basic syntax validation as fallback
+        noSuggestionDiagnostics: true, // Disable - LSP will handle this
     });
+
+    // Set basic TypeScript configuration (LSP will override with project-specific settings)
+    setDefaultTypeScriptConfiguration();
+    
+    // Register LSP providers for advanced TypeScript features
+    registerLSPProviders();
 
     // CSS configuration with vendor prefixes support
     monaco.languages.css.cssDefaults.setOptions({
@@ -146,14 +148,34 @@ const setDefaultTypeScriptConfiguration = () => {
 };
 
 /**
- * Initialize TypeScript project integration for the current project
+ * Initialize TypeScript LSP for the current project
  */
 export const initializeTypeScriptProject = async (projectPath: string) => {
     try {
-        await typescriptProjectService.initializeProject(projectPath);
-        console.log('TypeScript project integration initialized');
+        // Wait for the app to be fully ready before initializing LSP
+        // This helps avoid the initialization timing issues
+        let retries = 10;
+        while (retries > 0 && !window.electronAPI?.typescriptLSP) {
+            console.log('Waiting for TypeScript LSP API to be available...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retries--;
+        }
+        
+        if (!window.electronAPI?.typescriptLSP) {
+            console.warn('TypeScript LSP API not available after waiting');
+            return false;
+        }
+        
+        const success = await typescriptLSPClient.initialize(projectPath);
+        if (success) {
+            console.log('TypeScript LSP integration initialized for project:', projectPath);
+        } else {
+            console.error('Failed to initialize TypeScript LSP for project:', projectPath);
+        }
+        return success;
     } catch (error) {
-        console.error('Error initializing TypeScript project:', error);
+        console.error('Error initializing TypeScript LSP:', error);
+        return false;
     }
 };
 

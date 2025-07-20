@@ -9,6 +9,7 @@ import { addTerminalEventListeners } from "./terminal/terminal-listeners";
 import { addAgentEventListeners } from "./agents/agent-listeners";
 import { addIndexEventListeners } from "./index/index-listeners";
 import registerShellListeners from "./shell/shell-listeners";
+import { addTypescriptLSPEventListeners } from "./typescript-lsp/typescript-lsp-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   addWindowEventListeners(mainWindow);
@@ -20,5 +21,6 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addTerminalEventListeners(mainWindow);
   addAgentEventListeners(mainWindow);
   addIndexEventListeners();
+  addTypescriptLSPEventListeners(mainWindow);
   registerShellListeners();
 }
