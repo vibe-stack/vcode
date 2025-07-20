@@ -108,7 +108,7 @@ class AgentManager extends EventEmitter {
     });
   }
 
-  async updateAgentStatus(sessionId: string, status: AgentStatus): Promise<void> {
+  async updateAgentStatus(sessionId: string, status: AgentStatus, additionalData?: Partial<AgentSession>): Promise<void> {
     const session = agentDB.getSession(sessionId);
     if (!session) {
       throw new Error(`Agent session not found: ${sessionId}`);
@@ -139,7 +139,7 @@ class AgentManager extends EventEmitter {
         break;
     }
 
-    agentDB.updateSessionStatus(sessionId, status);
+    agentDB.updateSessionStatus(sessionId, status, additionalData);
     this.emit('agentStatusChanged', { sessionId, status, previousStatus: session.status });
   }
 

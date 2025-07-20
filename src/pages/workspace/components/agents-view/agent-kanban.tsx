@@ -11,6 +11,7 @@ interface AgentKanbanProps {
   onAccept: (agentId: string) => Promise<void>;
   onReject: (agentId: string) => Promise<void>;
   onPromoteToTodo: (agentId: string) => Promise<void>;
+  onDemoteToIdeas: (agentId: string) => Promise<void>;
   onDelete: (agentId: string) => Promise<void>;
   onViewDetails: (agentId: string) => void;
   onAddMessage: (agentId: string) => void;
@@ -34,6 +35,7 @@ export const AgentKanban: React.FC<AgentKanbanProps> = ({
   onAccept,
   onReject,
   onPromoteToTodo,
+  onDemoteToIdeas,
   onDelete,
   onViewDetails,
   onAddMessage,
@@ -142,6 +144,7 @@ export const AgentKanban: React.FC<AgentKanbanProps> = ({
                         onAccept={onAccept}
                         onReject={onReject}
                         onPromoteToTodo={onPromoteToTodo}
+                        onDemoteToIdeas={onDemoteToIdeas}
                         onDelete={onDelete}
                         onViewDetails={onViewDetails}
                         onAddMessage={onAddMessage}

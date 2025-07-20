@@ -32,6 +32,9 @@ declare global {
       onStepStarted: (callback: (data: any) => void) => () => void;
       onStepCompleted: (callback: (data: any) => void) => () => void;
       onStepFailed: (callback: (data: any) => void) => () => void;
+      onExecutionComplete: (callback: (data: any) => void) => () => void;
+      onExecutionAborted: (callback: (data: any) => void) => () => void;
+      onNeedsClarification: (callback: (data: any) => void) => () => void;
       onAgentCreated: (callback: (data: any) => void) => () => void;
       onAgentDeleted: (callback: (data: any) => void) => () => void;
       onMessageAdded: (callback: (data: any) => void) => () => void;
@@ -184,6 +187,27 @@ export const agentIpc = {
       return noOpCleanup;
     }
     return window.agentApi!.onMessageAdded(callback);
+  },
+
+  onExecutionComplete(callback: (data: any) => void): () => void {
+    if (!isAgentApiAvailable()) {
+      return noOpCleanup;
+    }
+    return window.agentApi!.onExecutionComplete(callback);
+  },
+
+  onExecutionAborted(callback: (data: any) => void): () => void {
+    if (!isAgentApiAvailable()) {
+      return noOpCleanup;
+    }
+    return window.agentApi!.onExecutionAborted(callback);
+  },
+
+  onNeedsClarification(callback: (data: any) => void): () => void {
+    if (!isAgentApiAvailable()) {
+      return noOpCleanup;
+    }
+    return window.agentApi!.onNeedsClarification(callback);
   },
 
   removeAllListeners(): void {

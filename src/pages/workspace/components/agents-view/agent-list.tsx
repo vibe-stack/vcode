@@ -18,6 +18,7 @@ interface AgentListProps {
   onAccept: (agentId: string) => Promise<void>;
   onReject: (agentId: string) => Promise<void>;
   onPromoteToTodo: (agentId: string) => Promise<void>;
+  onDemoteToIdeas: (agentId: string) => Promise<void>;
   onDelete: (agentId: string) => Promise<void>;
   onViewDetails: (agentId: string) => void;
   onAddMessage: (agentId: string) => void;
@@ -31,6 +32,7 @@ export const AgentList: React.FC<AgentListProps> = ({
   onAccept,
   onReject,
   onPromoteToTodo,
+  onDemoteToIdeas,
   onDelete,
   onViewDetails,
   onAddMessage
@@ -171,6 +173,7 @@ export const AgentList: React.FC<AgentListProps> = ({
               onAccept={onAccept}
               onReject={onReject}
               onPromoteToTodo={onPromoteToTodo}
+              onDemoteToIdeas={onDemoteToIdeas}
               onDelete={onDelete}
               onViewDetails={onViewDetails}
               onAddMessage={onAddMessage}
@@ -203,6 +206,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                       onAccept={onAccept}
                       onReject={onReject}
                       onPromoteToTodo={onPromoteToTodo}
+                      onDemoteToIdeas={onDemoteToIdeas}
                       onDelete={onDelete}
                       onViewDetails={onViewDetails}
                       onAddMessage={onAddMessage}

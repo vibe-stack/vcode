@@ -219,7 +219,6 @@ class AgentDatabase {
   }
 
   updateSessionStatus(id: string, status: AgentStatus, additionalData?: Partial<AgentSession>): void {
-    console.log(`🔄 updateSessionStatus called: ${id} -> ${status}`, { additionalData, stack: new Error().stack?.split('\n').slice(1, 4) });
     
     const now = new Date().toISOString();
     

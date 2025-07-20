@@ -62,19 +62,6 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
 
   const getPrimaryAction = () => {
     switch (agent.status) {
-      case 'ideas':
-        return (
-          <Button
-            size="sm"
-            onClick={e => { e.stopPropagation(); handleAction('promote', () => onPromoteToTodo(agent.id)); }}
-            disabled={isLoading || actionLoading === 'promote'}
-            className="gap-1.5"
-          >
-            <ArrowRight className="h-3 w-3" />
-            Promote to Todo
-          </Button>
-        );
-      
       case 'todo':
         return (
           <Button
@@ -173,9 +160,6 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
                 e.stopPropagation();
                 // Handle compact primary actions through dropdown
                 switch (agent.status) {
-                  case 'ideas':
-                    handleAction('promote', () => onPromoteToTodo(agent.id));
-                    break;
                   case 'todo':
                     handleAction('start', () => onStart(agent.id));
                     break;
@@ -188,12 +172,6 @@ export const AgentActions: React.FC<AgentActionsProps> = ({
                 }
               }}
             >
-              {agent.status === 'ideas' && (
-                <>
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Promote to Todo
-                </>
-              )}
               {agent.status === 'todo' && (
                 <>
                   <Play className="mr-2 h-4 w-4" />

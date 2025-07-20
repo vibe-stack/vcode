@@ -26,6 +26,7 @@ export const AgentsView = () => {
         acceptAgent,
         rejectAgent,
         promoteToTodo,
+        demoteToIdeas,
         deleteAgent,
         reload
     } = useAgents(currentProject || undefined);
@@ -128,6 +129,7 @@ export const AgentsView = () => {
                         onAccept={acceptAgent}
                         onReject={rejectAgent}
                         onPromoteToTodo={promoteToTodo}
+                        onDemoteToIdeas={demoteToIdeas}
                         onDelete={deleteAgent}
                         onViewDetails={handleViewDetails}
                         onAddMessage={handleAddMessage}

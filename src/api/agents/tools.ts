@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { fileLockManager } from './file-lock-manager';
 import { fileSnapshotManager } from './file-snapshot-manager';
 import { agentDB } from './database';
+import { agentManager } from './manager';
 import { SmartIndexService } from '../../helpers/ipc/index/smart-index-service';
 import { SearchResult } from '../../helpers/ipc/index/index-context';
 import fs from 'fs';
@@ -505,8 +506,8 @@ export const finishWork = tool({
     addProgress('Task completed - ready for review', 'completed', summary);
 
     try {
-      // Update agent status to 'review'
-      agentDB.updateSessionStatus(sessionId, 'review', { 
+      // Update agent status to 'review' using agentManager to trigger events
+      await agentManager.updateAgentStatus(sessionId, 'review', {
         completedAt: new Date().toISOString(),
         metadata: JSON.stringify({
           summary,
@@ -550,8 +551,8 @@ export const requireClarification = tool({
     addProgress('Requesting clarification from user', 'pending', question);
 
     try {
-      // Update agent status to 'need_clarification'
-      agentDB.updateSessionStatus(sessionId, 'need_clarification', { 
+      // Update agent status to 'need_clarification' using agentManager to trigger events
+      await agentManager.updateAgentStatus(sessionId, 'need_clarification', {
         metadata: JSON.stringify({
           question,
           context,

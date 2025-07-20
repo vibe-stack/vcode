@@ -78,7 +78,7 @@ export const useAgents = (currentProjectPath?: string) => {
         // Silently fail for polling - don't update error state
         console.warn('Polling failed:', err);
       }
-    }, 2000); // Poll every 2 seconds when there are running agents
+    }, 1000); // Poll every 1 second for more responsive updates
   }, [loadAgents]);
 
   // Stop polling
@@ -198,6 +198,21 @@ export const useAgents = (currentProjectPath?: string) => {
     }
   }, []);
 
+  // Demote agent from todo to ideas
+  const demoteToIdeas = useCallback(async (agentId: string) => {
+    try {
+      await agentIpc.updateAgentStatus(agentId, 'ideas');
+      setAgents(prev => prev.map(agent => 
+        agent.id === agentId 
+          ? { ...agent, status: 'ideas' as AgentStatus, updatedAt: new Date().toISOString() }
+          : agent
+      ));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to demote agent to ideas');
+      throw err;
+    }
+  }, []);
+
   // Delete agent
   const deleteAgent = useCallback(async (agentId: string) => {
     try {
@@ -214,56 +229,61 @@ export const useAgents = (currentProjectPath?: string) => {
     mountedRef.current = true;
     const cleanupFunctions: (() => void)[] = [];
 
-    // Listen for status changes
-    const statusCleanup = agentIpc.onStatusChanged((data: any) => {
-      console.log('Agent status changed:', data);
+    // Helper function to update agent and show notifications
+    const updateAgentStatus = (sessionId: string, status: string, showToast = true) => {
       setAgents(prev => {
         const updatedAgents = prev.map(agent => 
-          agent.id === data.sessionId 
-            ? { ...agent, status: data.status, updatedAt: new Date().toISOString() }
+          agent.id === sessionId 
+            ? { ...agent, status: status as AgentStatus, updatedAt: new Date().toISOString() }
             : agent
         );
         
-        // Show toast notification for status changes
-        const agent = updatedAgents.find(a => a.id === data.sessionId);
-        const agentName = agent?.name || 'Agent';
-        
-        // Temporarily disabled toasts to debug
-        switch (data.status) {
-          case 'doing':
-            toast.success(`${agentName} started running`, {
-              description: 'Agent execution has begun',
-              duration: 3000,
-            });
-            break;
-          case 'review':
-            toast.info(`${agentName} completed and needs review`, {
-              description: 'Click to review the results',
-              duration: 5000,
-            });
-            break;
-          case 'accepted':
-            toast.success(`${agentName} results accepted`, {
-              description: 'Agent task completed successfully',
-              duration: 3000,
-            });
-            break;
-          case 'rejected':
-            toast.warning(`${agentName} results rejected`, {
-              description: 'Agent task was rejected',
-              duration: 3000,
-            });
-            break;
-          case 'need_clarification':
-            toast.warning(`${agentName} stopped`, {
-              description: 'Agent execution was stopped',
-              duration: 3000,
-            });
-            break;
+        if (showToast) {
+          const agent = updatedAgents.find(a => a.id === sessionId);
+          const agentName = agent?.name || 'Agent';
+          
+          switch (status) {
+            case 'doing':
+              toast.success(`${agentName} started running`, {
+                description: 'Agent execution has begun',
+                duration: 3000,
+              });
+              break;
+            case 'review':
+              toast.info(`${agentName} completed and needs review`, {
+                description: 'Click to review the results',
+                duration: 5000,
+              });
+              break;
+            case 'accepted':
+              toast.success(`${agentName} results accepted`, {
+                description: 'Agent task completed successfully',
+                duration: 3000,
+              });
+              break;
+            case 'rejected':
+              toast.warning(`${agentName} results rejected`, {
+                description: 'Agent task was rejected',
+                duration: 3000,
+              });
+              break;
+            case 'need_clarification':
+              toast.warning(`${agentName} stopped`, {
+                description: 'Agent execution was stopped',
+                duration: 3000,
+              });
+              break;
+          }
         }
         
         return updatedAgents;
       });
+    };
+
+    // Listen for general status changes
+    const statusCleanup = agentIpc.onStatusChanged((data: any) => {
+      console.log('Agent status changed:', data);
+      updateAgentStatus(data.sessionId, data.status);
       
       // If agent finished (not doing anymore), check if we should stop polling
       if (data.status !== 'doing') {
@@ -282,6 +302,29 @@ export const useAgents = (currentProjectPath?: string) => {
       }
     });
     cleanupFunctions.push(statusCleanup);
+
+    // Listen for execution completion (when agent finishes work)
+    const executionCompleteCleanup = agentIpc.onExecutionComplete((data: any) => {
+      console.log('Agent execution completed:', data);
+      // Don't override status - let statusChanged events handle that
+      // Force refresh to ensure we get the latest state
+      setTimeout(() => loadAgents(true), 500);
+    });
+    cleanupFunctions.push(executionCompleteCleanup);
+
+    // Listen for when agent needs clarification
+    const needsClarificationCleanup = agentIpc.onNeedsClarification((data: any) => {
+      console.log('Agent needs clarification:', data);
+      updateAgentStatus(data.sessionId, 'need_clarification');
+    });
+    cleanupFunctions.push(needsClarificationCleanup);
+
+    // Listen for execution aborted/stopped
+    const executionAbortedCleanup = agentIpc.onExecutionAborted((data: any) => {
+      console.log('Agent execution aborted:', data);
+      updateAgentStatus(data.sessionId, 'need_clarification');
+    });
+    cleanupFunctions.push(executionAbortedCleanup);
 
     // Listen for step completion (to update progress)
     const stepCleanup = agentIpc.onStepCompleted((data: any) => {
@@ -397,6 +440,19 @@ export const useAgents = (currentProjectPath?: string) => {
     loadAgents();
   }, [loadAgents]);
 
+  // Monitor agent states and manage polling
+  useEffect(() => {
+    const runningAgents = agents.filter(agent => agent.status === 'doing');
+    
+    if (runningAgents.length > 0 && !pollingIntervalRef.current) {
+      console.log('Starting polling due to running agents detected');
+      startPolling();
+    } else if (runningAgents.length === 0 && pollingIntervalRef.current) {
+      console.log('Stopping polling due to no running agents');
+      stopPolling();
+    }
+  }, [agents, startPolling, stopPolling]);
+
   return {
     agents,
     loading,
@@ -408,6 +464,7 @@ export const useAgents = (currentProjectPath?: string) => {
     acceptAgent,
     rejectAgent,
     promoteToTodo,
+    demoteToIdeas,
     deleteAgent,
     reload: forceRefresh
   };

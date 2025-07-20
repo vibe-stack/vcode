@@ -4,6 +4,7 @@ import { settingsManager } from '../../helpers/ipc/settings/settings-listeners';
 import { systemPrompt } from '../ai/system-prompt';
 import { agentTools, setCurrentSessionId } from './tools';
 import { agentDB } from './database';
+import { agentManager } from './manager';
 
 export async function agentApi({ 
   messages, 
@@ -137,7 +138,7 @@ export async function agentApi({
                     // Only handle error cases here - successful completion should be handled by finishWork() tool
                     if (finishReason !== 'stop') {
                         console.log(`❌ Agent execution failed with reason: ${finishReason}, moving to need_clarification status: ${sessionId}`);
-                        agentDB.updateSessionStatus(sessionId, 'need_clarification', {
+                        await agentManager.updateAgentStatus(sessionId, 'need_clarification', {
                             metadata: JSON.stringify({
                                 error: `Execution failed: ${finishReason}`,
                                 failedAt: new Date().toISOString()
