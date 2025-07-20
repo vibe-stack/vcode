@@ -9,6 +9,7 @@ import { AgentsView } from './components/agents-view';
 import { useTerminalStore } from '@/stores/terminal';
 import WorkspaceHeader from '@/components/WorkspaceHeader';
 import { Toaster } from "@/components/ui/sonner";
+import { GlobalKeymapProvider } from '@/services/keymaps/main';
 
 export default function WorkspacePage() {
   const { currentProject, fileTree } = useProjectStore();
@@ -34,8 +35,9 @@ export default function WorkspacePage() {
   }, [currentProject]);
 
   return (
-    <div className="flex h-screen flex-col">
-      <WorkspaceHeader />
+    <GlobalKeymapProvider>
+      <div className="flex h-screen flex-col">
+        <WorkspaceHeader />
       <main className="h-full grow flex flex-col overflow-hidden">
         <div className="flex-1 overflow-hidden">
           <div className="w-full bg-background h-full max-h-full relative flex flex-col workspace-layout">
@@ -102,5 +104,6 @@ export default function WorkspacePage() {
       </main>
       <Toaster />
     </div>
+    </GlobalKeymapProvider>
   );
 }

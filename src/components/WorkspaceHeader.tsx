@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { SettingsIcon, BotIcon, CodeIcon, Sparkles } from "lucide-react";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -7,33 +7,53 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useEditorContentStore } from "@/stores/editor-content";
 
+import { useCommandManager, useKeyBindingManager } from "@/services/keymaps/main";
+
 export default function WorkspaceHeader() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { view, setView } = useEditorContentStore();
 
-  // Cycle views: code -> agents -> auto -> code ...
+  // Use keymap system for cycling views
   const views = ["code", "agents", "auto"];
-  const handleCycleView = useCallback(() => {
-    const idx = views.indexOf(view);
-    const nextView = views[(idx + 1) % views.length];
-    setView(nextView as typeof view);
-  }, [view, setView]);
+  const { registerCommand, unregisterCommand } = useCommandManager();
+  const { addKeyBinding, removeKeyBinding } = useKeyBindingManager();
 
+  // Register the cycle view command and key binding
   useEffect(() => {
-    function handleKeyDown(e) {
-      const isMac = navigator.platform.toLowerCase().includes("mac");
-      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
-      if (cmdOrCtrl && e.key === "5") {
-        e.preventDefault();
-        handleCycleView();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleCycleView]);
+    // Register command
+    registerCommand("view.cycleView", {
+      execute: () => {
+        console.log("registered keymap, view.cycleView")
+        const idx = views.indexOf(view);
+        const nextView = views[(idx + 1) % views.length];
+        setView(nextView as typeof view);
+      },
+      canExecute: () => true,
+    });
+
+    // Register key binding for Cmd/Ctrl+5 (global context)
+    addKeyBinding({
+      id: "view.cycleView.binding",
+      description: "Cycle editor views",
+      key: "cmd+5",
+      altKeys: ["ctrl+5"],
+      command: "view.cycleView",
+      enabled: true,
+      category: "view",
+      context: "global",
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unregisterCommand("view.cycleView");
+      removeKeyBinding("view.cycleView.binding");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, setView]);
 
   return (
     <>
+      {/* Keymap handles Cmd/Ctrl+5 for cycling views */}
       <div className="draglayer relative z-950 flex w-screen items-stretch border-b py-1">
         <div className="flex flex-1 items-center px-4">
           <div className="no-drag">

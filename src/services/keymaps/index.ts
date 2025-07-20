@@ -1,10 +1,14 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
 import { KeyBinding, KeymapProfile, KeymapState, KeyCommand, KeyEventInfo } from './types';
 import { getDefaultProfiles } from './profiles';
 import { registerDefaultCommands } from './commands';
 import { keyEventToString, matchesKeyCombination, isValidKeyCombination } from './utils';
 import { useBufferStore } from '@/stores/buffers';
+
+// Enable Map support in Immer for the commands Map
+enableMapSet();
 
 export const useKeymapStore = create<KeymapState>()(
   immer((set, get) => ({
