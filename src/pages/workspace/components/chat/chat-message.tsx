@@ -5,6 +5,7 @@ import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
 import { ToolCallHandler } from './tool-call-handler';
 import { AttachmentDisplay } from './attachment-display';
+import { ReasoningDisplay } from './reasoning-display';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from './markdown-components';
@@ -57,6 +58,15 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                             );
                         }
                         return null;
+                    } else if (part.type === 'reasoning') {
+                        // Handle reasoning parts (thinking tokens)
+                        return (
+                            <ReasoningDisplay
+                                key={`${message.id}-reasoning-${index}`}
+                                reasoning={(part as any).reasoning}
+                                details={(part as any).details}
+                            />
+                        );
                     } else if (part.type === 'tool-invocation') {
                         return (
                             <ToolCallHandler

@@ -97,7 +97,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       </div>
 
       {/* Send button */}
-      <div className="absolute bottom-2 right-2 flex items-end">
+      <div className="absolute bottom-2 right-2 flex items-end gap-1">
+        <span className="text-xs text-muted-foreground/60 select-none pointer-events-none">{isLoading ? 'Sending...' : 'Shift+Enter to send'}</span>
         {isLoading ? (
           <Button
             variant="ghost"

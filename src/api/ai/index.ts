@@ -29,7 +29,9 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
             // maxTokens: 10000,
           });
 
-          result.mergeIntoDataStream(dataStream);
+          result.mergeIntoDataStream(dataStream, {
+            sendReasoning: true, // Enable reasoning tokens to be sent to client
+          });
           await result.text;
         } catch (streamError) {
           console.error("Stream error:", streamError);

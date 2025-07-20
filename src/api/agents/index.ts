@@ -170,7 +170,9 @@ export async function agentApi({
         // even when the client response is aborted:
         result.consumeStream(); // no await
 
-        return result.toDataStreamResponse();
+        return result.toDataStreamResponse({
+            sendReasoning: true, // Enable reasoning tokens to be sent to client
+        });
     } catch (error) {
         console.error('AI API Error:', error);
         

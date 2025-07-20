@@ -12,7 +12,7 @@ import { ChatHistory } from './chat-history';
 import { GlobalFileChanges } from './global-file-changes';
 import { useChatSnapshotStore } from '@/stores/chat-snapshots';
 import { useSnapshotCleanup } from './hooks/use-snapshot-cleanup';
-import DotMatrix from '@/components/ui/animated-dot-matrix';
+import { StreamingIndicator } from './streaming-indicator';
 
 export function ChatPanel() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function ChatPanel() {
 
     // Initialize snapshot cleanup
     useSnapshotCleanup();
-    const { messages, append, setMessages, isLoading, addToolResult, stop } = useChat({
+    const { messages, append, setMessages, isLoading, addToolResult, stop, status } = useChat({
         api: '/api/chat', // This will be handled by our custom fetcher
         fetch: chatFetch,
         maxSteps: 50, // Enable multi-step functionality
@@ -338,16 +338,7 @@ export function ChatPanel() {
                         ))}
 
                         {isLoading && (
-                            <div className="flex justify-start">
-                                <DotMatrix
-                                    baseColor='#444'
-                                    fillColor="#4caf50"
-                                    dotSize={3}
-                                    rows={3}
-                                    fillSpeed={3000}
-                                    autoFill={true}
-                                />
-                            </div>
+                            <StreamingIndicator status={status} isLoading={isLoading} />
                         )}
 
                         <div ref={messagesEndRef} />
