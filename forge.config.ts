@@ -10,7 +10,13 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: {
+      unpack: "{**/node-pty/**,**/better-sqlite3/**,**/faiss-node/**,**/onnxruntime-node/**,**/@xenova/**,**/sharp/**,**/@img/**,**/@huggingface/**,**/transformers/**,**/@mapbox/node-pre-gyp/**,**/bindings/**,**/nan/**,**/file-uri-to-path/**,**/semver/**,**/detect-libc/**,**/color/**,**/color-string/**,**/color-convert/**,**/color-name/**,**/simple-swizzle/**}",
+    },
+    ignore: [
+      // Include only the native modules we need and exclude everything else from node_modules
+      /^\/node_modules\/(?!(node-pty|better-sqlite3|faiss-node|onnxruntime-node|@xenova|sharp|@img|@huggingface|@mapbox\/node-pre-gyp|bindings|nan|file-uri-to-path|semver|detect-libc|color|color-string|color-convert|color-name|simple-swizzle)($|\/)).*/,
+    ],
     osxUniversal: {
       x64ArchFiles: '*',
     },
@@ -21,6 +27,8 @@ const config: ForgeConfig = {
       "better-sqlite3",
       "faiss-node",
       "onnxruntime-node",
+      "@xenova/transformers",
+      "sharp"
     ],
   },
   makers: [
@@ -30,7 +38,9 @@ const config: ForgeConfig = {
     new MakerDeb({}),
   ],
   plugins: [
-    new AutoUnpackNativesPlugin({}),
+    new AutoUnpackNativesPlugin({
+
+    }),
     new VitePlugin({
       build: [
         {
@@ -59,7 +69,7 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: false,
     }),
   ],
 };

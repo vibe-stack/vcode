@@ -1,7 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import * as nodePty from 'node-pty';
 import * as os from 'os';
-import * as path from 'path';
 import {
   TERMINAL_CREATE_CHANNEL,
   TERMINAL_WRITE_CHANNEL,
