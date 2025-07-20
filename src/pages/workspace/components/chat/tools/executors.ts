@@ -418,7 +418,7 @@ export const frontendToolExecutors = {
           }
         }, 100);
 
-        // Set a timeout to prevent hanging (5 seconds for debugging)
+        // Set a timeout to prevent hanging (10 seconds for debugging)
         setTimeout(() => {
           if (!hasExited) {
             console.log('[runTerminalCommand] Command timed out - hasStarted:', hasStarted, 'output length:', output.length);
@@ -435,7 +435,7 @@ export const frontendToolExecutors = {
             }
             resolve(finalOutput);
           }
-        }, 5000); // 5 seconds for debugging
+        }, 10000); // 10 seconds for debugging
       });
 
       console.log('[runTerminalCommand] Execution completed successfully');
