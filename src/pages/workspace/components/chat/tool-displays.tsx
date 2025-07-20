@@ -46,6 +46,8 @@ export function ToolDisplay({ toolName, args, result, state }: ToolDisplayProps)
         return `Search "${args?.query || ''}"`;
       case 'getProjectInfo':
         return 'Get project info';
+      case 'runTerminalCommand':
+        return `Run: ${args?.command || ''}`;
       default:
         return toolName;
     }
@@ -87,6 +89,11 @@ export function ToolDisplay({ toolName, args, result, state }: ToolDisplayProps)
         return {
           summary: 'Getting project information',
           details: { includeStats: args?.includeStats }
+        };
+      case 'runTerminalCommand':
+        return {
+          summary: `Running command: ${args?.command || ''}`,
+          details: { command: args?.command, cwd: args?.cwd }
         };
       default:
         return {

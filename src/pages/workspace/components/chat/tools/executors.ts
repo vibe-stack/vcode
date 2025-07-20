@@ -7,6 +7,11 @@ export interface ToolExecutionResult {
       prevState: string;
       nextState: string;
     }[];
+    terminalExecution?: {
+      command: string;
+      cwd: string;
+      terminalId: string;
+    };
   };
 }
 
@@ -324,6 +329,38 @@ export const frontendToolExecutors = {
     } catch (error) {
       console.error('[getProjectInfo tool] Error:', error);
       throw new Error(`Failed to get project info: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  },
+
+  async runTerminalCommand(args: { command: string; cwd?: string }): Promise<ToolExecutionResult> {
+    try {
+      const currentProject = await window.projectApi.getCurrentProject();
+      const workingDir = args.cwd || currentProject || process.cwd();
+      
+      // Create a terminal with the specified command
+      const terminalInfo = await window.terminalApi.create({
+        title: `Agent: ${args.command.slice(0, 30)}...`,
+        cwd: workingDir
+      });
+
+      // Write the command to the terminal
+      await window.terminalApi.write(terminalInfo.id, args.command + '\n');
+
+      // Return immediately with the terminal info
+      // The UI will handle collecting output and waiting for completion
+      return {
+        message: `Executing command: ${args.command}`,
+        metadata: {
+          terminalExecution: {
+            command: args.command,
+            cwd: workingDir,
+            terminalId: terminalInfo.id
+          }
+        }
+      };
+    } catch (error) {
+      console.error('[runTerminalCommand tool] Error:', error);
+      throw new Error(`Failed to run terminal command: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
 } as const;

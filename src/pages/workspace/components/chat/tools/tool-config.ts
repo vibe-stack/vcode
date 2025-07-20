@@ -83,6 +83,15 @@ export const toolConfigs: Record<ToolName, ToolConfig> = {
     dangerLevel: 'safe',
     enabled: true,
   },
+  runTerminalCommand: {
+    name: 'runTerminalCommand',
+    displayName: 'Run Terminal Command',
+    description: 'Execute a command in a terminal',
+    category: 'project',
+    requiresConfirmation: false,
+    dangerLevel: 'caution',
+    enabled: true,
+  },
 };
 
 export function getToolConfig(toolName: ToolName): ToolConfig | undefined {

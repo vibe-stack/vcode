@@ -1,11 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, X, Loader2, Check, AlertTriangle, FileText, Folder, Search } from 'lucide-react';
+import { Play, X, Loader2, Check, AlertTriangle, FileText, Folder, Search, Terminal } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { toolExecutionService } from './tools/tool-execution-service';
 import { getToolConfig } from './tools/tool-config';
 import { ToolDisplay } from './tool-displays';
+import { TerminalToolDisplay } from './terminal-tool-display';
 import { ToolName } from './tools';
 
 interface ToolCallHandlerProps {
@@ -30,6 +31,9 @@ export function ToolCallHandler({
   const toolsRequiringConfirmation = toolExecutionService.getToolsRequiringConfirmation();
   const requiresConfirmation = toolsRequiringConfirmation.includes(toolName as any);
   const toolConfig = getToolConfig(toolName as any);
+  
+  // Get terminal execution info if available
+  const terminalInfo = toolExecutionService.getTerminalExecutionInfo(toolCallId);
   
   // State for expanded tool details - use toolCallId as key for uniqueness
   const [expanded, setExpanded] = React.useState(false);
@@ -78,6 +82,8 @@ export function ToolCallHandler({
         return `Search "${args?.query || ''}"`;
       case 'getProjectInfo':
         return 'Get project info';
+      case 'runTerminalCommand':
+        return `Run: ${args?.command?.slice(0, 30) || ''}${args?.command?.length > 30 ? '...' : ''}`;
       default:
         return toolConfig?.displayName || toolName;
     }
@@ -92,6 +98,11 @@ export function ToolCallHandler({
         return <Folder className="h-3 w-3" />;
       case 'search':
         return <Search className="h-3 w-3" />;
+      case 'project':
+        if (toolName === 'runTerminalCommand') {
+          return <Terminal className="h-3 w-3" />;
+        }
+        return <Play className="h-3 w-3" />;
       default:
         return <Play className="h-3 w-3" />;
     }
@@ -113,6 +124,19 @@ export function ToolCallHandler({
 
   // If the tool is executing (waiting for result)
   if (state === 'call' && !requiresConfirmation) {
+    // Special handling for terminal commands
+    if (toolName === 'runTerminalCommand') {
+      return (
+        <TerminalToolDisplay
+          command={args?.command || ''}
+          cwd={args?.cwd}
+          state={state}
+          terminalId={terminalInfo?.terminalId}
+          onCancel={() => onCancel?.(toolCallId)}
+        />
+      );
+    }
+
     return (
       <div className="flex items-center gap-2 py-1 px-2 rounded bg-muted/50 text-xs">
         <Loader2 className="h-3 w-3 animate-spin" />
@@ -123,6 +147,19 @@ export function ToolCallHandler({
 
   // If the tool has completed execution
   if (state === 'result' && !requiresConfirmation) {
+    // Special handling for terminal commands
+    if (toolName === 'runTerminalCommand') {
+      return (
+        <TerminalToolDisplay
+          command={args?.command || ''}
+          cwd={args?.cwd}
+          result={result}
+          state={state}
+          terminalId={terminalInfo?.terminalId}
+        />
+      );
+    }
+
     return (
       <div className="space-y-2">
         <div 

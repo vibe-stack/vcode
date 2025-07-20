@@ -92,6 +92,18 @@ export const getProjectInfo = tool({
   // No execute function - requires frontend confirmation
 });
 
+// Run Terminal Command Tool
+const runTerminalCommandParams = z.object({
+  command: z.string().describe('The command to run in the terminal'),
+  cwd: z.string().optional().describe('The working directory to run the command in (optional, defaults to project root)'),
+});
+
+export const runTerminalCommand = tool({
+  description: 'Execute a command in a terminal and wait for it to complete',
+  parameters: runTerminalCommandParams,
+  // No execute function - requires frontend confirmation
+});
+
 export const tools = {
   readFile,
   writeFile,
@@ -101,6 +113,7 @@ export const tools = {
   searchFiles,
   searchCodebase,
   getProjectInfo,
+  runTerminalCommand,
 };
 
 export type ToolName = keyof typeof tools;
