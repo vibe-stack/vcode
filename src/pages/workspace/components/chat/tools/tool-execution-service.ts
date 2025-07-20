@@ -8,11 +8,7 @@ export interface ToolExecutionService {
   executeApprovedTool(toolCallId: string, messages: Message[], sessionId: string): Promise<string>;
   cancelTool(toolCallId: string): Promise<string>;
   getToolsRequiringConfirmation(): ToolName[];
-  getTerminalExecutionInfo(toolCallId: string): { terminalId: string; command: string; cwd: string } | null;
 }
-
-// Store for terminal execution info
-const terminalExecutions = new Map<string, { terminalId: string; command: string; cwd: string }>();
 
 class ToolExecutionServiceImpl implements ToolExecutionService {
   async executeApprovedTool(toolCallId: string, messages: Message[], sessionId: string): Promise<string> {
@@ -66,15 +62,6 @@ class ToolExecutionServiceImpl implements ToolExecutionService {
         }
       }
       
-      // Handle terminal execution info storage
-      if (result.metadata?.terminalExecution) {
-        terminalExecutions.set(toolCallId, {
-          terminalId: result.metadata.terminalExecution.terminalId,
-          command: result.metadata.terminalExecution.command,
-          cwd: result.metadata.terminalExecution.cwd
-        });
-      }
-      
       // Return only the message to the LLM
       return result.message;
     } catch (error) {
@@ -84,25 +71,11 @@ class ToolExecutionServiceImpl implements ToolExecutionService {
   }
 
   async cancelTool(toolCallId: string): Promise<string> {
-    // If this is a terminal tool, kill the terminal
-    const terminalInfo = terminalExecutions.get(toolCallId);
-    if (terminalInfo) {
-      try {
-        await window.terminalApi.kill(terminalInfo.terminalId);
-      } catch (error) {
-        console.error('Failed to kill terminal on cancel:', error);
-      }
-      terminalExecutions.delete(toolCallId);
-    }
     return 'Tool execution cancelled by user';
   }
 
   getToolsRequiringConfirmation(): ToolName[] {
     return getToolsRequiringConfirmation();
-  }
-
-  getTerminalExecutionInfo(toolCallId: string): { terminalId: string; command: string; cwd: string } | null {
-    return terminalExecutions.get(toolCallId) || null;
   }
 }
 

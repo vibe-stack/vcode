@@ -125,13 +125,25 @@ export function PersistentTerminalPanel() {
         const splits = getTabSplits(activeTabId);
         const activeSplit = splits.find(s => s.id === activeTab.activeSplitId);
         if (activeSplit) {
-          window.terminalApi.write(activeSplit.terminalId, data);
+          console.log("running terminal cmd");
+          window.terminalApi.write(activeSplit.terminalId, data, (result, exitCode) => {
+            console.log(`[Terminal] Command executed in split ${activeSplit.id}:`, result, `Exit code: ${exitCode}`);
+            if (exitCode !== 0) {
+              console.error(`[Terminal] Command failed in split ${activeSplit.id}:`, result);
+            }
+          });
           return;
         }
       }
       
       // Write to main terminal
-      window.terminalApi.write(activeTabId, data);
+      console.log("running terminal cmd in main terminal");
+      window.terminalApi.write(activeTabId, data, (result, exitCode) => {
+        console.log(`[Terminal2] Command executed in main terminal ${activeTabId}:`, result, `Exit code: ${exitCode}`);
+        if (exitCode !== 0) {
+          console.error(`[Terminal2] Command failed in main terminal ${activeTabId}:`, result);
+        }
+      });
     }
   }, [activeTabId, activeTab?.activeSplitId, getTabSplits]);
   

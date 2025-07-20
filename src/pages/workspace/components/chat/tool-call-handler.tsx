@@ -32,9 +32,6 @@ export function ToolCallHandler({
   const requiresConfirmation = toolsRequiringConfirmation.includes(toolName as any);
   const toolConfig = getToolConfig(toolName as any);
   
-  // Get terminal execution info if available
-  const terminalInfo = toolExecutionService.getTerminalExecutionInfo(toolCallId);
-  
   // State for expanded tool details - use toolCallId as key for uniqueness
   const [expanded, setExpanded] = React.useState(false);
 
@@ -126,12 +123,14 @@ export function ToolCallHandler({
   if (state === 'call' && !requiresConfirmation) {
     // Special handling for terminal commands
     if (toolName === 'runTerminalCommand') {
+      // Extract terminalId from result metadata if available
+      const terminalId = result?.metadata?.terminalExecution?.terminalId || 'unknown';
       return (
         <TerminalToolDisplay
+          terminalId={terminalId}
           command={args?.command || ''}
           cwd={args?.cwd}
           state={state}
-          terminalId={terminalInfo?.terminalId}
           onCancel={() => onCancel?.(toolCallId)}
         />
       );
@@ -149,13 +148,14 @@ export function ToolCallHandler({
   if (state === 'result' && !requiresConfirmation) {
     // Special handling for terminal commands
     if (toolName === 'runTerminalCommand') {
+      // Extract terminalId from result metadata if available
+      const terminalId = result?.metadata?.terminalExecution?.terminalId || 'completed';
       return (
         <TerminalToolDisplay
+          terminalId={terminalId}
           command={args?.command || ''}
           cwd={args?.cwd}
-          result={result}
           state={state}
-          terminalId={terminalInfo?.terminalId}
         />
       );
     }

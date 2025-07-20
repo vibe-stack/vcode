@@ -92,7 +92,7 @@ interface SettingsApi {
 
 interface TerminalApi {
   create: (options?: { cwd?: string; title?: string }) => Promise<{ id: string; title: string; cwd: string; pid: number }>;
-  write: (terminalId: string, data: string) => Promise<boolean>;
+  write: (terminalId: string, data: string, callback?: (result: string, exitCode: number) => void) => Promise<boolean>;
   resize: (terminalId: string, cols: number, rows: number) => Promise<boolean>;
   kill: (terminalId: string) => Promise<boolean>;
   killAll: () => Promise<boolean>;
@@ -100,6 +100,7 @@ interface TerminalApi {
   onData: (callback: (data: { terminalId: string; data: string }) => void) => () => void;
   onExit: (callback: (data: { terminalId: string; exitCode: number }) => void) => () => void;
   onError: (callback: (data: { terminalId: string; error: string }) => void) => () => void;
+  onCommandResult: (callback: (data: { terminalId: string; commandId: string; result: string; exitCode: number }) => void) => () => void;
   removeAllListeners: () => void;
 }
 

@@ -10,11 +10,19 @@ import {
   TERMINAL_LIST_CHANNEL,
   TERMINAL_DATA_EVENT,
   TERMINAL_EXIT_EVENT,
-  TERMINAL_ERROR_EVENT
+  TERMINAL_ERROR_EVENT,
+  TERMINAL_COMMAND_RESULT_EVENT
 } from './terminal-channels';
 
 const spawn = nodePty.spawn;
 type IPty = typeof nodePty.spawn extends (...args: any[]) => infer R ? R : never;
+
+interface PendingCommand {
+  id: string;
+  output: string;
+  startTime: number;
+  isActive: boolean;
+}
 
 interface TerminalInstance {
   id: string;
@@ -23,6 +31,8 @@ interface TerminalInstance {
   title: string;
   pid: number;
   windowId: number;
+  pendingCommands: Map<string, PendingCommand>;
+  currentCommand: PendingCommand | null;
 }
 
 const terminals = new Map<string, TerminalInstance>();
@@ -44,6 +54,26 @@ function getShell(): string {
 // Generate unique terminal ID
 function generateTerminalId(): string {
   return `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Helper function to detect when a command has finished
+function isCommandFinished(latestData: string, fullOutput: string): boolean {
+  // Look for common shell prompt patterns that indicate command completion
+  const promptPatterns = [
+    /\$\s*$/,           // Basic $ prompt
+    /%\s*$/,            // Zsh % prompt  
+    />\s*$/,            // Windows > prompt
+    /[#$%>]\s*$/,       // Any of the common prompt endings
+    /~\s*[#$%>]\s*$/,   // Prompt with ~ (home directory)
+    /.*[#$%>]\s*$/      // Any path ending with prompt symbol
+  ];
+
+  // Split into lines and check the last non-empty line
+  const lines = latestData.split(/\r?\n/);
+  const lastLine = lines[lines.length - 1] || '';
+  
+  // Check if the last line contains a prompt pattern
+  return promptPatterns.some(pattern => pattern.test(lastLine));
 }
 
 export function addTerminalEventListeners(window: BrowserWindow): void {
@@ -76,7 +106,9 @@ export function addTerminalEventListeners(window: BrowserWindow): void {
         cwd,
         title,
         pid: pty.pid,
-        windowId: window.id
+        windowId: window.id,
+        pendingCommands: new Map(),
+        currentCommand: null
       };
 
       terminals.set(terminalId, terminal);
@@ -88,6 +120,31 @@ export function addTerminalEventListeners(window: BrowserWindow): void {
             terminalId,
             data
           });
+        }
+
+        // Track command output if there's a current command
+        if (terminal.currentCommand && terminal.currentCommand.isActive) {
+          terminal.currentCommand.output += data;
+          
+          // Check if command has finished (look for shell prompt patterns)
+          if (isCommandFinished(data, terminal.currentCommand.output)) {
+            const command = terminal.currentCommand;
+            terminal.currentCommand.isActive = false;
+            
+            // Send command result
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send(TERMINAL_COMMAND_RESULT_EVENT, {
+                terminalId,
+                commandId: command.id,
+                result: command.output,
+                exitCode: 0 // We'll get the real exit code from the command parsing
+              });
+            }
+            
+            // Clean up
+            terminal.pendingCommands.delete(command.id);
+            terminal.currentCommand = null;
+          }
         }
       });
 
@@ -115,11 +172,24 @@ export function addTerminalEventListeners(window: BrowserWindow): void {
   });
 
   // Write to terminal
-  ipcMain.handle(TERMINAL_WRITE_CHANNEL, async (_, terminalId: string, data: string) => {
+  ipcMain.handle(TERMINAL_WRITE_CHANNEL, async (_, terminalId: string, data: string, commandId?: string) => {
     try {
       const terminal = terminals.get(terminalId);
       if (!terminal) {
         throw new Error(`Terminal ${terminalId} not found`);
+      }
+
+      // If a commandId is provided, start tracking this command
+      if (commandId) {
+        const pendingCommand: PendingCommand = {
+          id: commandId,
+          output: '',
+          startTime: Date.now(),
+          isActive: true
+        };
+        
+        terminal.pendingCommands.set(commandId, pendingCommand);
+        terminal.currentCommand = pendingCommand;
       }
 
       terminal.pty.write(data);

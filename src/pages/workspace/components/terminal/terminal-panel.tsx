@@ -154,7 +154,13 @@ export function TerminalPanel() {
 
   const handleWrite = useCallback(async (terminalId: string, data: string) => {
     try {
-      await window.terminalApi.write(terminalId, data);
+      console.log("runnign command")
+      await window.terminalApi.write(terminalId, data, (result, exitCode) => {
+        console.log(`[Terminal] Command executed in ${terminalId}:`, result, `Exit code: ${exitCode}`);
+        if (exitCode !== 0) {
+          console.error(`[Terminal] Command failed in ${terminalId}:`, result);
+        }
+      });
     } catch (error) {
       console.error('Failed to write to terminal:', error);
     }

@@ -337,19 +337,111 @@ export const frontendToolExecutors = {
       const currentProject = await window.projectApi.getCurrentProject();
       const workingDir = args.cwd || currentProject || process.cwd();
       
+      console.log('[runTerminalCommand] Starting execution:', args.command, 'in', workingDir);
+      
       // Create a terminal with the specified command
       const terminalInfo = await window.terminalApi.create({
         title: `Agent: ${args.command.slice(0, 30)}...`,
         cwd: workingDir
       });
 
-      // Write the command to the terminal
-      await window.terminalApi.write(terminalInfo.id, args.command + '\n');
+      console.log('[runTerminalCommand] Terminal created:', terminalInfo);
 
-      // Return immediately with the terminal info
-      // The UI will handle collecting output and waiting for completion
+      // Set up listeners BEFORE writing the command
+      const result = await new Promise<string>((resolve, reject) => {
+        let output = '';
+        let hasExited = false;
+        let hasStarted = false;
+        
+        console.log('[runTerminalCommand] Setting up listeners for terminal:', terminalInfo.id);
+        
+        // Collect output
+        const unsubscribeData = window.terminalApi.onData((data) => {
+          if (data.terminalId === terminalInfo.id) {
+            if (!hasStarted) {
+              hasStarted = true;
+              console.log('[runTerminalCommand] First data received - command started');
+            }
+            console.log('[runTerminalCommand] Received data chunk:', JSON.stringify(data.data.substring(0, 100)));
+            output += data.data;
+          }
+        });
+
+        // Wait for exit
+        const unsubscribeExit = window.terminalApi.onExit((data) => {
+          if (data.terminalId === terminalInfo.id) {
+            console.log('[runTerminalCommand] Terminal exited with code:', data.exitCode);
+            hasExited = true;
+            unsubscribeData();
+            unsubscribeExit();
+            
+            // Clean up the terminal
+            window.terminalApi.kill(terminalInfo.id).catch((error) => {
+              console.log('[runTerminalCommand] Error killing terminal (expected):', error);
+            });
+            
+            // Resolve with the output and exit code
+            const finalOutput = `$ ${args.command}\n${output}\n[Process exited with code ${data.exitCode}]`;
+            console.log('[runTerminalCommand] Resolving with output length:', finalOutput.length);
+            resolve(finalOutput);
+          }
+        });
+
+        // Handle errors
+        const unsubscribeError = window.terminalApi.onError((data) => {
+          if (data.terminalId === terminalInfo.id) {
+            console.log('[runTerminalCommand] Terminal error:', data.error);
+            hasExited = true;
+            unsubscribeData();
+            unsubscribeExit();
+            unsubscribeError();
+            
+            window.terminalApi.kill(terminalInfo.id).catch(() => {});
+            
+            const finalOutput = `$ ${args.command}\n${output}\n[Process error: ${data.error}]`;
+            resolve(finalOutput);
+          }
+        });
+
+        // Write the command after setting up listeners
+        setTimeout(async () => {
+          console.log('[runTerminalCommand] Writing command to terminal:', args.command);
+          try {
+            await window.terminalApi.write(terminalInfo.id, args.command + '\n');
+            console.log('[runTerminalCommand] Command written successfully');
+          } catch (error) {
+            console.error('[runTerminalCommand] Error writing command:', error);
+            unsubscribeData();
+            unsubscribeExit();
+            unsubscribeError();
+            reject(new Error(`Failed to write command: ${error}`));
+          }
+        }, 100);
+
+        // Set a timeout to prevent hanging (5 seconds for debugging)
+        setTimeout(() => {
+          if (!hasExited) {
+            console.log('[runTerminalCommand] Command timed out - hasStarted:', hasStarted, 'output length:', output.length);
+            unsubscribeData();
+            unsubscribeExit();
+            unsubscribeError();
+            window.terminalApi.kill(terminalInfo.id).catch(() => {});
+            
+            let finalOutput;
+            if (!hasStarted) {
+              finalOutput = `$ ${args.command}\n[No output received - command may not have started]\n[Process terminated after 5 seconds timeout]`;
+            } else {
+              finalOutput = `$ ${args.command}\n${output}\n[Process terminated after 5 seconds timeout]`;
+            }
+            resolve(finalOutput);
+          }
+        }, 5000); // 5 seconds for debugging
+      });
+
+      console.log('[runTerminalCommand] Execution completed successfully');
+
       return {
-        message: `Executing command: ${args.command}`,
+        message: result,
         metadata: {
           terminalExecution: {
             command: args.command,

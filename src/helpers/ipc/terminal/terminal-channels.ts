@@ -10,3 +10,4 @@ export const TERMINAL_LIST_CHANNEL = 'terminal:list';
 export const TERMINAL_DATA_EVENT = 'terminal:data';
 export const TERMINAL_EXIT_EVENT = 'terminal:exit';
 export const TERMINAL_ERROR_EVENT = 'terminal:error';
+export const TERMINAL_COMMAND_RESULT_EVENT = 'terminal:command-result';

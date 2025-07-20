@@ -1,83 +1,155 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { cn } from '@/utils/tailwind';
+import { Terminal } from 'xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { Unicode11Addon } from '@xterm/addon-unicode11';
+import 'xterm/css/xterm.css';
 
 interface TerminalToolDisplayProps {
+  terminalId: string;
   command: string;
   cwd?: string;
-  result?: string;
   state: 'call' | 'result' | string;
-  terminalId?: string;
   onCancel?: () => void;
 }
 
-export function TerminalToolDisplay({ command, cwd, result, state, terminalId, onCancel }: TerminalToolDisplayProps) {
-  const [output, setOutput] = useState('');
-  const [isCompleted, setIsCompleted] = useState(false);
+export function TerminalToolDisplay({ terminalId, command, cwd, state, onCancel }: TerminalToolDisplayProps) {
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const xtermRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [hasExited, setHasExited] = useState(false);
   const [exitCode, setExitCode] = useState<number | null>(null);
-  const terminalOutputRef = useRef<HTMLDivElement>(null);
 
-  // Listen for terminal output and completion if we have a terminalId
+  // Initialize read-only terminal
   useEffect(() => {
-    if (!terminalId) return;
+    if (!terminalRef.current || xtermRef.current) return;
 
-    let unsubscribeData: (() => void) | null = null;
-    let unsubscribeExit: (() => void) | null = null;
+    console.log('[TerminalToolDisplay] Initializing read-only XTerm for terminal:', terminalId);
 
-    // Only set up listeners if the terminal is still running
-    if (state === 'call' || (!isCompleted && !result)) {
-      // Listen for output
-      unsubscribeData = window.terminalApi.onData((data) => {
-        if (data.terminalId === terminalId) {
-          setOutput(prev => prev + data.data);
-        }
-      });
+    // Create terminal instance with VSCode-like theme
+    const terminal = new Terminal({
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#d4d4d4',
+        cursor: '#ffffff',
+        black: '#000000',
+        red: '#cd3131',
+        green: '#0dbc79',
+        yellow: '#e5e510',
+        blue: '#2472c8',
+        magenta: '#bc3fbc',
+        cyan: '#11a8cd',
+        white: '#e5e5e5',
+        brightBlack: '#666666',
+        brightRed: '#f14c4c',
+        brightGreen: '#23d18b',
+        brightYellow: '#f5f543',
+        brightBlue: '#3b8eea',
+        brightMagenta: '#d670d6',
+        brightCyan: '#29b8db',
+        brightWhite: '#e5e5e5'
+      },
+      fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+      fontSize: 12,
+      fontWeight: 'normal',
+      fontWeightBold: 'bold',
+      lineHeight: 1.2,
+      letterSpacing: 0,
+      cursorBlink: true,
+      cursorStyle: 'block',
+      scrollback: 1000,
+      rows: 12,
+      cols: 80,
+      allowProposedApi: true,
+      disableStdin: true, // Make terminal read-only
+    });
 
-      // Listen for exit
-      unsubscribeExit = window.terminalApi.onExit((data) => {
-        if (data.terminalId === terminalId) {
-          setIsCompleted(true);
-          setExitCode(data.exitCode);
-          setOutput(prev => prev + `\n[Process exited with code ${data.exitCode}]`);
-          
-          // Clean up the terminal
-          window.terminalApi.kill(terminalId).catch(() => {
-            // Ignore cleanup errors
-          });
-        }
-      });
-    }
+    // Add addons
+    const fitAddon = new FitAddon();
+    const webLinksAddon = new WebLinksAddon();
+    const unicode11Addon = new Unicode11Addon();
+
+    terminal.loadAddon(fitAddon);
+    terminal.loadAddon(webLinksAddon);
+    terminal.loadAddon(unicode11Addon);
+    terminal.unicode.activeVersion = '11';
+
+    // Open terminal
+    terminal.open(terminalRef.current);
+    fitAddon.fit();
+
+    // Store references
+    xtermRef.current = terminal;
+    fitAddonRef.current = fitAddon;
+    setIsInitialized(true);
+
+    // Write the command prompt initially
+    terminal.write(`$ ${command}\r\n`);
+
+    console.log('[TerminalToolDisplay] Read-only XTerm initialized successfully');
 
     return () => {
-      unsubscribeData?.();
-      unsubscribeExit?.();
+      console.log('[TerminalToolDisplay] Cleaning up XTerm');
+      terminal.dispose();
+      xtermRef.current = null;
+      fitAddonRef.current = null;
+      setIsInitialized(false);
     };
-  }, [terminalId, state, isCompleted, result]);
+  }, [terminalId, command]);
 
-  // Auto-scroll to bottom when new content is added
+  // Listen for terminal data and write to XTerm
   useEffect(() => {
-    if (terminalOutputRef.current) {
-      terminalOutputRef.current.scrollTop = terminalOutputRef.current.scrollHeight;
-    }
-  }, [output, result]);
+    if (!isInitialized || !xtermRef.current) return;
 
-  const handleCancel = () => {
-    if (terminalId) {
-      window.terminalApi.kill(terminalId).catch(() => {
-        // Ignore cleanup errors
-      });
-      setIsCompleted(true);
-      setOutput(prev => prev + '\n[Process terminated by user]');
+    console.log('[TerminalToolDisplay] Setting up data listener for terminal:', terminalId);
+
+    const unsubscribeData = window.terminalApi.onData((data) => {
+      if (data.terminalId === terminalId && xtermRef.current) {
+        console.log('[TerminalToolDisplay] Writing data to XTerm:', data.data.substring(0, 50), '...');
+        xtermRef.current.write(data.data);
+      }
+    });
+
+    const unsubscribeExit = window.terminalApi.onExit((data) => {
+      if (data.terminalId === terminalId && xtermRef.current) {
+        console.log('[TerminalToolDisplay] Terminal exited with code:', data.exitCode);
+        setHasExited(true);
+        setExitCode(data.exitCode);
+        xtermRef.current.write(`\r\n\x1b[${data.exitCode === 0 ? '32' : '31'}m[Process exited with code ${data.exitCode}]\x1b[0m\r\n`);
+      }
+    });
+
+    const unsubscribeError = window.terminalApi.onError((data) => {
+      if (data.terminalId === terminalId && xtermRef.current) {
+        console.log('[TerminalToolDisplay] Terminal error:', data.error);
+        xtermRef.current.write(`\r\n\x1b[31m[Error: ${data.error}]\x1b[0m\r\n`);
+      }
+    });
+
+    return () => {
+      unsubscribeData();
+      unsubscribeExit();
+      unsubscribeError();
+    };
+  }, [terminalId, isInitialized]);
+
+  // Fit terminal when state changes
+  useEffect(() => {
+    if (fitAddonRef.current) {
+      setTimeout(() => {
+        fitAddonRef.current?.fit();
+      }, 100);
     }
-    onCancel?.();
-  };
+  }, [state]);
 
   const getStatusIcon = () => {
-    if (state === 'result' || isCompleted) {
+    if (state === 'result' || hasExited) {
       if (exitCode === 0) {
         return <CheckCircle className="h-3 w-3 text-green-500" />;
-      } else if (exitCode !== null) {
+      } else if (exitCode !== null && exitCode !== 0) {
         return <XCircle className="h-3 w-3 text-red-500" />;
       }
       return <CheckCircle className="h-3 w-3 text-green-500" />;
@@ -86,37 +158,21 @@ export function TerminalToolDisplay({ command, cwd, result, state, terminalId, o
   };
 
   const getStatusText = () => {
-    if (state === 'result' || isCompleted) {
+    if (state === 'result' || hasExited) {
       if (exitCode === 0) {
         return 'done';
-      } else if (exitCode !== null) {
-        return 'error';
+      } else if (exitCode !== null && exitCode !== 0) {
+        return `error (${exitCode})`;
       }
       return 'done';
     }
     return 'executing...';
   };
 
-  // Use the collected output or fallback to result
-  const displayOutput = output || result || '';
-
-  // Clean up the output for display
-  const cleanOutput = (output: string) => {
-    if (!output) return '';
-    
-    // Remove ANSI escape codes for basic color removal
-    const cleaned = output
-      .replace(/\x1b\[[0-9;]*m/g, '') // Remove basic ANSI color codes
-      .replace(/\r\n/g, '\n') // Normalize line endings
-      .replace(/\r/g, '\n'); // Convert remaining \r to \n
-    
-    return cleaned;
-  };
-
-  const isRunning = state === 'call' && !isCompleted;
+  const isRunning = state === 'call' && !hasExited;
 
   return (
-    <div className="border border-gray-600 rounded-lg bg-[#1e1e1e] text-gray-200 text-xs font-mono overflow-hidden">
+    <div className="border border-gray-600 rounded-lg bg-[#1e1e1e] text-gray-200 overflow-hidden">
       {/* Terminal Header */}
       <div className="flex items-center justify-between bg-[#2d2d2d] px-3 py-2 border-b border-gray-600">
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -125,21 +181,26 @@ export function TerminalToolDisplay({ command, cwd, result, state, terminalId, o
             <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
             <div className="w-3 h-3 rounded-full bg-green-500"></div>
           </div>
-          <span className="text-gray-400 truncate">
-            {cwd ? `${cwd.split('/').pop()}` : 'terminal'}
+          <span className="text-gray-400 truncate text-xs">
+            Agent Terminal: {command.slice(0, 30)}{command.length > 30 ? '...' : ''}
           </span>
+          {cwd && (
+            <span className="text-gray-500 text-xs">
+              • {cwd.split('/').pop()}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             {getStatusIcon()}
             <span className="text-xs text-gray-400">{getStatusText()}</span>
           </div>
-          {isRunning && (
+          {isRunning && onCancel && (
             <Button
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-red-500/20"
-              onClick={handleCancel}
+              onClick={onCancel}
             >
               <X className="h-3 w-3" />
             </Button>
@@ -147,39 +208,12 @@ export function TerminalToolDisplay({ command, cwd, result, state, terminalId, o
         </div>
       </div>
 
-      {/* Terminal Content */}
-      <div className="bg-[#1e1e1e]">
-        {/* Command line */}
-        <div className="px-3 py-1 border-b border-gray-700">
-          <span className="text-green-400">$ </span>
-          <span className="text-gray-200">{command}</span>
-        </div>
-
-        {/* Output */}
-        {displayOutput && (
-          <div
-            ref={terminalOutputRef}
-            className={cn(
-              "px-3 py-2 max-h-40 overflow-y-auto",
-              "scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600"
-            )}
-          >
-            <pre className="text-xs whitespace-pre-wrap text-gray-300 leading-relaxed">
-              {cleanOutput(displayOutput)}
-            </pre>
-          </div>
-        )}
-
-        {/* Loading state */}
-        {isRunning && !displayOutput && (
-          <div className="px-3 py-2">
-            <div className="flex items-center gap-2 text-gray-400">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Running command...</span>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* XTerm Terminal */}
+      <div 
+        ref={terminalRef}
+        className="bg-[#1e1e1e] h-48 overflow-hidden"
+        style={{ height: '192px' }} // Fixed height for consistent display
+      />
     </div>
   );
 }
