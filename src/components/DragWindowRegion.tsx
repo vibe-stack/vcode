@@ -13,6 +13,9 @@ interface DragWindowRegionProps {
   title?: ReactNode;
 }
 
+/**
+ * @deprecated Use AppHeader or WorkspaceHeader instead
+ */
 export default function DragWindowRegion({ title }: DragWindowRegionProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 

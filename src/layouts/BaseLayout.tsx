@@ -1,5 +1,5 @@
 import React from "react";
-import DragWindowRegion from "@/components/DragWindowRegion";
+import AppHeader from "@/components/AppHeader";
 import { Toaster } from "@/components/ui/sonner";
 
 export default function BaseLayout({
@@ -9,7 +9,7 @@ export default function BaseLayout({
 }) {
   return (
     <div className="flex h-screen flex-col">
-      <DragWindowRegion title="vCode" />
+      <AppHeader title="vCode" />
       <main className="h-full grow flex flex-col overflow-hidden">
         <div className="flex-1 overflow-hidden">
           {children}

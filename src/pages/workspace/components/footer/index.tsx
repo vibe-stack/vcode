@@ -3,11 +3,9 @@ import { useProjectStore } from "@/stores/project";
 import { useTerminalStore } from "@/stores/terminal";
 import { detectLineEnding, detectIndentation, detectEncoding, getLanguageFromExtension } from "@/stores/buffers/utils";
 import { Button } from "@/components/ui/button";
-import { BotIcon, CodeIcon, Sparkles, Terminal, Check } from "lucide-react";
+import { Terminal, Check } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { GitBranchSwitcher } from "./git-branch-switcher";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { useEditorContentStore } from "@/stores/editor-content";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 
@@ -18,7 +16,6 @@ const AUTO_RUN_KEY = "grok-ide:autoRunIndexing";
 export function WorkspaceFooter() {
     const { currentProject } = useProjectStore();
     const { buffers, activeBufferId } = useBufferStore();
-    const { view, setView } = useEditorContentStore();
     const { isVisible: isTerminalVisible, setVisible: setTerminalVisible, tabs, createTab } = useTerminalStore();
 
 
@@ -94,7 +91,7 @@ export function WorkspaceFooter() {
                     ...prev,
                     isBuilding: false,
                     progress: undefined,
-                    message: err?.message || undefined
+                    message: err?.error || 'An error occurred'
                 }));
             });
         }
@@ -286,29 +283,6 @@ export function WorkspaceFooter() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <ToggleGroup type="single" size="sm" className="py-0.5 px-0.5" value={view} onValueChange={setView}>
-                        <ToggleGroupItem value="code" className="text-xs ">
-                            <div className="flex flex-row gap-0.5">
-                                <CodeIcon className="h-3 w-3" />
-                                <span>Code</span>
-                            </div>
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="agents" className="text-xs">
-                            <div className="flex flex-row gap-0.5">
-                                <BotIcon className="h-3 w-3" />
-                                <span>Agents</span>
-                            </div>
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="auto" className="text-xs">
-                            <div className="flex flex-row gap-0.5">
-                                <Sparkles className="h-3 w-3" />
-                                <span>Auto</span>
-                            </div>
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-                </div>
-
-                <div className="flex items-center gap-4">
                     {/* Index popover trigger */}
                     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                         <PopoverTrigger asChild>
@@ -319,7 +293,7 @@ export function WorkspaceFooter() {
                                 onClick={() => setPopoverOpen(true)}
                             >
                                 {indexStatus.isBuilding ? (
-                                    <span>Indexing {Math.round(indexStatus.progress)}%</span>
+                                    <span>Indexing {indexStatus.progress ? Math.round(indexStatus.progress) : 0}%</span>
                                 ) : indexStatus.isBuilt ? (
                                     <span className="flex items-center gap-1"><Check className="h-3 w-3" /> Index</span>
                                 ) : (

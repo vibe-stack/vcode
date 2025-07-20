@@ -1,3 +1,4 @@
+import React from "react";
 import { createRoute } from "@tanstack/react-router";
 import { RootRoute } from "./__root";
 import HomePage from "../pages/home";

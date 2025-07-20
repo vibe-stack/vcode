@@ -15,12 +15,10 @@ export class MentionProvider {
   }
 
   async searchMentions(query: string, type: 'file' | 'all' = 'all'): Promise<MentionItem[]> {
-    console.log('searchMentions called with query:', query, 'type:', type);
     const results: MentionItem[] = [];
 
     if (type === 'file' || type === 'all') {
       const fileResults = await this.searchFiles(query);
-      console.log('File search results:', fileResults);
       results.push(...fileResults);
     }
 
@@ -37,18 +35,15 @@ export class MentionProvider {
       }
     }
 
-    console.log('Final mention search results:', results);
     return results;
   }
 
   // Synchronous search for Tiptap suggestions
   searchMentionsSync(query: string, type: 'file' | 'all' = 'all'): MentionItem[] {
-    console.log('searchMentionsSync called with query:', query, 'type:', type);
     const results: MentionItem[] = [];
 
     if (type === 'file' || type === 'all') {
       const fileResults = this.searchFilesSync(query);
-      console.log('File search results (sync):', fileResults);
       results.push(...fileResults);
     }
 
@@ -64,8 +59,6 @@ export class MentionProvider {
         });
       }
     }
-
-    console.log('Final mention search results (sync):', results);
     return results;
   }
 
@@ -123,18 +116,14 @@ export class MentionProvider {
 
   private async updateFileCache(): Promise<void> {
     const now = Date.now();
-    console.log('updateFileCache called, cache age:', now - this.lastCacheTime, 'ms');
     if (now - this.lastCacheTime < this.CACHE_DURATION) {
-      console.log('Cache is still fresh, skipping update');
       return; // Cache is still fresh
     }
 
     try {
       // Get current project and search for files
       const currentProject = await projectApi.getCurrentProject();
-      console.log('Current project:', currentProject);
       if (!currentProject) {
-        console.log('No current project, clearing cache');
         this.cachedFiles = [];
         return;
       }
@@ -143,7 +132,6 @@ export class MentionProvider {
       const files = await projectApi.searchFiles('', currentProject, {
         excludePatterns: ['node_modules', '.git', 'dist', 'build', '.next', '.vscode'],
       });
-      console.log('Found files:', files.length, 'files');
 
       this.cachedFiles = files;
       this.lastCacheTime = now;
@@ -190,7 +178,6 @@ export class MentionProvider {
 
   // Preload cache for better performance
   async preloadCache(): Promise<void> {
-    console.log('Preloading mention cache...');
     await this.updateFileCache();
   }
 }

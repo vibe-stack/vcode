@@ -443,3 +443,22 @@ body {
 .mention {
   @apply bg-primary text-primary-foreground rounded px-1 py-0.5 font-medium;
 }
+
+/* Smooth transitions for resizable panels */
+[data-panel-group] {
+  transition: none; /* Disable transitions on the panel group to prevent conflicts */
+}
+
+[data-panel] {
+  transition: none; /* Let the resizable library handle the sizing */
+}
+
+/* Ensure smooth layout transitions */
+.workspace-layout {
+  will-change: auto;
+}
+
+/* Prevent flash of unstyled content during panel transitions */
+[data-panel-group-direction="horizontal"] {
+  isolation: isolate;
+}

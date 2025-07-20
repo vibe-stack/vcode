@@ -143,8 +143,6 @@ const setDefaultTypeScriptConfiguration = () => {
         jsx: monaco.languages.typescript.JsxEmit.React,
         checkJs: false,
     });
-    
-    console.log('Default TypeScript configuration applied to Monaco');
 };
 
 /**
@@ -156,19 +154,17 @@ export const initializeTypeScriptProject = async (projectPath: string) => {
         // This helps avoid the initialization timing issues
         let retries = 10;
         while (retries > 0 && !window.electronAPI?.typescriptLSP) {
-            console.log('Waiting for TypeScript LSP API to be available...');
             await new Promise(resolve => setTimeout(resolve, 500));
             retries--;
         }
         
         if (!window.electronAPI?.typescriptLSP) {
-            console.warn('TypeScript LSP API not available after waiting');
             return false;
         }
         
         const success = await typescriptLSPClient.initialize(projectPath);
         if (success) {
-            console.log('TypeScript LSP integration initialized for project:', projectPath);
+            // noop
         } else {
             console.error('Failed to initialize TypeScript LSP for project:', projectPath);
         }

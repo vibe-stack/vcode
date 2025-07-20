@@ -19,9 +19,6 @@ loader.init().then(async (monacoInstance) => {
   registerDarkMatrixTheme();
   enhanceMonacoLanguages();
   registerCustomLanguages();
-  
-  // Log Monaco language support for debugging
-  console.log('Available Monaco languages:', monacoInstance.languages.getLanguages().map(l => l.id));
 });
 
 export interface EditorProps {
