@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { fileLockManager } from './file-lock-manager';
 import { fileSnapshotManager } from './file-snapshot-manager';
 import { agentDB } from './database';
+import { SmartIndexService } from '../../helpers/ipc/index/smart-index-service';
+import { SearchResult } from '../../helpers/ipc/index/index-context';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
@@ -10,6 +12,16 @@ import { promisify } from 'util';
 // Global context for current session (set by execution engine)
 let currentSessionId: string | null = null;
 let currentProjectPath: string | null = null;
+
+// Initialize smart index service instance
+let smartIndexService: SmartIndexService | null = null;
+
+function getSmartIndexService(): SmartIndexService {
+  if (!smartIndexService) {
+    smartIndexService = new SmartIndexService();
+  }
+  return smartIndexService;
+}
 
 export function setCurrentSessionId(sessionId: string): void {
   currentSessionId = sessionId;
@@ -568,6 +580,75 @@ export const requireClarification = tool({
   },
 });
 
+// Search Codebase Tool - Search through the project using semantic search
+const searchCodebaseParams = z.object({
+  query: z.string().describe('The search query to find relevant code snippets'),
+  limit: z.number().optional().describe('Maximum number of results to return (default: 20)')
+});
+
+export const searchCodebase = tool({
+  description: 'Search through the project codebase using semantic search to find relevant code snippets and files',
+  parameters: searchCodebaseParams,
+  execute: async ({ query, limit = 20 }) => {
+    addProgress(`Searching codebase for: ${query}`, 'running');
+
+    try {
+      const indexService = getSmartIndexService();
+      
+      // Check if index is available
+      const status = indexService.getStatus();
+      if (!status.isBuilt) {
+        addProgress(`Codebase search completed (no index)`, 'completed', 'Index not built');
+        return { 
+          success: true, 
+          results: [],
+          message: 'Smart index not available. No results returned.'
+        };
+      }
+
+      // Perform the search
+      const searchResults = await indexService.search(query, limit);
+      
+      // Group results by file and limit to 4 files max, 3 results per file max
+      const fileResultsMap = new Map<string, SearchResult[]>();
+      
+      for (const result of searchResults) {
+        if (!fileResultsMap.has(result.filePath)) {
+          fileResultsMap.set(result.filePath, []);
+        }
+        
+        const fileResults = fileResultsMap.get(result.filePath)!;
+        if (fileResults.length < 3) { // Max 3 results per file
+          fileResults.push(result);
+        }
+      }
+      
+      // Limit to 4 files maximum
+      const limitedFiles = Array.from(fileResultsMap.entries()).slice(0, 4);
+      const limitedResults = limitedFiles.flatMap(([, results]) => results);
+      
+      addProgress(`Codebase search completed`, 'completed', `Found ${limitedResults.length} results in ${limitedFiles.length} files`);
+      
+      return { 
+        success: true, 
+        results: limitedResults,
+        totalFiles: limitedFiles.length,
+        totalResults: limitedResults.length
+      };
+      
+    } catch (error) {
+      // Don't fail on search errors, just return empty results
+      console.warn('Search codebase error:', error);
+      addProgress(`Codebase search completed (error)`, 'completed', 'Search service unavailable');
+      return { 
+        success: true, 
+        results: [],
+        message: 'Search service unavailable. No results returned.'
+      };
+    }
+  },
+});
+
 export const agentTools = {
   readFile,
   writeFile,
@@ -577,6 +658,8 @@ export const agentTools = {
   searchFiles,
   getProjectInfo,
   finishWork,
+  requireClarification,
+  searchCodebase,
 };
 
 export type ToolName = keyof typeof agentTools;
