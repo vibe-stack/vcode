@@ -15,7 +15,7 @@ const config: ForgeConfig = {
     },
     ignore: [
       // Include only the native modules we need and exclude everything else from node_modules
-      /^\/node_modules\/(?!(node-pty|better-sqlite3|faiss-node|onnxruntime-node|@xenova|sharp|@img|@huggingface|@mapbox\/node-pre-gyp|bindings|nan|file-uri-to-path|semver|detect-libc|color|color-string|color-convert|color-name|simple-swizzle)($|\/)).*/,
+      /^\/node_modules\/(?!(node-pty|better-sqlite3|faiss-node|onnxruntime-node|@xenova|sharp|@img|@huggingface|@mapbox\/node-pre-gyp|bindings|nan|file-uri-to-path|semver|detect-libc|color|color-string|color-convert|color-name|simple-swizzle|.vite)($|\/)).*/,
     ],
     osxUniversal: {
       x64ArchFiles: '*',
