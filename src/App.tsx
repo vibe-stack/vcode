@@ -16,8 +16,8 @@ export default function App() {
     syncThemeWithLocal();
     updateAppLanguage(i18n);
     
-    // Auto-open last project on startup
-    autoOpenLastProject();
+    // Auto-open last project on startup (temporarily disabled)
+    // autoOpenLastProject();
   }, [i18n, autoOpenLastProject]);
 
   return <RouterProvider router={router} />;
