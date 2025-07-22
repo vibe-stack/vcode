@@ -3,11 +3,15 @@ import {
   maximizeWindow,
   minimizeWindow,
 } from "@/helpers/window_helpers";
-import React, { type ReactNode, useState } from "react";
+import React, { type ReactNode, useState, useEffect } from "react";
 import GlobalCommands from "./global-commands";
-import { SettingsIcon } from "lucide-react";
+import { SettingsIcon, UserIcon } from "lucide-react";
 import { SettingsModal } from "./SettingsModal";
 import { Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/stores/auth";
+import { SignInSheet } from "@/components/auth/SignInSheet";
+import { UserAvatarButton } from "@/components/auth/UserAvatarButton";
 
 interface AppHeaderProps {
   title?: ReactNode;
@@ -15,6 +19,13 @@ interface AppHeaderProps {
 
 export default function AppHeader({ title }: AppHeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const { user, getSession } = useAuthStore();
+
+  // Check for existing session on mount
+  useEffect(() => {
+    getSession();
+  }, [getSession]);
 
   return (
     <>
@@ -30,7 +41,24 @@ export default function AppHeader({ title }: AppHeaderProps) {
           </div>
         </div>
         <div className="text-muted-foreground flex flex-1 items-center justify-end px-4 select-none">
-          <div className="no-drag">
+          <div className="no-drag flex items-center gap-2">
+            {/* User Avatar / Sign In Button */}
+            {user ? (
+              <UserAvatarButton onOpenSettings={() => setSettingsOpen(true)} />
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSignInOpen(true)}
+                className="h-8 px-3 hover:bg-slate-700 rounded-md transition-colors"
+                title="Sign In"
+              >
+                <UserIcon size={12} className="mr-1" />
+                <span className="text-xs">Sign In</span>
+              </Button>
+            )}
+            
+            {/* Settings Button */}
             <button
               onClick={() => setSettingsOpen(true)}
               className="p-2 hover:bg-slate-700 rounded-md transition-colors"
@@ -43,6 +71,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
       </div>
 
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SignInSheet open={signInOpen} onOpenChange={setSignInOpen} />
     </>
   );
 }

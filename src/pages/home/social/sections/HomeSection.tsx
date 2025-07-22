@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProjectCard, { ProjectCardData } from '../ProjectCard';
-import { 
+import {
   ArrowRight,
   Activity,
   Star,
@@ -140,52 +140,52 @@ export default function HomeSection({
             {posts.map((post, index) => (
               <div
                 key={post.id}
-                className="px-4 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
+                className="px-3 py-2.5 border-b border-border/20 hover:bg-muted/20 transition-colors cursor-pointer"
               >
-                <div className="flex gap-3">
-                  <Avatar className="h-10 w-10 mt-1">
+                <div className="flex gap-2.5">
+                  <Avatar className="h-8 w-8 mt-0.5">
                     <AvatarImage src={post.avatar} />
                     <AvatarFallback>{post.user.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
-                      <span className="font-bold text-[15px] text-foreground hover:underline cursor-pointer">
+                      <span className="font-medium text-sm text-foreground hover:underline cursor-pointer">
                         {post.user}
                       </span>
-                      <span className="text-muted-foreground text-[15px]">
+                      <span className="text-muted-foreground text-xs">
                         {post.username}
                       </span>
-                      <span className="text-muted-foreground text-[15px]">·</span>
-                      <span className="text-muted-foreground text-[15px] hover:underline cursor-pointer">
+                      <span className="text-muted-foreground text-xs">·</span>
+                      <span className="text-muted-foreground text-xs hover:underline cursor-pointer">
                         {post.time}
                       </span>
                       <div className="ml-auto">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted rounded-full">
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/40 rounded-full">
+                          <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
                         </Button>
                       </div>
                     </div>
-                    <div className="text-[15px] mt-1 leading-normal text-foreground">
+                    <div className="text-sm mt-1 leading-relaxed text-foreground">
                       {post.content}
                     </div>
-                    <div className="flex items-center justify-between mt-3 max-w-md">
-                      <Button variant="ghost" size="sm" className="h-8 px-2 hover:bg-blue-50 hover:text-blue-600 rounded-full group">
-                        <MessageCircle className="h-4 w-4 mr-1" />
+                    <div className="flex items-center justify-between mt-2 max-w-md">
+                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-blue-50/50 hover:text-blue-600 rounded-full group">
+                        <MessageCircle className="h-3 w-3 mr-1" />
                         <span className="text-xs">{post.comments}</span>
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 px-2 hover:bg-green-50 hover:text-green-600 rounded-full group">
-                        <Repeat2 className="h-4 w-4 mr-1" />
+                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-green-50/50 hover:text-green-600 rounded-full group">
+                        <Repeat2 className="h-3 w-3 mr-1" />
                         <span className="text-xs">{post.reposts}</span>
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 px-2 hover:bg-red-50 hover:text-red-600 rounded-full group">
-                        <Heart className="h-4 w-4 mr-1" />
+                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-red-50/50 hover:text-red-600 rounded-full group">
+                        <Heart className="h-3 w-3 mr-1" />
                         <span className="text-xs">{post.likes}</span>
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 px-2 hover:bg-blue-50 hover:text-blue-600 rounded-full group">
-                        <Bookmark className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-blue-50/50 hover:text-blue-600 rounded-full group">
+                        <Bookmark className="h-3 w-3" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 px-2 hover:bg-blue-50 hover:text-blue-600 rounded-full group">
-                        <Share className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-blue-50/50 hover:text-blue-600 rounded-full group">
+                        <Share className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
@@ -199,29 +199,29 @@ export default function HomeSection({
       {/* Right: Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header & Stats Bar */}
-        <div className="px-8 py-6 border-b border-border/50">
+        <div className="px-5 py-4 border-b border-border/30">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
-              <p className="text-sm text-muted-foreground mt-1">Continue building and discover new projects</p>
+              <h1 className="text-xl font-medium text-foreground">Welcome back</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Continue building and discover new projects</p>
             </div>
-            <Button 
+            <Button
               variant="default"
               size="sm"
-              className="h-9 px-4"
+              className="h-8 px-3 text-xs"
               onClick={() => onSectionNavigate?.('my-projects')}
             >
               Continue coding
-              <ArrowRight className="h-4 w-4 ml-2" />
+              <ArrowRight className="h-3 w-3 ml-1.5" />
             </Button>
           </div>
           {/* Minimal Stats Bar */}
-          <div className="flex gap-6 items-center mt-4">
+          <div className="flex gap-3 items-center mt-3">
             {quickStats.map((stat) => (
-              <div key={stat.label} className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/60 dark:bg-muted/40">
-                {stat.icon}
-                <span className={`font-semibold text-sm ${stat.color}`}>{stat.value}</span>
-                <span className="text-xs text-muted-foreground font-medium">{stat.label}</span>
+              <div key={stat.label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/40 dark:bg-muted/30">
+                {React.cloneElement(stat.icon, { className: "h-3 w-3" })}
+                <span className={`font-medium text-xs ${stat.color}`}>{stat.value}</span>
+                <span className="text-xs text-muted-foreground font-normal">{stat.label}</span>
               </div>
             ))}
           </div>
@@ -232,8 +232,8 @@ export default function HomeSection({
             <section>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-medium">Featured this week</h2>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => onSectionNavigate?.('trending')}
                   className="text-muted-foreground hover:text-foreground"
@@ -245,8 +245,8 @@ export default function HomeSection({
               {featuredProjects.map((project) => (
                 <Card key={project.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow border-border/50">
                   <div className="relative w-full max-h-96 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
-                    <img 
-                      src={project.coverImage} 
+                    <img
+                      src={project.coverImage}
                       alt={project.name}
                       className="w-full h-full object-cover"
                     />
@@ -274,7 +274,7 @@ export default function HomeSection({
                         </div>
                       </div>
                     </div>
-                    <Button 
+                    <Button
                       size="sm"
                       className="absolute bottom-6 right-6 bg-white text-black hover:bg-white/90"
                       onClick={() => onProjectOpen?.(project)}
@@ -290,7 +290,7 @@ export default function HomeSection({
             <section>
               <h2 className="text-lg font-medium mb-6">Quick access</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card 
+                <Card
                   className="p-6 cursor-pointer hover:shadow-md transition-all duration-200 border-border/50 group"
                   onClick={() => onSectionNavigate?.('my-projects')}
                 >
@@ -304,7 +304,7 @@ export default function HomeSection({
                     </div>
                   </div>
                 </Card>
-                <Card 
+                <Card
                   className="p-6 cursor-pointer hover:shadow-md transition-all duration-200 border-border/50 group"
                   onClick={() => onSectionNavigate?.('trending')}
                 >
@@ -318,7 +318,7 @@ export default function HomeSection({
                     </div>
                   </div>
                 </Card>
-                <Card 
+                <Card
                   className="p-6 cursor-pointer hover:shadow-md transition-all duration-200 border-border/50 group"
                   onClick={() => onSectionNavigate?.('templates')}
                 >
