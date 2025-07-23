@@ -8,6 +8,7 @@ import GlobalCommands from "./global-commands";
 import { SettingsIcon } from "lucide-react";
 import { SettingsModal } from "./SettingsModal";
 import { Link } from "@tanstack/react-router";
+import { PresenceIndicator } from "@/components/PresenceIndicator";
 
 interface DragWindowRegionProps {
   title?: ReactNode;
@@ -35,7 +36,11 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
           </div>
         </div>
         <div className="text-muted-foreground flex flex-1 items-center justify-end px-4 select-none">
-          <div className="no-drag">
+          <div className="no-drag flex items-center gap-2">
+            {/* Presence Indicator */}
+            <PresenceIndicator />
+            
+            {/* Settings Button */}
             <button
               onClick={() => setSettingsOpen(true)}
               className="p-2 hover:bg-slate-700 rounded-md transition-colors"

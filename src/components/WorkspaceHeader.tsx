@@ -8,6 +8,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useEditorContentStore } from "@/stores/editor-content";
 
 import { useCommandManager, useKeyBindingManager } from "@/services/keymaps/main";
+import { PresenceIndicator } from "./PresenceIndicator";
 
 export default function WorkspaceHeader() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -93,7 +94,8 @@ export default function WorkspaceHeader() {
         </div>
 
         <div className="text-muted-foreground flex flex-1 items-center justify-end px-4 select-none">
-          <div className="no-drag">
+          <div className="no-drag flex items-center gap-2">
+            <PresenceIndicator />
             <button
               onClick={() => setSettingsOpen(true)}
               className="p-2 hover:bg-slate-700 rounded-md transition-colors"

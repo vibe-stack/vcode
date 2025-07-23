@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth";
 import { SignInSheet } from "@/components/auth/SignInSheet";
 import { UserAvatarButton } from "@/components/auth/UserAvatarButton";
+import { PresenceIndicator } from "@/components/PresenceIndicator";
 
 interface AppHeaderProps {
   title?: ReactNode;
@@ -42,6 +43,9 @@ export default function AppHeader({ title }: AppHeaderProps) {
         </div>
         <div className="text-muted-foreground flex flex-1 items-center justify-end px-4 select-none">
           <div className="no-drag flex items-center gap-2">
+            {/* Presence Indicator */}
+            <PresenceIndicator />
+            
             {/* User Avatar / Sign In Button */}
             {user ? (
               <UserAvatarButton onOpenSettings={() => setSettingsOpen(true)} />

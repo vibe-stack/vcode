@@ -1,5 +1,7 @@
 import React, { useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/query-client";
 import { syncThemeWithLocal } from "./helpers/theme_helpers";
 import { useTranslation } from "react-i18next";
 import "./localization/i18n";
@@ -20,7 +22,11 @@ export default function App() {
     // autoOpenLastProject();
   }, [i18n, autoOpenLastProject]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
 }
 
 const root = createRoot(document.getElementById("app")!);

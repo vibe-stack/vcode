@@ -8,3 +8,5 @@ export const vibesApi = {
   authClient,
   social: socialApi,
 };
+
+export { authClient } from "./auth/client";

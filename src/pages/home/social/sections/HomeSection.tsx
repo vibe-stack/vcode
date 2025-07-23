@@ -1,9 +1,10 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Timeline } from '@/components/timeline';
+import Sidebar from '@/components/timeline/sidebar';
 import ProjectCard, { ProjectCardData } from '../ProjectCard';
 import {
   ArrowRight,
@@ -13,13 +14,7 @@ import {
   Code2,
   BookOpen,
   TrendingUp,
-  Users,
-  Heart,
-  MessageCircle,
-  Repeat2,
-  Bookmark,
-  Share,
-  MoreHorizontal
+  Users
 } from 'lucide-react';
 import { RecentProject } from '@/services/project-api';
 
@@ -69,134 +64,32 @@ export default function HomeSection({
     { label: 'Stars', value: '12M+', color: 'text-yellow-600', icon: <Star className="h-4 w-4" /> }
   ];
 
-  const posts = [
-    {
-      id: '1',
-      user: 'Sarah Chen',
-      username: '@sarahdev',
-      content: 'Just shipped a new React component library with TypeScript support! The developer experience is incredible. Who else is building UI components these days? 🚀',
-      time: '2m',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150',
-      likes: 24,
-      comments: 5,
-      reposts: 8
-    },
-    {
-      id: '2',
-      user: 'Alex Rodriguez',
-      username: '@alexcodes',
-      content: 'Working on a microservice architecture for our new project. The complexity is worth it for the scalability gains. Any tips for service discovery?',
-      time: '5m',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      likes: 12,
-      comments: 3,
-      reposts: 2
-    },
-    {
-      id: '3',
-      user: 'Emma Wilson',
-      username: '@emmawilson',
-      content: 'Mobile app development has come so far! Just released v2.1.0 of our starter template. Clean architecture + modern tooling = developer happiness ✨',
-      time: '12m',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-      likes: 45,
-      comments: 8,
-      reposts: 15
-    },
-    {
-      id: '4',
-      user: 'David Kim',
-      username: '@davidbuilds',
-      content: 'Hot take: TypeScript has fundamentally changed how I think about JavaScript. The type safety catches so many bugs before they reach production.',
-      time: '1h',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-      likes: 89,
-      comments: 23,
-      reposts: 31
-    },
-    {
-      id: '5',
-      user: 'Maya Patel',
-      username: '@mayatech',
-      content: 'Debugging a race condition at 2 AM and finally found it! Sometimes the best debugging tool is just stepping away and coming back with fresh eyes.',
-      time: '3h',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150',
-      likes: 156,
-      comments: 42,
-      reposts: 28
-    }
-  ];
+  // TODO: Replace with real user session
+  const mockUser = {
+    id: 1,
+    name: 'Demo User',
+    username: 'demouser',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150',
+  };
+
+  const handleUserClick = (username: string) => {
+    console.log('Navigate to user:', username);
+    // TODO: Implement user profile navigation
+  };
+
+  const handleTopicClick = (topic: string) => {
+    console.log('Navigate to topic:', topic);
+    // TODO: Implement topic/hashtag navigation
+  };
 
   return (
     <div className="flex h-full">
       {/* Left: Timeline Feed */}
-      <div className="w-full max-w-xl border-r border-border/50 bg-background flex flex-col">
-        <div className="px-8 py-6 border-b border-border/50">
-          <h2 className="text-xl font-semibold text-foreground mb-2">Timeline</h2>
-          <p className="text-sm text-muted-foreground mb-4">See what’s happening in your network</p>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="px-0">
-            {posts.map((post, index) => (
-              <div
-                key={post.id}
-                className="px-3 py-2.5 border-b border-border/20 hover:bg-muted/20 transition-colors cursor-pointer"
-              >
-                <div className="flex gap-2.5">
-                  <Avatar className="h-8 w-8 mt-0.5">
-                    <AvatarImage src={post.avatar} />
-                    <AvatarFallback>{post.user.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium text-sm text-foreground hover:underline cursor-pointer">
-                        {post.user}
-                      </span>
-                      <span className="text-muted-foreground text-xs">
-                        {post.username}
-                      </span>
-                      <span className="text-muted-foreground text-xs">·</span>
-                      <span className="text-muted-foreground text-xs hover:underline cursor-pointer">
-                        {post.time}
-                      </span>
-                      <div className="ml-auto">
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/40 rounded-full">
-                          <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="text-sm mt-1 leading-relaxed text-foreground">
-                      {post.content}
-                    </div>
-                    <div className="flex items-center justify-between mt-2 max-w-md">
-                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-blue-50/50 hover:text-blue-600 rounded-full group">
-                        <MessageCircle className="h-3 w-3 mr-1" />
-                        <span className="text-xs">{post.comments}</span>
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-green-50/50 hover:text-green-600 rounded-full group">
-                        <Repeat2 className="h-3 w-3 mr-1" />
-                        <span className="text-xs">{post.reposts}</span>
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-red-50/50 hover:text-red-600 rounded-full group">
-                        <Heart className="h-3 w-3 mr-1" />
-                        <span className="text-xs">{post.likes}</span>
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-blue-50/50 hover:text-blue-600 rounded-full group">
-                        <Bookmark className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-6 px-1.5 hover:bg-blue-50/50 hover:text-blue-600 rounded-full group">
-                        <Share className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+      <div className="w-full max-w-xl border-r border-border/50 bg-background">
+        <Timeline user={mockUser} />
       </div>
 
-      {/* Right: Main Content */}
+      {/* Center: Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header & Stats Bar */}
         <div className="px-5 py-4 border-b border-border/30">
@@ -226,6 +119,7 @@ export default function HomeSection({
             ))}
           </div>
         </div>
+        
         <ScrollArea className="flex-1">
           <div className="px-8 py-6 space-y-8">
             {/* Featured Project */}
@@ -286,6 +180,7 @@ export default function HomeSection({
                 </Card>
               ))}
             </section>
+            
             {/* Navigation Grid */}
             <section>
               <h2 className="text-lg font-medium mb-6">Quick access</h2>

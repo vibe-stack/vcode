@@ -1,64 +1,76 @@
 import { fetchApi } from "./fetchApi";
+import type {
+  CreatePostBody,
+  CreateCommentBody,
+  LikePostBody,
+  LikeCommentBody,
+  BookmarkPostBody,
+  BookmarkCommentBody,
+} from "./social.types";
 
 export const socialApi = {
-  follow: (followerId: number, followingId: number) =>
+  getTimeline: (limit = 20) =>
+    fetchApi(`api/v1/social/timeline?limit=${limit}`, {
+      method: "GET",
+    }),
+  follow: (followingId: number) =>
     fetchApi("api/v1/social/follow", {
       method: "POST",
-      body: JSON.stringify({ followerId, followingId }),
+      body: JSON.stringify({ followingId }),
     }),
-  unfollow: (followerId: number, followingId: number) =>
+  unfollow: (followingId: number) =>
     fetchApi("api/v1/social/unfollow", {
       method: "POST",
-      body: JSON.stringify({ followerId, followingId }),
+      body: JSON.stringify({ followingId }),
     }),
-  createPost: (authorId: number, content: string) =>
+  createPost: (content: string) =>
     fetchApi("api/v1/social/post", {
       method: "POST",
-      body: JSON.stringify({ authorId, content }),
+      body: JSON.stringify({ content } as CreatePostBody),
     }),
-  likePost: (userId: number, postId: number) =>
+  likePost: (postId: number) =>
     fetchApi("api/v1/social/like", {
       method: "POST",
-      body: JSON.stringify({ userId, postId }),
+      body: JSON.stringify({ postId } as LikePostBody),
     }),
-  unlikePost: (userId: number, postId: number) =>
+  unlikePost: (postId: number) =>
     fetchApi("api/v1/social/unlike", {
       method: "POST",
-      body: JSON.stringify({ userId, postId }),
+      body: JSON.stringify({ postId } as LikePostBody),
     }),
-  bookmarkPost: (userId: number, postId: number) =>
+  bookmarkPost: (postId: number) =>
     fetchApi("api/v1/social/bookmark", {
       method: "POST",
-      body: JSON.stringify({ userId, postId }),
+      body: JSON.stringify({ postId } as BookmarkPostBody),
     }),
-  unbookmarkPost: (userId: number, postId: number) =>
+  unbookmarkPost: (postId: number) =>
     fetchApi("api/v1/social/unbookmark", {
       method: "POST",
-      body: JSON.stringify({ userId, postId }),
+      body: JSON.stringify({ postId } as BookmarkPostBody),
     }),
-  createComment: (authorId: number, postId: number, content: string, parentId?: number) =>
+  createComment: (postId: number, content: string, parentId?: number) =>
     fetchApi("api/v1/social/comment", {
       method: "POST",
-      body: JSON.stringify({ authorId, postId, content, parentId }),
+      body: JSON.stringify({ postId, content, parentId } as CreateCommentBody),
     }),
-  likeComment: (userId: number, commentId: number) =>
+  likeComment: (commentId: number) =>
     fetchApi("api/v1/social/like-comment", {
       method: "POST",
-      body: JSON.stringify({ userId, commentId }),
+      body: JSON.stringify({ commentId } as LikeCommentBody),
     }),
-  unlikeComment: (userId: number, commentId: number) =>
+  unlikeComment: (commentId: number) =>
     fetchApi("api/v1/social/unlike-comment", {
       method: "POST",
-      body: JSON.stringify({ userId, commentId }),
+      body: JSON.stringify({ commentId } as LikeCommentBody),
     }),
-  bookmarkComment: (userId: number, commentId: number) =>
+  bookmarkComment: (commentId: number) =>
     fetchApi("api/v1/social/bookmark-comment", {
       method: "POST",
-      body: JSON.stringify({ userId, commentId }),
+      body: JSON.stringify({ commentId } as BookmarkCommentBody),
     }),
-  unbookmarkComment: (userId: number, commentId: number) =>
+  unbookmarkComment: (commentId: number) =>
     fetchApi("api/v1/social/unbookmark-comment", {
       method: "POST",
-      body: JSON.stringify({ userId, commentId }),
+      body: JSON.stringify({ commentId } as BookmarkCommentBody),
     }),
 };
