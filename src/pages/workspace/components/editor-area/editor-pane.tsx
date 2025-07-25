@@ -3,17 +3,17 @@ import { useBufferStore } from '@/stores/buffers';
 import { useEditorSplitStore } from '@/stores/editor-splits';
 import { cn } from '@/utils/tailwind';
 import { TabBar } from './tab-bar';
-import { Editor } from './editor';
+import { ContentRenderer } from './content-renderer';
 import { EditorPaneProps } from './types';
 import { UnsavedChangesDialog } from '@/components/unsaved-changes-dialog';
 import { bufferCloseService } from '@/services/buffer-close';
 
 export function EditorPane({ paneId, className }: EditorPaneProps) {
-  // Use separate selectors to ensure re-renders when state changes
-  const buffers = useBufferStore(state => state.buffers);
+  // Use specific selectors to minimize re-renders
+  const getBuffer = useBufferStore(state => state.getBuffer);
   const updateBufferContent = useBufferStore(state => state.updateBufferContent);
   
-  // Select the pane object directly so this component re-renders on state change
+  // Get pane data directly
   const pane = useEditorSplitStore(state => state.getPane(paneId));
   const setActivePane = useEditorSplitStore(state => state.setActivePane);
   const setActivePaneBuffer = useEditorSplitStore(state => state.setActivePaneBuffer);
@@ -61,8 +61,8 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   }, [paneId]);
 
   // Use the selected pane object for bufferIds and activeBufferId
-  const paneBuffers = pane?.bufferIds.map(id => buffers.get(id)!).filter(Boolean) || [];
-  const activeBuffer = pane?.activeBufferId ? buffers.get(pane.activeBufferId) : null;
+  const paneBuffers = (pane?.bufferIds.map(id => getBuffer(id)).filter((buffer): buffer is NonNullable<typeof buffer> => buffer !== null)) || [];
+  const activeBuffer = pane?.activeBufferId ? getBuffer(pane.activeBufferId) : null;
   const isActivePane = activePaneId === paneId;
 
   const handleTabClick = useCallback((bufferId: string) => {
@@ -149,9 +149,11 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
         {/* Editor Content */}
         <div className="flex-1 overflow-hidden">
           {activeBuffer ? (
-            <Editor
+            <ContentRenderer
               buffer={activeBuffer}
+              isFocused={isActivePane}
               onChange={handleContentChange}
+              onFocus={() => handleTabClick(activeBuffer.id)}
             />
           ) : (
             <div className="h-full flex items-center justify-center select-none">

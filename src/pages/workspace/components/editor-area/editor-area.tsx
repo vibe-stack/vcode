@@ -8,11 +8,10 @@ import { EditorKeymapProvider } from '@/services/keymaps/KeymapProvider';
 import * as motion from "motion/react-client"
 
 export function EditorArea() {
-  // Use separate selectors to ensure re-renders when state changes
-  const buffers = useBufferStore(state => state.buffers);
+  // Use minimal selectors to avoid unnecessary re-renders
   const tabOrder = useBufferStore(state => state.tabOrder);
 
-  // Use separate selectors to ensure re-renders when state changes
+  // Use separate selectors for split store data
   const rootSplit = useEditorSplitStore(state => state.rootSplit);
   const isDragging = useEditorSplitStore(state => state.isDragging);
   const activeDropZone = useEditorSplitStore(state => state.activeDropZone);
@@ -375,7 +374,6 @@ export function EditorArea() {
   }
 
   const hasBuffers = tabOrder.length > 0;
-  const panes = getAllPanes();
 
   return (
     <EditorKeymapProvider>

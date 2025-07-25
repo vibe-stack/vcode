@@ -1,4 +1,4 @@
-export type BufferType = 'text' | 'binary' | 'image' | 'pdf' | 'archive' | 'executable' | 'unknown';
+export type BufferType = 'text' | 'binary' | 'image' | 'video' | 'audio' | 'pdf' | 'archive' | 'executable' | 'unknown';
 
 // Utility functions for file type detection
 export const getFileTypeFromExtension = (extension: string | null): BufferType => {
@@ -19,6 +19,12 @@ export const getFileTypeFromExtension = (extension: string | null): BufferType =
     // Image files
     const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif', 'avif'];
 
+    // Video files
+    const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v', '3gp', 'ogv'];
+
+    // Audio files
+    const audioExtensions = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma', 'opus', 'aiff'];
+
     // PDF files
     const pdfExtensions = ['pdf'];
 
@@ -30,6 +36,8 @@ export const getFileTypeFromExtension = (extension: string | null): BufferType =
 
     if (textExtensions.includes(ext)) return 'text';
     if (imageExtensions.includes(ext)) return 'image';
+    if (videoExtensions.includes(ext)) return 'video';
+    if (audioExtensions.includes(ext)) return 'audio';
     if (pdfExtensions.includes(ext)) return 'pdf';
     if (archiveExtensions.includes(ext)) return 'archive';
     if (executableExtensions.includes(ext)) return 'executable';
@@ -66,6 +74,29 @@ export const getMimeType = (extension: string | null): string => {
         'ico': 'image/x-icon',
         'tiff': 'image/tiff',
         'tif': 'image/tiff',
+
+        // Videos
+        'mp4': 'video/mp4',
+        'avi': 'video/x-msvideo',
+        'mov': 'video/quicktime',
+        'wmv': 'video/x-ms-wmv',
+        'flv': 'video/x-flv',
+        'webm': 'video/webm',
+        'mkv': 'video/x-matroska',
+        'm4v': 'video/x-m4v',
+        '3gp': 'video/3gpp',
+        'ogv': 'video/ogg',
+
+        // Audio
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+        'ogg': 'audio/ogg',
+        'aac': 'audio/aac',
+        'flac': 'audio/flac',
+        'm4a': 'audio/x-m4a',
+        'wma': 'audio/x-ms-wma',
+        'opus': 'audio/opus',
+        'aiff': 'audio/aiff',
 
         // Documents
         'pdf': 'application/pdf',
