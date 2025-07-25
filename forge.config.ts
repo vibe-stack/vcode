@@ -24,12 +24,13 @@ const config: ForgeConfig = {
     osxUniversal: {
       x64ArchFiles: '*',
     },
-    osxSign: process.env.CSC_LINK ? {} : undefined,
-    osxNotarize: process.env.APPLE_ID ? {
-      appleId: process.env.APPLE_ID,
-      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-      teamId: process.env.APPLE_TEAM_ID,
-    } : undefined,
+    // Skip code signing for now
+    // osxSign: process.env.CSC_LINK ? {} : undefined,
+    // osxNotarize: process.env.APPLE_ID ? {
+    //   appleId: process.env.APPLE_ID,
+    //   appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+    //   teamId: process.env.APPLE_TEAM_ID,
+    // } : undefined,
   },
   rebuildConfig: {
     extraModules: [

@@ -65,11 +65,8 @@ jobs:
       - name: Build and package (macOS)
         if: matrix.os == 'macos-latest'
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # Skip code signing - builds will be unsigned
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           pnpm run make
           
@@ -81,8 +78,8 @@ jobs:
       - name: Build and package (Windows)
         if: matrix.os == 'windows-latest'
         env:
-          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+          # Skip code signing - builds will be unsigned
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           pnpm run make
 
