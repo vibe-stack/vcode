@@ -35,7 +35,8 @@ function createWindow() {
     x: windowState?.x ?? primaryDisplay.workArea.x,
     y: windowState?.y ?? primaryDisplay.workArea.y,
     webPreferences: {
-      devTools: inDevelopment,
+      devTools: true,
+      // devTools: inDevelopment,
       contextIsolation: true,
       nodeIntegration: true,
       nodeIntegrationInSubFrames: false,

@@ -16,6 +16,8 @@ export default defineConfig({
     preserveSymlinks: true,
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Provide browser-safe polyfills for Node.js modules
+      "node:async_hooks": path.resolve(__dirname, "src/polyfills/async-hooks.ts"),
     },
   },
   define: {

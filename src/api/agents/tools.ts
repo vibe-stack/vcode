@@ -6,9 +6,9 @@ import { agentDB } from './database';
 import { agentManager } from './manager';
 import { SmartIndexService } from '../../helpers/ipc/index/smart-index-service';
 import { SearchResult } from '../../helpers/ipc/index/index-context';
-import fs from 'fs';
+import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
-import { promisify } from 'util';
 
 // Global context for current session (set by execution engine)
 let currentSessionId: string | null = null;
@@ -113,7 +113,7 @@ export const readFile = tool({
       }
 
       // Read file
-      const content = await promisify(fs.readFile)(resolvedFilePath, 'utf-8');
+      const content = await fs.readFile(resolvedFilePath, 'utf-8');
       
       // Release lock
       if (lockResult.lockId) {
@@ -166,7 +166,7 @@ export const writeFile = tool({
       // Determine operation type and create snapshot
       let operation: 'create' | 'update';
       try {
-        await promisify(fs.access)(resolvedFilePath);
+        await fs.access(resolvedFilePath);
         operation = 'update';
       } catch {
         operation = 'create';
@@ -181,15 +181,15 @@ export const writeFile = tool({
 
       // Ensure directory exists
       const dir = path.dirname(resolvedFilePath);
-      await promisify(fs.mkdir)(dir, { recursive: true });
+      await fs.mkdir(dir, { recursive: true });
       
       // Write file
-      await promisify(fs.writeFile)(resolvedFilePath, content, 'utf-8');
+      await fs.writeFile(resolvedFilePath, content, 'utf-8');
       console.log(`✅ Successfully wrote file: ${resolvedFilePath} (${content.length} characters)`);
       
       // Verify the file was actually written
       try {
-        const verifyContent = await promisify(fs.readFile)(resolvedFilePath, 'utf-8');
+        const verifyContent = await fs.readFile(resolvedFilePath, 'utf-8');
         if (verifyContent !== content) {
           throw new Error(`File content mismatch after write`);
         }
@@ -235,7 +235,7 @@ export const listDirectory = tool({
       // Validate and resolve directory path
       const resolvedDirPath = validateFilePath(dirPath);
 
-      const items = await promisify(fs.readdir)(resolvedDirPath, { withFileTypes: true });
+      const items = await fs.readdir(resolvedDirPath, { withFileTypes: true });
       
       const result = items.map(item => ({
         name: item.name,
@@ -271,7 +271,7 @@ export const createDirectory = tool({
       // Validate and resolve directory path
       const resolvedDirPath = validateFilePath(dirPath);
 
-      await promisify(fs.mkdir)(resolvedDirPath, { recursive: true });
+      await fs.mkdir(resolvedDirPath, { recursive: true });
       
       addProgress(`Successfully created directory: ${dirPath}`, 'completed');
       return { success: true };
@@ -324,7 +324,7 @@ export const deleteFile = tool({
       );
 
       // Delete file
-      await promisify(fs.unlink)(resolvedFilePath);
+      await fs.unlink(resolvedFilePath);
       
       // Release lock
       if (lockResult.lockId) {
@@ -362,9 +362,9 @@ export const searchFiles = tool({
       const resolvedSearchDir = validateFilePath(searchDir);
       let ignorePatterns: string[] = ['node_modules'];
       const gitignorePath = path.join(resolvedSearchDir, '.gitignore');
-      if (fs.existsSync(gitignorePath)) {
+      if (fsSync.existsSync(gitignorePath)) {
         try {
-          const gitignoreContent = await promisify(fs.readFile)(gitignorePath, 'utf-8');
+          const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
           ignorePatterns.push(...gitignoreContent.split('\n')
             .map(line => line.trim())
             .filter(line => line && !line.startsWith('#')));
@@ -393,7 +393,7 @@ export const searchFiles = tool({
 
       const findFiles = async (dir: string, pattern: string): Promise<string[]> => {
         const results: string[] = [];
-        const items = await promisify(fs.readdir)(dir, { withFileTypes: true });
+        const items = await fs.readdir(dir, { withFileTypes: true });
         for (const item of items) {
           const fullPath = path.join(dir, item.name);
           if (shouldIgnore(fullPath, item.name)) continue;
@@ -441,7 +441,7 @@ export const getProjectInfo = tool({
       const projectFiles = ['package.json', 'tsconfig.json', 'pyproject.toml', 'Cargo.toml'];
       for (const file of projectFiles) {
         const filePath = path.join(projectPath, file);
-        if (fs.existsSync(filePath)) {
+        if (fsSync.existsSync(filePath)) {
           info.configFiles = info.configFiles || [];
           info.configFiles.push(file);
         }
@@ -454,7 +454,7 @@ export const getProjectInfo = tool({
           let directories = 0;
           
           try {
-            const items = await promisify(fs.readdir)(dir, { withFileTypes: true });
+            const items = await fs.readdir(dir, { withFileTypes: true });
             
             for (const item of items) {
               if (item.name.startsWith('.')) continue; // Skip hidden files/dirs
