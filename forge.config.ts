@@ -10,6 +10,10 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
   packagerConfig: {
+    name: "vcode-ide",
+    executableName: process.platform === "linux" ? "vcode-ide" : "vcode IDE",
+    appBundleId: "com.vibestack.vcode-ide",
+    appCategoryType: "public.app-category.developer-tools",
     asar: {
       unpack: "{**/node-pty/**,**/better-sqlite3/**,**/faiss-node/**,**/onnxruntime-node/**,**/@xenova/**,**/sharp/**,**/@img/**,**/@huggingface/**,**/transformers/**,**/@mapbox/node-pre-gyp/**,**/bindings/**,**/nan/**,**/file-uri-to-path/**,**/semver/**,**/detect-libc/**,**/color/**,**/color-string/**,**/color-convert/**,**/color-name/**,**/simple-swizzle/**}",
     },
@@ -20,6 +24,12 @@ const config: ForgeConfig = {
     osxUniversal: {
       x64ArchFiles: '*',
     },
+    osxSign: process.env.CSC_LINK ? {} : undefined,
+    osxNotarize: process.env.APPLE_ID ? {
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+      teamId: process.env.APPLE_TEAM_ID,
+    } : undefined,
   },
   rebuildConfig: {
     extraModules: [
@@ -32,10 +42,32 @@ const config: ForgeConfig = {
     ],
   },
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      name: "vcode-ide",
+      setupExe: "vcode-ide-setup.exe",
+      setupIcon: "src/assets/imgs/icon.ico", // Add your icon
+    }),
     new MakerZIP({}, ["darwin"]),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerRpm({
+      options: {
+        name: "vcode-ide",
+        productName: "vcode IDE",
+        genericName: "Code Editor",
+        description: "A modern IDE for coding with a focus on vibe coding and productivity with grok.",
+        categories: ["Development"],
+        icon: "src/assets/imgs/icon.png", // Add your icon
+      }
+    }),
+    new MakerDeb({
+      options: {
+        name: "vcode-ide",
+        productName: "vcode IDE",
+        genericName: "Code Editor",
+        description: "A modern IDE for coding with a focus on vibe coding and productivity with grok.",
+        categories: ["Development"],
+        icon: "src/assets/imgs/icon.png", // Add your icon
+      }
+    }),
   ],
   plugins: [
     new AutoUnpackNativesPlugin({
