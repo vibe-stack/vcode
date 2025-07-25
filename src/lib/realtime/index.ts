@@ -1,8 +1,9 @@
 import Pusher from 'pusher-js';
+import { env } from '@/config/environment';
 
-export const ws = new Pusher('app-key', {
-    wsHost: 'localhost',
-    wsPort: 6001,
+export const ws = new Pusher(env.pusher.key, {
+    wsHost: env.pusher.host,
+    wsPort: env.pusher.port,
     forceTLS: false,
     enabledTransports: ['ws'],
     cluster: "none",
