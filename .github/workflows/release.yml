@@ -38,11 +38,18 @@ jobs:
         env:
           # Skip code signing - builds will be unsigned
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Production environment variables
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL || 'https://your-vibes-api-production-url.com/api' }}
+          VITE_PUSHER_KEY: ${{ secrets.PRODUCTION_PUSHER_KEY || 'your-production-pusher-key' }}
         run: |
           npm run make
           
       - name: Build and package (Linux)
         if: matrix.os == 'ubuntu-latest'
+        env:
+          # Production environment variables
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL || 'https://your-vibes-api-production-url.com/api' }}
+          VITE_PUSHER_KEY: ${{ secrets.PRODUCTION_PUSHER_KEY || 'your-production-pusher-key' }}
         run: |
           npm run make
 
@@ -51,6 +58,9 @@ jobs:
         env:
           # Skip code signing - builds will be unsigned
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Production environment variables
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL || 'https://your-vibes-api-production-url.com/api' }}
+          VITE_PUSHER_KEY: ${{ secrets.PRODUCTION_PUSHER_KEY || 'your-production-pusher-key' }}
         run: |
           npm run make
 

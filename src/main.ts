@@ -1,7 +1,6 @@
 import { app, BrowserWindow } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import { cleanupTerminals } from "./helpers/ipc/terminal/terminal-listeners";
-import { AutoUpdaterService } from "./services/auto-updater";
 // "electron-squirrel-startup" seems broken when packaging with vite
 //import started from "electron-squirrel-startup";
 import path from "path";
@@ -11,7 +10,6 @@ import {
 } from "electron-devtools-installer";
 
 const inDevelopment = process.env.NODE_ENV === "development";
-let autoUpdaterService: AutoUpdaterService | null = null;
 
 function createWindow() {
   const { screen } = require("electron");
@@ -59,9 +57,14 @@ function createWindow() {
 
   registerListeners(mainWindow);
 
-  // Initialize auto-updater only in production
+  // Initialize auto-updater for production builds using update-electron-app
   if (!inDevelopment) {
-    autoUpdaterService = new AutoUpdaterService(mainWindow);
+    const { updateElectronApp } = require('update-electron-app');
+    updateElectronApp({
+      repo: 'vibe-stack/vcode',
+      updateInterval: '1 hour',
+      logger: require('electron-log')
+    });
   }
 
   // Let the renderer process keymap system handle Cmd+W entirely
@@ -103,8 +106,5 @@ app.on("activate", () => {
 
 app.on("before-quit", () => {
   cleanupTerminals();
-  if (autoUpdaterService) {
-    autoUpdaterService.cleanup();
-  }
 });
 //osX only ends

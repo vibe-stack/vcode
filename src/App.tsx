@@ -11,7 +11,6 @@ import { RouterProvider } from "@tanstack/react-router";
 import { useProjectStore } from "./stores/project";
 import { useThemeStore } from "./stores/theme";
 import { useSettingsStore } from "./stores/settings";
-import { UpdateNotification } from "./components/UpdateNotification";
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -40,7 +39,6 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
-      <UpdateNotification />
     </QueryClientProvider>
   );
 }

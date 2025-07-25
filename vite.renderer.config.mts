@@ -25,6 +25,7 @@ export default defineConfig({
     rollupOptions: {
       external: ['node-pty',
         'electron',
+        'electron-updater',
         "fs",
         "path",
         "os",
@@ -40,7 +41,7 @@ export default defineConfig({
     format: "es",
   },
   optimizeDeps: {
-    exclude: ['electron', 'node-pty'],
+    exclude: ['electron', 'node-pty', 'electron-updater'],
     include: [
       'monaco-editor/esm/vs/editor/editor.api',
       'monaco-editor/esm/vs/editor/editor.worker',
