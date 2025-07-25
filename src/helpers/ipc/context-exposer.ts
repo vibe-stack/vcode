@@ -9,6 +9,7 @@ import { exposeShellContext } from "./shell/shell-context";
 import { exposeAgentContext } from "./agents/agent-context";
 import { exposeIndexContext } from "./index/index-context";
 import { exposeTypescriptLSPContext } from "./typescript-lsp/typescript-lsp-context";
+import { exposeAutoUpdaterContext } from "./auto-updater/auto-updater-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -22,4 +23,5 @@ export default function exposeContexts() {
   exposeAgentContext();
   exposeIndexContext();
   exposeTypescriptLSPContext();
+  exposeAutoUpdaterContext();
 }

@@ -32,6 +32,19 @@ const config: ForgeConfig = {
     //   teamId: process.env.APPLE_TEAM_ID,
     // } : undefined,
   },
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "vibe-stack",
+          name: "vcode"
+        },
+        prerelease: false,
+        draft: false
+      }
+    }
+  ],
   rebuildConfig: {
     extraModules: [
       "node-pty",

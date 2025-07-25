@@ -179,6 +179,18 @@ interface TypeScriptLSPApi {
 interface ElectronAPI {
   typescriptLSP: TypeScriptLSPApi;
   onTypescriptLSPNotification: (callback: (notification: any) => void) => void;
+  
+  // Auto-updater methods
+  installUpdate: () => Promise<void>;
+  downloadUpdate: () => Promise<void>;
+  checkForUpdates: () => Promise<void>;
+  dismissUpdateNotification: () => Promise<void>;
+
+  // Auto-updater event listeners
+  onUpdateAvailable: (callback: (info: any) => void) => void;
+  onUpdateDownloadProgress: (callback: (progress: any) => void) => void;
+  onUpdateDownloaded: (callback: (info: any) => void) => void;
+  removeAllUpdateListeners: () => void;
 }
 
 declare interface Window {
