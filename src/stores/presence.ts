@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
+import { presenceChannel } from '@/lib/realtime';
 
 interface PresenceUser {
   userId: string;
@@ -34,6 +35,8 @@ interface PresenceStats {
   sessionsThisWeek: number;
 }
 
+export type PresenceMode = 'global' | 'mutuals';
+
 interface PresenceState {
   lockedInCount: number;
   lockedInUsers: PresenceUser[];
@@ -41,48 +44,19 @@ interface PresenceState {
   stats: PresenceStats | null;
   isLockedIn: boolean;
   lastMessageCheck: number;
+  mode: PresenceMode;
+  setMode: (mode: PresenceMode) => void;
   fetchLockedInCount: () => Promise<void>;
   fetchPresenceStatus: () => Promise<void>;
   fetchRecentMessages: () => Promise<void>;
   updateMyPresence: (isLockedIn: boolean, projectName?: string) => Promise<void>;
   sendMessage: (message: string) => Promise<void>;
-  startPolling: () => void;
-  stopPolling: () => void;
+  initializeRealtime: () => void;
+  cleanup: () => void;
 }
 
-// Mock data for when API is not available
-const mockUsers: PresenceUser[] = [
-  {
-    userId: '1',
-    user: { id: '1', name: 'Alex Chen', username: 'alexdev' },
-    projectName: 'react-dashboard',
-    lastActivity: Date.now() - 60000,
-    status: 'active'
-  },
-  {
-    userId: '2',
-    user: { id: '2', name: 'Sarah Kim', username: 'sarahcodes' },
-    projectName: 'ml-pipeline',
-    lastActivity: Date.now() - 30000,
-    status: 'active'
-  }
-];
-
-const mockMessages: PresenceMessage[] = [
-  {
-    id: 1,
-    userId: '1',
-    message: 'GRIND HARDER NABS',
-    createdAt: Date.now() - 120000,
-    user: { id: '1', name: 'Alex Chen', username: 'alexdev' }
-  }
-];
-
-// Simulate API calls with mock data
+// API configuration
 const API_BASE_URL = 'http://localhost:3001/api/v1';
-const USE_MOCK_DATA = true; // Set to false when real API is available
-
-let pollingInterval: NodeJS.Timeout | null = null;
 
 export const usePresenceStore = create<PresenceState>((set, get) => ({
   lockedInCount: 0,
@@ -91,16 +65,17 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   stats: null,
   isLockedIn: false,
   lastMessageCheck: Date.now(),
+  mode: 'global',
+  
+  setMode: (mode: PresenceMode) => {
+    set({ mode });
+    // Refetch data when mode changes
+    get().fetchPresenceStatus();
+    get().fetchRecentMessages();
+  },
 
   fetchLockedInCount: async () => {
     try {
-      if (USE_MOCK_DATA) {
-        // Simulate varying count
-        const count = Math.floor(Math.random() * 8) + 2;
-        set({ lockedInCount: count });
-        return;
-      }
-
       const response = await fetch(`${API_BASE_URL}/presence/locked-in-count`);
       if (response.ok) {
         const data = await response.json();
@@ -108,24 +83,14 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to fetch locked-in count:', error);
-      // Fallback to mock data
-      set({ lockedInCount: Math.floor(Math.random() * 8) + 2 });
+      set({ lockedInCount: 0 });
     }
   },
 
   fetchPresenceStatus: async () => {
     try {
-      if (USE_MOCK_DATA) {
-        const shuffledUsers = [...mockUsers].sort(() => Math.random() - 0.5);
-        const randomCount = Math.floor(Math.random() * shuffledUsers.length) + 1;
-        set({ 
-          lockedInUsers: shuffledUsers.slice(0, randomCount),
-          lockedInCount: randomCount
-        });
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/presence/status`, {
+      const { mode } = get();
+      const response = await fetch(`${API_BASE_URL}/presence/status?mode=${mode}`, {
         credentials: 'include'
       });
       if (response.ok) {
@@ -138,76 +103,20 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to fetch presence status:', error);
-      // Fallback to mock data
-      const shuffledUsers = [...mockUsers].sort(() => Math.random() - 0.5);
-      const randomCount = Math.floor(Math.random() * shuffledUsers.length) + 1;
       set({ 
-        lockedInUsers: shuffledUsers.slice(0, randomCount),
-        lockedInCount: randomCount
+        lockedInUsers: [],
+        lockedInCount: 0
       });
     }
   },
 
   fetchRecentMessages: async () => {
     try {
-      if (USE_MOCK_DATA) {
-        // Check for new mock messages
-        const currentTime = Date.now();
-        const { lastMessageCheck } = get();
-        
-        // Simulate receiving a new message every 30-60 seconds
-        if (currentTime - lastMessageCheck > 45000 && Math.random() > 0.7) {
-          const newMessage: PresenceMessage = {
-            id: Date.now(),
-            userId: mockUsers[Math.floor(Math.random() * mockUsers.length)].userId,
-            message: [
-              'LETS GOOOO!',
-              'Deep work mode activated 💪',
-              'Coffee break in 20',
-              'Just shipped a feature!',
-              'Debugging life choices',
-              'Code review time',
-              'Testing in prod 😬'
-            ][Math.floor(Math.random() * 7)],
-            createdAt: currentTime,
-            user: mockUsers[Math.floor(Math.random() * mockUsers.length)].user
-          };
-          
-          set(state => ({ 
-            recentMessages: [newMessage, ...state.recentMessages].slice(0, 10),
-            lastMessageCheck: currentTime
-          }));
-          
-          // Show toast notification
-          toast(`${newMessage.user.name} said "${newMessage.message}"`, {
-            duration: 4000,
-          });
-        }
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/presence/message?limit=10`);
+      const { mode } = get();
+      const response = await fetch(`${API_BASE_URL}/presence/message?limit=10&mode=${mode}`);
       if (response.ok) {
         const data = await response.json();
-        const { lastMessageCheck } = get();
-        
-        // Check for new messages
-        const newMessages = data.messages.filter((msg: PresenceMessage) => msg.createdAt > lastMessageCheck);
-        
-        if (newMessages.length > 0) {
-          // Show toast for the most recent message
-          const latestMessage = newMessages[0];
-          toast(`${latestMessage.user.name} said "${latestMessage.message}"`, {
-            duration: 4000,
-          });
-          
-          set({ 
-            recentMessages: data.messages,
-            lastMessageCheck: Date.now()
-          });
-        } else {
-          set({ recentMessages: data.messages });
-        }
+        set({ recentMessages: data.messages });
       }
     } catch (error) {
       console.error('Failed to fetch recent messages:', error);
@@ -216,11 +125,6 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
 
   updateMyPresence: async (isLockedIn: boolean, projectName?: string) => {
     try {
-      if (USE_MOCK_DATA) {
-        set({ isLockedIn });
-        return;
-      }
-
       const response = await fetch(`${API_BASE_URL}/presence/status`, {
         method: 'PUT',
         headers: {
@@ -245,11 +149,6 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
 
   sendMessage: async (message: string) => {
     try {
-      if (USE_MOCK_DATA) {
-        toast.error('Messages are disabled in demo mode');
-        return;
-      }
-
       const response = await fetch(`${API_BASE_URL}/presence/message`, {
         method: 'POST',
         headers: {
@@ -262,8 +161,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       if (response.ok) {
         const data = await response.json();
         toast.success('Message sent!');
-        // Refresh messages
-        get().fetchRecentMessages();
+        // Message will be received via Pusher, no need to refetch
       } else {
         const error = await response.json();
         toast.error(error.error || 'Failed to send message');
@@ -274,38 +172,66 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
     }
   },
 
-  startPolling: () => {
-    // Initial fetch
+  initializeRealtime: () => {
+    // Initial data fetch
     get().fetchLockedInCount();
     get().fetchPresenceStatus();
     get().fetchRecentMessages();
 
-    // Poll every 10 seconds
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
-    
-    pollingInterval = setInterval(() => {
-      get().fetchLockedInCount();
+    // Set up Pusher event listeners
+    presenceChannel.bind('presence-updated', (data: any) => {
+      console.log('Presence updated:', data);
+      // Refetch based on current mode instead of using broadcast data
       get().fetchPresenceStatus();
+    });
+
+    presenceChannel.bind('user-locked-in', (data: any) => {
+      console.log('User locked in:', data);
+      // Refetch to ensure we get filtered data based on current mode
+      get().fetchPresenceStatus();
+    });
+
+    presenceChannel.bind('user-locked-out', (data: any) => {
+      console.log('User locked out:', data);
+      // Refetch to ensure we get filtered data based on current mode
+      get().fetchPresenceStatus();
+    });
+
+    presenceChannel.bind('new-message', (data: PresenceMessage) => {
+      console.log('New message:', data);
+      
+      // Refetch messages to ensure proper filtering based on mode
       get().fetchRecentMessages();
-    }, 10000);
+      
+      // Show toast notification (we can show this regardless of mode)
+      toast(`${data.user.name} said "${data.message}"`, {
+        duration: 4000,
+      });
+    });
+
+    presenceChannel.bind('locked-in-count', (data: { count: number }) => {
+      console.log('Locked-in count updated:', data);
+      // This is global count, so we can update it directly
+      set({ lockedInCount: data.count });
+    });
   },
 
-  stopPolling: () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      pollingInterval = null;
-    }
+  cleanup: () => {
+    // Clean up Pusher event listeners
+    presenceChannel.unbind('presence-updated');
+    presenceChannel.unbind('user-locked-in');
+    presenceChannel.unbind('user-locked-out');
+    presenceChannel.unbind('new-message');
+    presenceChannel.unbind('locked-in-count');
   }
 }));
 
-// Auto-start polling when store is created
-usePresenceStore.getState().startPolling();
+// Auto-initialize realtime when store is created
+usePresenceStore.getState().initializeRealtime();
 
 // Cleanup on page unload
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
-    usePresenceStore.getState().stopPolling();
+    usePresenceStore.getState().cleanup();
   });
 }

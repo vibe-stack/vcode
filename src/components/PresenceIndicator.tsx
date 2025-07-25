@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Users, MessageSquare, Lock, Unlock, Send } from 'lucide-react';
+import { Users, MessageSquare, Lock, Unlock, Send, Globe, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { usePresenceStore } from '@/stores/presence';
 import { cn } from '@/utils/tailwind';
 
@@ -14,11 +15,13 @@ export function PresenceIndicator() {
     lockedInUsers,
     recentMessages,
     isLockedIn,
+    mode,
+    setMode,
     updateMyPresence,
     sendMessage
   } = usePresenceStore();
 
-  const [showDialog, setShowDialog] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
   const [message, setMessage] = useState('');
 
   const handleToggleLockIn = () => {
@@ -40,56 +43,79 @@ export function PresenceIndicator() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {/* Lock In Toggle Button */}
+    <div className="flex items-center gap-1">
+      {/* Lock In Toggle Button - More Subtle */}
       <Button
-        variant={isLockedIn ? "default" : "ghost"}
+        variant="ghost"
         size="sm"
         onClick={handleToggleLockIn}
         className={cn(
-          "h-8 px-3 transition-all duration-200",
+          "h-6 w-6 p-0 transition-all duration-200",
           isLockedIn 
-            ? "bg-green-600 hover:bg-green-700 text-white" 
-            : "hover:bg-slate-700"
+            ? "text-green-400 hover:text-green-300" 
+            : "text-muted-foreground hover:text-foreground"
         )}
         title={isLockedIn ? "You're locked in! Click to unlock" : "Click to lock in"}
       >
         {isLockedIn ? (
-          <Lock size={12} className="mr-1" />
+          <Lock size={12} />
         ) : (
-          <Unlock size={12} className="mr-1" />
+          <Unlock size={12} />
         )}
-        <span className="text-xs">
-          {isLockedIn ? 'Locked In' : 'Lock In'}
-        </span>
       </Button>
 
-      {/* Presence Count Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogTrigger asChild>
+      {/* Presence Count Sheet - More Subtle */}
+      <Sheet open={showSheet} onOpenChange={setShowSheet}>
+        <SheetTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-3 hover:bg-slate-700 rounded-md transition-colors"
+            className="h-6 px-2 hover:bg-slate-700/50 rounded-md transition-colors text-muted-foreground hover:text-foreground"
             title={`${lockedInCount} users locked in`}
           >
-            <Users size={12} className="mr-1" />
-            <Badge variant="secondary" className="text-xs bg-slate-700 text-slate-200">
+            <Users size={11} className="mr-1" />
+            <Badge variant="outline" className="text-xs h-4 px-1 bg-transparent border-muted-foreground/30 text-muted-foreground">
               {lockedInCount}
             </Badge>
-            <span className="text-xs ml-1">locked in</span>
           </Button>
-        </DialogTrigger>
+        </SheetTrigger>
         
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <SheetContent className="w-96 p-4">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
               <Users size={16} />
               Locked In Users ({lockedInCount})
-            </DialogTitle>
-          </DialogHeader>
+            </SheetTitle>
+          </SheetHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-4 mt-6">
+            {/* Mode Selector */}
+            <div>
+              <h3 className="text-sm font-medium mb-2">View Mode</h3>
+              <ToggleGroup 
+                type="single" 
+                value={mode} 
+                onValueChange={(value) => value && setMode(value as 'global' | 'mutuals')}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="global" className="flex items-center gap-2">
+                  <Globe size={14} />
+                  Global
+                </ToggleGroupItem>
+                <ToggleGroupItem value="mutuals" className="flex items-center gap-2">
+                  <UserCheck size={14} />
+                  Mutuals
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <p className="text-xs text-muted-foreground mt-1">
+                {mode === 'global' 
+                  ? 'See all locked-in users across the platform' 
+                  : 'Only see users you follow who also follow you back'
+                }
+              </p>
+            </div>
+
+            <Separator />
             {/* Currently Locked In Users */}
             <div>
               <h3 className="text-sm font-medium mb-2">Currently Active</h3>
@@ -175,8 +201,8 @@ export function PresenceIndicator() {
               </>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

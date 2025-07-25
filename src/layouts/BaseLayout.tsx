@@ -1,6 +1,7 @@
 import React from "react";
 import AppHeader from "@/components/AppHeader";
 import { Toaster } from "@/components/ui/sonner";
+import "@/lib/realtime";
 
 export default function BaseLayout({
   children,
