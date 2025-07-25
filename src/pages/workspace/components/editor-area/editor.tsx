@@ -4,10 +4,13 @@ import { getLanguageFromExtension } from '@/stores/buffers/utils';
 import { Editor as MonacoEditor, loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { registerDarkMatrixTheme } from '@/themes/dark-matrix-monaco';
+import { registerVibesLightTheme } from '@/themes/vibes-light-monaco';
+import { registerDuneTheme } from '@/themes/dune-monaco';
 import { getMonacoEditorOptions } from '@/config/monaco-config';
 import { enhanceMonacoLanguages, registerCustomLanguages, getCustomLanguageFromExtension } from '@/config/monaco-languages';
 import { setupMonacoEnvironment } from '@/config/monaco-environment';
 import { useProjectStore } from '@/stores/project';
+import { useThemeStore } from '@/stores/theme';
 import { typescriptLSPClient } from '@/services/typescript-lsp';
 
 setupMonacoEnvironment();
@@ -17,6 +20,8 @@ loader.config({ monaco });
 loader.init().then(async (monacoInstance) => {
   // Register custom languages and themes
   registerDarkMatrixTheme();
+  registerVibesLightTheme();
+  registerDuneTheme();
   enhanceMonacoLanguages();
   registerCustomLanguages();
 });
@@ -30,6 +35,11 @@ export function Editor({ buffer, onChange }: EditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const saveBuffer = useBufferStore((s) => s.saveBuffer);
     const currentProject = useProjectStore((s) => s.currentProject);
+    const { currentTheme, getTheme } = useThemeStore();
+    
+    // Get the current theme's Monaco theme
+    const currentThemeData = getTheme(currentTheme);
+    const monacoTheme = currentThemeData?.monacoTheme || 'dark-matrix';
 
     // Handle TypeScript/JavaScript files with LSP
     useEffect(() => {
@@ -55,6 +65,17 @@ export function Editor({ buffer, onChange }: EditorProps) {
             }
         }
     }, [buffer.filePath, buffer.content, buffer.extension, currentProject]);
+
+    // Update Monaco theme when theme store changes
+    useEffect(() => {
+        if (editorRef.current && monacoTheme) {
+            try {
+                monaco.editor.setTheme(monacoTheme);
+            } catch (error) {
+                console.warn('Failed to set Monaco theme:', error);
+            }
+        }
+    }, [monacoTheme]);
 
     const value = typeof buffer.content === 'string'
         ? buffer.content
@@ -166,7 +187,7 @@ export function Editor({ buffer, onChange }: EditorProps) {
             )}
             {/* Monaco Editor */}
             <MonacoEditor
-                theme="dark-matrix"
+                theme={monacoTheme}
                 language={detectedLanguage}
                 value={value}
                 options={editorOptions}

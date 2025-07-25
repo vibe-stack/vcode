@@ -19,6 +19,15 @@ interface SettingsState {
       tabSize: number;
       wordWrap: boolean;
     };
+    theme: {
+      currentTheme: string;
+      autoSwitch: boolean;
+      followSystem: boolean;
+    };
+    shortcuts: {
+      enabled: boolean;
+      profile: string;
+    };
     general: {
       autoSave: boolean;
       confirmBeforeClose: boolean;
@@ -54,6 +63,17 @@ interface SettingsState {
   // Local state for secure settings (for UI display only)
   setSecureSettingLocal: (key: string, value: string) => void;
   removeSecureSettingLocal: (key: string) => void;
+
+  // Theme helper methods
+  setTheme: (theme: string) => Promise<void>;
+  getTheme: () => string;
+  setAutoSwitch: (enabled: boolean) => Promise<void>;
+  setFollowSystem: (enabled: boolean) => Promise<void>;
+
+  // Shortcuts helper methods
+  setShortcutsEnabled: (enabled: boolean) => Promise<void>;
+  setShortcutsProfile: (profile: string) => Promise<void>;
+  getShortcutsProfile: () => string;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -74,6 +94,15 @@ export const useSettingsStore = create<SettingsState>()(
           theme: "dark",
           tabSize: 2,
           wordWrap: false,
+        },
+        theme: {
+          currentTheme: 'vibes-dark',
+          autoSwitch: false,
+          followSystem: false
+        },
+        shortcuts: {
+          enabled: true,
+          profile: 'default'
         },
         general: {
           autoSave: true,
@@ -282,6 +311,36 @@ export const useSettingsStore = create<SettingsState>()(
         
         delete current[keys[keys.length - 1]];
         set({ secureSettings: { ...secureSettings } });
+      },
+
+      // Theme helper methods
+      setTheme: async (theme: string) => {
+        await get().setSetting('theme.currentTheme', theme);
+      },
+
+      getTheme: () => {
+        return get().settings.theme.currentTheme;
+      },
+
+      setAutoSwitch: async (enabled: boolean) => {
+        await get().setSetting('theme.autoSwitch', enabled);
+      },
+
+      setFollowSystem: async (enabled: boolean) => {
+        await get().setSetting('theme.followSystem', enabled);
+      },
+
+      // Shortcuts helper methods
+      setShortcutsEnabled: async (enabled: boolean) => {
+        await get().setSetting('shortcuts.enabled', enabled);
+      },
+
+      setShortcutsProfile: async (profile: string) => {
+        await get().setSetting('shortcuts.profile', profile);
+      },
+
+      getShortcutsProfile: () => {
+        return get().settings.shortcuts.profile;
       },
     }),
     {

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { SettingsIcon, BotIcon, CodeIcon, Sparkles } from "lucide-react";
-import { SettingsModal } from "@/components/SettingsModal";
+import { SettingsModal } from "@/components/settings";
 import GlobalCommands from "@/components/global-commands";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";

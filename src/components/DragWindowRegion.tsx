@@ -6,7 +6,7 @@ import {
 import React, { type ReactNode, useState } from "react";
 import GlobalCommands from "./global-commands";
 import { SettingsIcon } from "lucide-react";
-import { SettingsModal } from "./SettingsModal";
+import { SettingsModal } from "./settings";
 import { Link } from "@tanstack/react-router";
 import { PresenceIndicator } from "@/components/PresenceIndicator";
 
