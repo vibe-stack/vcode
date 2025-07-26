@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, TransformControls } from '@react-three/drei';
+import { Canvas, extend, useFrame } from '@react-three/fiber';
+import { OrbitControls, Environment, TransformControls, Plane } from '@react-three/drei';
 import { useMapBuilderStore } from './store';
 import MapObjects from './components/MapObjects';
 import InteractiveCreation from './components/InteractiveCreation';
@@ -9,6 +9,10 @@ import TransformGizmo from './components/TransformGizmo';
 import { WebGPURenderer } from 'three/webgpu'
 import * as THREE from 'three/webgpu';
 import Grid2 from './components/Grid2';
+import { useThree } from '@react-three/fiber';
+import { CubeCreatorTest } from './components/creators/cube-creator';
+
+extend(THREE as any);
 
 interface SceneProps {
     onObjectClick?: (objectId: string, event: any) => void;
@@ -109,6 +113,8 @@ export default function Scene({ onObjectClick, onSceneClick }: SceneProps) {
                 {/* Selection Visualization */}
                 <SelectionBox />
 
+                <CubeCreatorTest />
+
                 {/* Camera Controls */}
                 <OrbitControls
                     target={cameraTarget}
@@ -122,3 +128,4 @@ export default function Scene({ onObjectClick, onSceneClick }: SceneProps) {
         </div>
     );
 }
+
