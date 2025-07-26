@@ -3,6 +3,7 @@ import { createRoute } from "@tanstack/react-router";
 import { RootRoute } from "./__root";
 import HomePage from "../pages/home";
 import WorkspacePage from "@/pages/workspace";
+import { ScreenRecorder } from "@/pages/apps";
 
 // TODO: Steps to add a new route:
 // 1. Create a new page component in the '../pages/' directory (e.g., NewPage.tsx)
@@ -35,4 +36,14 @@ export const WorkspaceRoute = createRoute({
   component: WorkspacePage,
 });
 
-export const rootTree = RootRoute.addChildren([HomeRoute, WorkspaceRoute]);
+export const ScreenRecorderRoute = createRoute({
+  getParentRoute: () => RootRoute,
+  path: "/apps/screen-recorder",
+  component: ScreenRecorder,
+});
+
+export const rootTree = RootRoute.addChildren([
+  HomeRoute, 
+  WorkspaceRoute,
+  ScreenRecorderRoute
+]);

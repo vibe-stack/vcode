@@ -11,5 +11,6 @@ export { default as HomeSection } from './sections/HomeSection';
 export { default as MyProjectsSection } from './sections/MyProjectsSection';
 export { default as TrendingSection } from './sections/TrendingSection';
 export { default as TemplatesSection } from './sections/TemplatesSection';
+export { default as AppsSection } from './sections/AppsSection';
 export { default as MessagesSection } from './sections/MessagesSection';
 export { default as MCPSection } from './sections/MCPSection';

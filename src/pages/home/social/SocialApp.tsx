@@ -5,6 +5,7 @@ import HomeSection from './sections/HomeSection';
 import MyProjectsSection from './sections/MyProjectsSection';
 import TrendingSection from './sections/TrendingSection';
 import TemplatesSection from './sections/TemplatesSection';
+import AppsSection from './sections/AppsSection';
 import MessagesSection from './sections/MessagesSection';
 import MCPSection from './sections/MCPSection';
 import { ProjectCardData } from './ProjectCard';
@@ -106,6 +107,8 @@ export default function SocialApp() {
             onTemplateUse={handleTemplateUse}
           />
         );
+      case 'apps':
+        return <AppsSection onCreateProject={handleCreateNew} />;
       case 'messages':
         return <MessagesSection />;
       case 'mcp':

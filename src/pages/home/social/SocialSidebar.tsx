@@ -7,6 +7,7 @@ import {
   FileText, 
   MessageCircle, 
   Cpu,
+  Grid3X3,
   Settings
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ const sidebarItems: SidebarItem[] = [
   { id: 'my-projects', label: 'My Projects', icon: FolderOpen },
   { id: 'trending', label: 'Trending', icon: TrendingUp },
   { id: 'templates', label: 'Templates', icon: FileText },
+  { id: 'apps', label: 'Apps', icon: Grid3X3 },
   { id: 'messages', label: 'Messages', icon: MessageCircle, comingSoon: true },
   { id: 'mcp', label: 'MCP', icon: Cpu, comingSoon: true },
 ];
