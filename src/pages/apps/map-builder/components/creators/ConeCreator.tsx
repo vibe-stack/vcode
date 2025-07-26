@@ -4,6 +4,7 @@ import { Plane } from '@react-three/drei';
 import * as THREE from 'three/webgpu';
 import { useThree } from '@react-three/fiber';
 import { useMapBuilderStore } from '../../store';
+import { findHighestObjectIntersection } from '../../utils/aabb';
 
 // Component for the preview object
 type PreviewObjectProps = {
@@ -18,7 +19,7 @@ const PreviewObject: React.FC<PreviewObjectProps> = ({ position, radius, height,
 
   const adjustedPosition = position.clone();
   if (stage === 'height' || stage === 'placed') {
-    adjustedPosition.y = height / 2; // Center the cone vertically based on height
+    adjustedPosition.y = position.y + height / 2; // Center the cone vertically from base position
   }
 
   return (
@@ -59,19 +60,44 @@ export default function ConeCreator() {
   useFrame(() => {
     if (stage === 'idle') {
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObject(planeRef.current);
-      if (intersects.length > 0) {
-        const point = intersects[0].point;
-        
-        // Snap to grid
-        const snappedPoint = new THREE.Vector3(
-          snapToGrid(point.x),
-          0, // Keep on ground plane
-          snapToGrid(point.z)
-        );
-        
-        setPreview({ position: snappedPoint, radius: 0.5, height: 1 });
+      
+      // Get all existing objects from the store
+      const { objects } = useMapBuilderStore.getState();
+      
+      // Create a ray from the camera
+      const ray = raycaster.ray.clone();
+      
+      // Check intersections with existing objects first
+      let groundIntersection: THREE.Vector3 | null = null;
+      
+      // Check intersection with ground plane first
+      const groundIntersects = raycaster.intersectObject(planeRef.current);
+      if (groundIntersects.length > 0) {
+        groundIntersection = groundIntersects[0].point.clone();
+        groundIntersection.y = 0; // Ensure it's on the ground
       }
+      
+      // Find highest object intersection using shared utility
+      const highestIntersection = findHighestObjectIntersection(ray, objects);
+      
+      // Use the highest intersection, or fall back to ground
+      let finalPoint: THREE.Vector3;
+      if (highestIntersection) {
+        finalPoint = highestIntersection.point;
+      } else if (groundIntersection) {
+        finalPoint = groundIntersection;
+      } else {
+        return; // No valid intersection found
+      }
+      
+      // Snap to grid
+      const snappedPoint = new THREE.Vector3(
+        snapToGrid(finalPoint.x),
+        finalPoint.y,
+        snapToGrid(finalPoint.z)
+      );
+      
+      setPreview({ position: snappedPoint, radius: 0.5, height: 1 });
     }
   });
 
@@ -91,7 +117,7 @@ export default function ConeCreator() {
           type: 'cone' as const,
           position: [
             preview.position.x,
-            preview.height / 2, // Center vertically at half height
+            preview.position.y + preview.height / 2, // Center vertically from base position
             preview.position.z
           ] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],

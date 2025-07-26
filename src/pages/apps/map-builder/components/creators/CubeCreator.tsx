@@ -3,7 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import { Plane } from '@react-three/drei';
 import * as THREE from 'three/webgpu';
 import { useThree } from '@react-three/fiber';
-import { useMapBuilderStore } from '../../store';
+import { useMapBuilderStore, MapObject } from '../../store';
+import { findHighestObjectIntersection } from '../../utils/aabb';
 
 // Component for the preview object
 type PreviewObjectProps = {
@@ -18,7 +19,7 @@ const PreviewObject: React.FC<PreviewObjectProps> = ({ position, dimensions, sta
   // Adjust position for depth stage to grow from ground up
   const adjustedPosition = position.clone();
   if (stage === 'depth' || stage === 'placed') {
-    adjustedPosition.y = dimensions[1] / 2; // Center the cube vertically based on depth
+    adjustedPosition.y = position.y + dimensions[1] / 2; // Center the cube vertically based on depth
   }
 
   return (
@@ -58,20 +59,44 @@ export default function CubeCreator() {
   useFrame(() => {
     if (stage === 'idle') {
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObject(planeRef.current);
-      if (intersects.length > 0) {
-        const point = intersects[0].point;
-        point.y = 0; // Keep on ground plane
-        
-        // Snap to grid
-        const snappedPoint = new THREE.Vector3(
-          snapToGrid(point.x),
-          point.y,
-          snapToGrid(point.z)
-        );
-        
-        setPreview({ position: snappedPoint, dimensions: [1, 0.1, 1] });
+      
+      // Get all existing objects from the store
+      const { objects } = useMapBuilderStore.getState();
+      
+      // Create a ray from the camera
+      const ray = raycaster.ray.clone();
+      
+      // Check intersections with existing objects first
+      let groundIntersection: THREE.Vector3 | null = null;
+      
+      // Check intersection with ground plane first
+      const groundIntersects = raycaster.intersectObject(planeRef.current);
+      if (groundIntersects.length > 0) {
+        groundIntersection = groundIntersects[0].point.clone();
+        groundIntersection.y = 0; // Ensure it's on the ground
       }
+      
+      // Find highest object intersection using shared utility
+      const highestIntersection = findHighestObjectIntersection(ray, objects);
+      
+      // Use the highest intersection, or fall back to ground
+      let finalPoint: THREE.Vector3;
+      if (highestIntersection) {
+        finalPoint = highestIntersection.point;
+      } else if (groundIntersection) {
+        finalPoint = groundIntersection;
+      } else {
+        return; // No valid intersection found
+      }
+      
+      // Snap to grid
+      const snappedPoint = new THREE.Vector3(
+        snapToGrid(finalPoint.x),
+        finalPoint.y,
+        snapToGrid(finalPoint.z)
+      );
+      
+      setPreview({ position: snappedPoint, dimensions: [1, 0.1, 1] });
     }
   });
 
@@ -91,7 +116,7 @@ export default function CubeCreator() {
           type: 'box' as const,
           position: [
             preview.position.x,
-            preview.dimensions[1] / 2, // Center vertically
+            preview.position.y + preview.dimensions[1] / 2, // Center vertically from the base position
             preview.position.z
           ] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],

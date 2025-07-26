@@ -3,7 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import { Plane } from '@react-three/drei';
 import * as THREE from 'three/webgpu';
 import { useThree } from '@react-three/fiber';
-import { useMapBuilderStore } from '../../store';
+import { useMapBuilderStore, MapObject } from '../../store';
+import { findHighestObjectIntersection } from '../../utils/aabb';
 
 // Component for the preview object
 type PreviewObjectProps = {
@@ -15,8 +16,14 @@ type PreviewObjectProps = {
 const PreviewObject: React.FC<PreviewObjectProps> = ({ position, radius, stage }) => {
   if (!position) return null;
 
+  // Adjust position for sphere to sit on top of base height
+  const adjustedPosition = position.clone();
+  if (stage === 'radius' || stage === 'placed') {
+    adjustedPosition.y = position.y + radius; // Center the sphere based on its radius from the base
+  }
+
   return (
-    <mesh position={position}>
+    <mesh position={adjustedPosition}>
       {stage === 'positioning' ? (
         // Show a circle (flat ring) on the ground
         <ringGeometry args={[radius * 0.9, radius, 32]} />
@@ -51,19 +58,44 @@ export default function SphereCreator() {
   useFrame(() => {
     if (stage === 'idle') {
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObject(planeRef.current);
-      if (intersects.length > 0) {
-        const point = intersects[0].point;
-        
-        // Snap to grid
-        const snappedPoint = new THREE.Vector3(
-          snapToGrid(point.x),
-          0.5, // Default radius height
-          snapToGrid(point.z)
-        );
-        
-        setPreview({ position: snappedPoint, radius: 0.5 });
+      
+      // Get all existing objects from the store
+      const { objects } = useMapBuilderStore.getState();
+      
+      // Create a ray from the camera
+      const ray = raycaster.ray.clone();
+      
+      // Check intersections with existing objects first
+      let groundIntersection: THREE.Vector3 | null = null;
+      
+      // Check intersection with ground plane first
+      const groundIntersects = raycaster.intersectObject(planeRef.current);
+      if (groundIntersects.length > 0) {
+        groundIntersection = groundIntersects[0].point.clone();
+        groundIntersection.y = 0; // Ensure it's on the ground
       }
+      
+      // Find highest object intersection using shared utility
+      const highestIntersection = findHighestObjectIntersection(ray, objects);
+      
+      // Use the highest intersection, or fall back to ground
+      let finalPoint: THREE.Vector3;
+      if (highestIntersection) {
+        finalPoint = highestIntersection.point;
+      } else if (groundIntersection) {
+        finalPoint = groundIntersection;
+      } else {
+        return; // No valid intersection found
+      }
+      
+      // Snap to grid
+      const snappedPoint = new THREE.Vector3(
+        snapToGrid(finalPoint.x),
+        finalPoint.y,
+        snapToGrid(finalPoint.z)
+      );
+      
+      setPreview({ position: snappedPoint, radius: 0.5 });
     }
   });
 
@@ -81,7 +113,7 @@ export default function SphereCreator() {
           type: 'sphere' as const,
           position: [
             preview.position.x,
-            preview.radius, // Center vertically at radius height
+            preview.position.y + preview.radius, // Center vertically at base height + radius
             preview.position.z
           ] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
