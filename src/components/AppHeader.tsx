@@ -34,7 +34,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
         <div className="flex flex-1 items-center px-4">
           <div className="no-drag">
             <Link to="/">
-              <img src="src/assets/imgs/vcode_long.svg" className="text-xs h-4" />
+              <img src="src/assets/imgs/vcode.svg" className="text-xs h-4" />
             </Link>
           </div>
           <div className="no-drag flex-1 items-center ml-4">

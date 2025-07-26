@@ -10,9 +10,9 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
   packagerConfig: {
-    name: "vcode-ide",
-    executableName: process.platform === "linux" ? "vcode-ide" : "vcode IDE",
-    appBundleId: "com.vibestack.vcode-ide",
+    name: "Vibes",
+    executableName: process.platform === "linux" ? "vibes" : "Vibes",
+    appBundleId: "com.vibestack.vibes",
     appCategoryType: "public.app-category.developer-tools",
     asar: {
       unpack: "{**/node-pty/**,**/better-sqlite3/**,**/faiss-node/**,**/onnxruntime-node/**,**/@xenova/**,**/sharp/**,**/@img/**,**/@huggingface/**,**/transformers/**,**/@mapbox/node-pre-gyp/**,**/bindings/**,**/nan/**,**/file-uri-to-path/**,**/semver/**,**/detect-libc/**,**/color/**,**/color-string/**,**/color-convert/**,**/color-name/**,**/simple-swizzle/**,**/.vite/**,**/update-electron-app/**,**/ms/**,**/github-url-to-object/**,**/is-plain-obj/**,**/is-url/**,**/electron-log/**}",
@@ -58,15 +58,15 @@ const config: ForgeConfig = {
   },
   makers: [
     new MakerSquirrel({
-      name: "vcode-ide",
-      setupExe: "vcode-ide-setup.exe",
+      name: "vibes",
+      setupExe: "vibes-setup.exe",
       setupIcon: "src/assets/imgs/icon.ico", // Add your icon
     }),
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({
       options: {
-        name: "vcode-ide",
-        productName: "vcode IDE",
+        name: "vibes",
+        productName: "Vibes",
         genericName: "Code Editor",
         description: "A modern IDE for coding with a focus on vibe coding and productivity with grok.",
         categories: ["Development"],
@@ -75,8 +75,8 @@ const config: ForgeConfig = {
     }),
     new MakerDeb({
       options: {
-        name: "vcode-ide",
-        productName: "vcode IDE",
+        name: "vibes",
+        productName: "Vibes",
         genericName: "Code Editor",
         description: "A modern IDE for coding with a focus on vibe coding and productivity with grok.",
         categories: ["Development"],

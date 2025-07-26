@@ -4,6 +4,7 @@ import { RootRoute } from "./__root";
 import HomePage from "../pages/home";
 import WorkspacePage from "@/pages/workspace";
 import { ScreenRecorder } from "@/pages/apps";
+import MapBuilderPage from "@/pages/apps/map-builder";
 
 // TODO: Steps to add a new route:
 // 1. Create a new page component in the '../pages/' directory (e.g., NewPage.tsx)
@@ -42,8 +43,15 @@ export const ScreenRecorderRoute = createRoute({
   component: ScreenRecorder,
 });
 
+export const MapBuilderRoute = createRoute({
+  getParentRoute: () => RootRoute,
+  path: "/apps/map-builder",
+  component: MapBuilderPage,
+});
+
 export const rootTree = RootRoute.addChildren([
   HomeRoute, 
   WorkspaceRoute,
-  ScreenRecorderRoute
+  ScreenRecorderRoute,
+  MapBuilderRoute
 ]);

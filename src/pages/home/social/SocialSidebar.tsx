@@ -8,7 +8,8 @@ import {
   MessageCircle, 
   Cpu,
   Grid3X3,
-  Settings
+  Settings,
+  GamepadIcon
 } from 'lucide-react';
 
 export interface SidebarItem {
@@ -28,11 +29,10 @@ interface SocialSidebarProps {
 const sidebarItems: SidebarItem[] = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'my-projects', label: 'My Projects', icon: FolderOpen },
-  { id: 'trending', label: 'Trending', icon: TrendingUp },
-  { id: 'templates', label: 'Templates', icon: FileText },
   { id: 'apps', label: 'Apps', icon: Grid3X3 },
-  { id: 'messages', label: 'Messages', icon: MessageCircle, comingSoon: true },
-  { id: 'mcp', label: 'MCP', icon: Cpu, comingSoon: true },
+  { id: 'trending', label: 'Trending', icon: TrendingUp, comingSoon: true },
+  { id: 'games', label: 'Games', icon: GamepadIcon, comingSoon: true },
+  { id: 'templates', label: 'Templates', icon: FileText, comingSoon: true },
 ];
 
 export default function SocialSidebar({ 
@@ -47,7 +47,7 @@ export default function SocialSidebar({
     )}>
       {/* Header */}
       <div className="p-6 border-b border-border">
-        <h1 className="text-xl font-bold">vCode Social</h1>
+        <h1 className="text-xl font-bold">Vibes Social</h1>
         <p className="text-sm text-muted-foreground mt-1">Discover, create, collaborate</p>
       </div>
       

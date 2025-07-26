@@ -8,8 +8,8 @@ export const authClient = createAuthClient({
     credentials: 'include',
     // Add headers to help with CORS
     headers: {
-      'Origin': 'app://vcode-ide',
-      'Referer': 'app://vcode-ide',
+      'Origin': 'app://vibes',
+      'Referer': 'app://vibes',
     },
   },
   // Disable cookies for Electron and use localStorage instead

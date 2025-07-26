@@ -220,7 +220,7 @@ export function WorkspaceFooter() {
             <div className="flex flex-col gap-3">
                 <div className="font-bold text-white text-xs mb-0.5">Semantic Indexing</div>
                 <div className="text-xs text-muted-foreground mb-2">
-                    vCode indexes your codebase locally to allow semantic search of files, this can be used by you on the ask tab or by Grok to search your project files in natural language
+                    Vibes indexes your codebase locally to allow semantic search of files, this can be used by you on the ask tab or by Grok to search your project files in natural language
                 </div>
                 <div className="text-xs text-muted-foreground">
                     {indexStatus.isBuilding && typeof indexStatus.progress === 'number' && (

@@ -10,7 +10,7 @@ export default function BaseLayout({
 }) {
   return (
     <div className="flex h-screen flex-col">
-      <AppHeader title="vCode" />
+      <AppHeader title="vibes" />
       <main className="h-full grow flex flex-col overflow-hidden">
         <div className="flex-1 overflow-hidden">
           {children}
