@@ -5,8 +5,9 @@ export const ws = new Pusher(env.pusher.key, {
     wsHost: env.pusher.host,
     wsPort: env.pusher.port,
     forceTLS: false,
-    enabledTransports: ['ws'],
+    enabledTransports: ['ws', 'wss'],
     cluster: "none",
+    
 });
 
 // Presence channel for real-time presence updates

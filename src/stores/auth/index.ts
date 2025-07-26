@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authClient } from '@/lib/vibes-api';
+import { sessionManager } from '@/lib/vibes-api/auth/session';
 
 export interface User {
   id: string;
@@ -36,8 +37,16 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data, error } = await authClient.signIn.email({ email, password });
           if (error) throw new Error(error.message || 'Sign in failed');
-          if (data?.user) {
+          if (data?.user && data?.token) {
             const user = { ...data.user, image: data.user.image ?? undefined };
+            
+            // Store session data using our custom session manager
+            sessionManager.setSession({
+              token: data.token,
+              user: user,
+              expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+            });
+            
             set({ user, isLoading: false });
             return true;
           }
@@ -77,8 +86,16 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data, error } = await authClient.signUp.email({ email, password, name: username || "" });
           if (error) throw new Error(error.message || 'Sign up failed');
-          if (data?.user) {
+          if (data?.user && data?.token) {
             const user = { ...data.user, image: data.user.image ?? undefined };
+            
+            // Store session data using our custom session manager
+            sessionManager.setSession({
+              token: data.token,
+              user: user,
+              expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+            });
+            
             set({ user, isLoading: false });
             return true;
           }
@@ -99,6 +116,8 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Sign out error:', error);
         } finally {
+          // Clear our custom session storage
+          sessionManager.clearSession();
           set({ user: null, isLoading: false });
         }
       },
@@ -106,11 +125,21 @@ export const useAuthStore = create<AuthState>()(
       getSession: async () => {
         set({ isLoading: true, error: null });
         try {
+          // First check our custom session storage
+          const storedSession = sessionManager.getSession();
+          if (storedSession) {
+            set({ user: storedSession.user, isLoading: false });
+            return;
+          }
+
+          // Fallback to better-auth session check
           const { data, error } = await authClient.getSession();
           if (error) throw new Error(error.message || 'Failed to get session');
           const user = data?.user ? { ...data.user, image: data.user.image ?? undefined } : null;
           set({ user, isLoading: false });
         } catch (error) {
+          // If session retrieval fails, clear any stored session
+          sessionManager.clearSession();
           set({
             error: error instanceof Error ? error.message : 'Failed to get session',
             user: null,

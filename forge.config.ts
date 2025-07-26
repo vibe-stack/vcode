@@ -15,11 +15,11 @@ const config: ForgeConfig = {
     appBundleId: "com.vibestack.vcode-ide",
     appCategoryType: "public.app-category.developer-tools",
     asar: {
-      unpack: "{**/node-pty/**,**/better-sqlite3/**,**/faiss-node/**,**/onnxruntime-node/**,**/@xenova/**,**/sharp/**,**/@img/**,**/@huggingface/**,**/transformers/**,**/@mapbox/node-pre-gyp/**,**/bindings/**,**/nan/**,**/file-uri-to-path/**,**/semver/**,**/detect-libc/**,**/color/**,**/color-string/**,**/color-convert/**,**/color-name/**,**/simple-swizzle/**,**/.vite/**}",
+      unpack: "{**/node-pty/**,**/better-sqlite3/**,**/faiss-node/**,**/onnxruntime-node/**,**/@xenova/**,**/sharp/**,**/@img/**,**/@huggingface/**,**/transformers/**,**/@mapbox/node-pre-gyp/**,**/bindings/**,**/nan/**,**/file-uri-to-path/**,**/semver/**,**/detect-libc/**,**/color/**,**/color-string/**,**/color-convert/**,**/color-name/**,**/simple-swizzle/**,**/.vite/**,**/update-electron-app/**,**/ms/**,**/github-url-to-object/**,**/is-plain-obj/**,**/is-url/**,**/electron-log/**}",
     },
     ignore: [
       // Include only the native modules we need and exclude everything else from node_modules
-      /^\/node_modules\/(?!(node-pty|better-sqlite3|faiss-node|onnxruntime-node|@xenova|sharp|@img|@huggingface|@mapbox\/node-pre-gyp|bindings|nan|file-uri-to-path|semver|detect-libc|color|color-string|color-convert|color-name|simple-swizzle|.vite)($|\/)).*/,
+      /^\/node_modules\/(?!(node-pty|better-sqlite3|faiss-node|onnxruntime-node|@xenova|sharp|@img|@huggingface|@mapbox\/node-pre-gyp|bindings|nan|file-uri-to-path|semver|detect-libc|color|color-string|color-convert|color-name|simple-swizzle|.vite|update-electron-app|ms|github-url-to-object|is-plain-obj|is-url|electron-log)($|\/)).*/,
     ],
     osxUniversal: {
       x64ArchFiles: '*',
@@ -52,6 +52,7 @@ const config: ForgeConfig = {
       "faiss-node",
       "onnxruntime-node",
       "@xenova/transformers",
+      "update-electron-app",
       "sharp"
     ],
   },

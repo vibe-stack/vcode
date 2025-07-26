@@ -122,63 +122,14 @@ export default function HomeSection({
         
         <ScrollArea className="flex-1">
           <div className="px-8 py-6 space-y-8">
-            {/* Featured Project */}
+            {/* Featured Project (Disabled) */}
             <section>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-medium">Featured this week</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSectionNavigate?.('trending')}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  View all
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
               </div>
-              {featuredProjects.map((project) => (
-                <Card key={project.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow border-border/50">
-                  <div className="relative w-full max-h-96 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
-                    <img
-                      src={project.coverImage}
-                      alt={project.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-6 left-6 text-white">
-                      <h3 className="text-xl font-semibold mb-2">{project.name}</h3>
-                      <p className="text-white/90 mb-4 max-w-2xl text-sm">{project.description}</p>
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={project.author.avatar} />
-                            <AvatarFallback>{project.author.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium">{project.author.name}</span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4" />
-                            {project.stats.stars.toLocaleString()}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Activity className="h-4 w-4" />
-                            {project.stats.likes.toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="absolute bottom-6 right-6 bg-white text-black hover:bg-white/90"
-                      onClick={() => onProjectOpen?.(project)}
-                    >
-                      Explore
-                      <ExternalLink className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+              <div className="flex items-center justify-center py-12">
+                <span className="text-xl font-semibold text-muted-foreground">Coming soon</span>
+              </div>
             </section>
             
             {/* Navigation Grid */}

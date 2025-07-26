@@ -59,14 +59,15 @@ function createWindow() {
   registerListeners(mainWindow);
 
   // Initialize auto-updater for production builds using update-electron-app
-  if (!inDevelopment) {
-    const { updateElectronApp } = require('update-electron-app');
-    updateElectronApp({
-      repo: 'vibe-stack/vcode',
-      updateInterval: '1 hour',
-      logger: require('electron-log')
-    });
-  }
+  // DISABLED CAUSE I GOT NO CODE SIGNING CERTIFICATE
+  // if (!inDevelopment) {
+  //   const { updateElectronApp } = require('update-electron-app');
+  //   updateElectronApp({
+  //     repo: 'vibe-stack/vcode',
+  //     updateInterval: '1 hour',
+  //     logger: require('electron-log')
+  //   });
+  // }
 
   // Let the renderer process keymap system handle Cmd+W entirely
   // It will close tabs when available and prevent app closure when appropriate
