@@ -3,11 +3,12 @@ import { useFrame } from '@react-three/fiber';
 import { Plane } from '@react-three/drei';
 import * as THREE from 'three/webgpu';
 import { useThree } from '@react-three/fiber';
+import { useMapBuilderStore } from '../../store';
 
 // Component for the preview object
 type PreviewObjectProps = {
   position: THREE.Vector3 | null;
-  dimensions: number[];
+  dimensions: [number, number, number];
   stage: 'idle' | 'positioning' | 'sizing' | 'depth' | 'placed';
 };
 
@@ -28,32 +29,30 @@ const PreviewObject: React.FC<PreviewObjectProps> = ({ position, dimensions, sta
       {stage === 'positioning' || stage === 'sizing' ? (
         <planeGeometry args={[dimensions[0], dimensions[2]]} />
       ) : (
-        <boxGeometry args={dimensions as [number, number, number]} />
+        <boxGeometry args={dimensions} />
       )}
       <meshStandardMaterial color="gray" opacity={stage === 'placed' ? 1 : 0.5} transparent />
     </mesh>
   );
 };
 
-// Main Map Builder Component
-type ObjectType = {
-  position: THREE.Vector3;
-  dimensions: number[];
-  id: number;
-};
-
-type PreviewType = {
-  position: THREE.Vector3;
-  dimensions: number[];
-};
-
-export const CubeCreatorTest: React.FC = () => {
-  const [objects, setObjects] = useState<ObjectType[]>([]);
-  const [preview, setPreview] = useState<PreviewType | null>(null);
+export default function CubeCreator() {
+  const [preview, setPreview] = useState<{ position: THREE.Vector3; dimensions: [number, number, number] } | null>(null);
   const [stage, setStage] = useState<'idle' | 'positioning' | 'sizing' | 'depth'>('idle');
   const [lastMousePos, setLastMousePos] = useState<THREE.Vector3 | null>(null);
   const planeRef = useRef<THREE.Mesh>(null!);
   const { camera, raycaster, mouse, gl } = useThree();
+  
+  const { 
+    finishCreating,
+    cancelCreating,
+    generateId,
+    addObject,
+    snapToGrid,
+    activeShape,
+    setActiveTool,
+    selectObject
+  } = useMapBuilderStore();
 
   // Handle mouse movement for preview positioning only in idle state
   useFrame(() => {
@@ -63,7 +62,15 @@ export const CubeCreatorTest: React.FC = () => {
       if (intersects.length > 0) {
         const point = intersects[0].point;
         point.y = 0; // Keep on ground plane
-        setPreview({ position: point, dimensions: [1, 0.1, 1] });
+        
+        // Snap to grid
+        const snappedPoint = new THREE.Vector3(
+          snapToGrid(point.x),
+          point.y,
+          snapToGrid(point.z)
+        );
+        
+        setPreview({ position: snappedPoint, dimensions: [1, 0.1, 1] });
       }
     }
   });
@@ -79,7 +86,30 @@ export const CubeCreatorTest: React.FC = () => {
       setStage('depth');
     } else if (stage === 'depth') {
       if (preview) {
-        setObjects([...objects, { ...preview, id: Date.now() }]);
+        // Create the final object
+        const finalObject = {
+          type: 'box' as const,
+          position: [
+            preview.position.x,
+            preview.dimensions[1] / 2, // Center vertically
+            preview.position.z
+          ] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+          scale: preview.dimensions,
+          color: '#4f46e5',
+          name: `box_${Math.random().toString(36).substr(2, 6)}`,
+        };
+        
+        addObject(finalObject);
+        
+        // Get the ID of the newly created object (it will be the last one)
+        const { objects } = useMapBuilderStore.getState();
+        const newObjectId = objects[objects.length - 1].id;
+        
+        // Auto-switch to select tool and select the created object
+        finishCreating();
+        setActiveTool('select');
+        selectObject(newObjectId);
       }
       setStage('idle');
       setPreview(null);
@@ -95,20 +125,38 @@ export const CubeCreatorTest: React.FC = () => {
       if (intersects.length > 0) {
         const currentPos = intersects[0].point;
         currentPos.y = 0; // Keep on ground plane
+        
+        // Snap to grid
+        const snappedCurrentPos = new THREE.Vector3(
+          snapToGrid(currentPos.x),
+          currentPos.y,
+          snapToGrid(currentPos.z)
+        );
+        
         if (lastMousePos && preview) {
-          const delta = currentPos.clone().sub(lastMousePos);
-
           if (stage === 'sizing') {
-            const width = Math.max(0.1, preview.dimensions[0] + delta.x * 0.5);
-            const height = Math.max(0.1, preview.dimensions[2] + delta.z * 0.5);
-            setPreview({ ...preview, dimensions: [width, 0.1, height] });
+            const deltaX = Math.abs(snappedCurrentPos.x - lastMousePos.x);
+            const deltaZ = Math.abs(snappedCurrentPos.z - lastMousePos.z);
+            const width = Math.max(0.1, deltaX * 2);
+            const depth = Math.max(0.1, deltaZ * 2);
+            setPreview({ ...preview, dimensions: [width, 0.1, depth] });
           } else if (stage === 'depth') {
-            const depth = Math.max(0.1, preview.dimensions[1] + delta.z * 0.5);
-            setPreview({ ...preview, dimensions: [preview.dimensions[0], depth, preview.dimensions[2]] });
+            const deltaZ = snappedCurrentPos.z - lastMousePos.z;
+            const height = Math.max(0.1, Math.abs(deltaZ) * 2);
+            setPreview({ ...preview, dimensions: [preview.dimensions[0], height, preview.dimensions[2]] });
           }
         }
-        setLastMousePos(currentPos);
       }
+    }
+  };
+
+  // Handle escape key to cancel
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      cancelCreating();
+      setStage('idle');
+      setPreview(null);
+      setLastMousePos(null);
     }
   };
 
@@ -117,11 +165,17 @@ export const CubeCreatorTest: React.FC = () => {
     const canvas = gl.domElement;
     canvas.addEventListener('click', handleClick);
     canvas.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('keydown', handleKeyDown);
+    
     return () => {
       canvas.removeEventListener('click', handleClick);
       canvas.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [gl, stage, preview, lastMousePos]);
+
+  // Only render if we're creating a cube
+  if (activeShape !== 'box') return null;
 
   return (
     <group>
@@ -131,10 +185,7 @@ export const CubeCreatorTest: React.FC = () => {
         rotation={[-Math.PI / 2, 0, 0]}
         visible={false}
       />
-      {objects.map((obj) => (
-        <PreviewObject key={obj.id} {...obj} stage="placed" />
-      ))}
       {preview && <PreviewObject {...preview} stage={stage} />}
     </group>
   );
-};
+}

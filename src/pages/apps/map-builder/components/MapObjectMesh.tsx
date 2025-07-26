@@ -17,25 +17,42 @@ export default function MapObjectMesh({ object, onClick }: MapObjectMeshProps) {
   
   // Create geometry based on object type
   const createGeometry = () => {
-    const { type, scale } = object;
+    const { type } = object;
     
     switch (type) {
       case 'box':
-        return new THREE.BoxGeometry(scale[0], scale[1], scale[2]);
+        return new THREE.BoxGeometry(1, 1, 1); // Unit size, scaling done via transform
       case 'sphere':
-        return new THREE.SphereGeometry(scale[0], 32, 32);
+        return new THREE.SphereGeometry(1, 32, 32); // Unit radius
       case 'cylinder':
-        return new THREE.CylinderGeometry(scale[0], scale[0], scale[1], 32);
+        return new THREE.CylinderGeometry(1, 1, 1, 32); // Unit size
       case 'plane':
-        return new THREE.PlaneGeometry(scale[0], scale[1]);
+        return new THREE.PlaneGeometry(1, 1); // Unit size
       case 'cone':
-        return new THREE.ConeGeometry(scale[0], scale[1], 32);
+        return new THREE.ConeGeometry(1, 1, 32); // Unit size
       default:
         return new THREE.BoxGeometry(1, 1, 1);
     }
   };
 
   const geometry = createGeometry();
+
+  // Apply scale correctly based on object type
+  const getObjectScale = () => {
+    if (object.type === 'cylinder') {
+      // For cylinders: [radius, height, radius] -> [x_scale, y_scale, z_scale]
+      return [object.scale[0], object.scale[1], object.scale[0]] as [number, number, number];
+    }
+    return object.scale;
+  };
+
+  // Ensure mesh scale is synchronized with object scale
+  useEffect(() => {
+    if (meshRef.current) {
+      const correctScale = getObjectScale();
+      meshRef.current.scale.fromArray(correctScale);
+    }
+  }, [object.scale, object.type]);
 
   const handleClick = (event: any) => {
     event.stopPropagation();
@@ -91,6 +108,7 @@ export default function MapObjectMesh({ object, onClick }: MapObjectMeshProps) {
       material={material}
       position={object.position}
       rotation={object.rotation}
+      scale={getObjectScale()}
       castShadow
       receiveShadow
       onClick={handleClick}

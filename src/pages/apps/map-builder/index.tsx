@@ -45,10 +45,8 @@ export default function MapBuilderPage() {
             if (event.target === event.currentTarget) {
                 clearSelection();
             }
-        } else {
-            // Finish creating object when clicking in creation mode
-            finishCreating();
         }
+        // Note: Object creation is now handled by individual creator components
     };
 
     const handleKeyDown = (event: React.KeyboardEvent) => {

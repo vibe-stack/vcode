@@ -46,6 +46,17 @@ export default function TransformGizmo() {
       });
       
       if (foundObject && transformRef.current) {
+        // Ensure the Three.js object's transform matches the store object's transform
+        foundObject.position.fromArray(selectedObject.position);
+        foundObject.rotation.fromArray(selectedObject.rotation);
+        
+        // Handle scale correctly for different object types
+        if (selectedObject.type === 'cylinder') {
+          foundObject.scale.set(selectedObject.scale[0], selectedObject.scale[1], selectedObject.scale[0]);
+        } else {
+          foundObject.scale.fromArray(selectedObject.scale);
+        }
+        
         setAttachedObject(foundObject);
         transformRef.current.attach(foundObject);
       }
@@ -66,7 +77,7 @@ export default function TransformGizmo() {
         if (attachedObject && selectedObject) {
           const position = attachedObject.position.toArray() as [number, number, number];
           const rotation = attachedObject.rotation.toArray().slice(0, 3) as [number, number, number];
-          const scale = attachedObject.scale.toArray() as [number, number, number];
+          const threeScale = attachedObject.scale.toArray() as [number, number, number];
 
           // Apply grid snapping to position if enabled and in translate mode
           let snappedPosition = position;
@@ -83,11 +94,20 @@ export default function TransformGizmo() {
             }
           }
 
+          // Convert Three.js scale back to object scale based on type
+          let objectScale: [number, number, number];
+          if (selectedObject.type === 'cylinder') {
+            // For cylinders: Three.js [x, y, z] -> object [radius, height, radius]
+            objectScale = [threeScale[0], threeScale[1], threeScale[0]];
+          } else {
+            objectScale = threeScale;
+          }
+
           // Update the store
           updateObject(selectedObject.id, {
             position: snappedPosition,
             rotation,
-            scale,
+            scale: objectScale,
           });
         }
       };

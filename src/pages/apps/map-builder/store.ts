@@ -59,7 +59,7 @@ export interface MapBuilderState {
   // Tool actions
   setActiveTool: (tool: MapBuilderState['activeTool']) => void;
   setActiveShape: (shape: MapBuilderState['activeShape']) => void;
-  startCreating: (object: MapObject) => void;
+  startCreating: (shape: MapBuilderState['activeShape']) => void;
   finishCreating: () => void;
   cancelCreating: () => void;
   updateCreatingObject: (updates: Partial<MapObject>) => void;
@@ -177,23 +177,15 @@ export const useMapBuilderStore = create<MapBuilderState>()(
       setActiveTool: (tool) => set({ activeTool: tool }),
       setActiveShape: (shape) => set({ activeShape: shape }),
       
-      startCreating: (object) => set({
+      startCreating: (shape) => set({
         isCreating: true,
-        creatingObject: object,
+        activeShape: shape,
         activeTool: 'add',
       }),
       
-      finishCreating: () => set((state) => {
-        if (state.creatingObject) {
-          const newObject = { ...state.creatingObject };
-          return {
-            objects: [...state.objects, newObject],
-            isCreating: false,
-            creatingObject: null,
-            selectedObjectIds: [newObject.id],
-          };
-        }
-        return { isCreating: false, creatingObject: null };
+      finishCreating: () => set({
+        isCreating: false,
+        creatingObject: null,
       }),
       
       cancelCreating: () => set({

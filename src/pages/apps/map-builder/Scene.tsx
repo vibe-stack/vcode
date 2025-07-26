@@ -3,14 +3,13 @@ import { Canvas, extend, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, TransformControls, Plane } from '@react-three/drei';
 import { useMapBuilderStore } from './store';
 import MapObjects from './components/MapObjects';
-import InteractiveCreation from './components/InteractiveCreation';
+import ObjectCreators from './components/creators';
 import SelectionBox from './components/SelectionBox';
 import TransformGizmo from './components/TransformGizmo';
 import { WebGPURenderer } from 'three/webgpu'
 import * as THREE from 'three/webgpu';
 import Grid2 from './components/Grid2';
 import { useThree } from '@react-three/fiber';
-import { CubeCreatorTest } from './components/creators/cube-creator';
 
 extend(THREE as any);
 
@@ -107,13 +106,11 @@ export default function Scene({ onObjectClick, onSceneClick }: SceneProps) {
                 {/* Transform Controls */}
                 <TransformGizmo />
 
-                {/* Interactive Creation (click and drag) */}
-                <InteractiveCreation />
+                {/* Object Creators (handles all creation logic) */}
+                <ObjectCreators />
 
                 {/* Selection Visualization */}
                 <SelectionBox />
-
-                <CubeCreatorTest />
 
                 {/* Camera Controls */}
                 <OrbitControls

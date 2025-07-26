@@ -56,16 +56,7 @@ export default function Toolbar() {
 
   const handleCreateShape = (shapeType: typeof activeShape) => {
     setActiveShape(shapeType);
-    const newObject = {
-      id: generateId(),
-      type: shapeType,
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-      scale: [1, 1, 1] as [number, number, number],
-      color: '#4f46e5',
-      name: `${shapeType}_${Math.random().toString(36).substr(2, 6)}`,
-    };
-    startCreating(newObject);
+    startCreating(shapeType);
   };
 
   const handleExportJSON = () => {
