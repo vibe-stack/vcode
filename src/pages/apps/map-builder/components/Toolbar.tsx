@@ -18,7 +18,11 @@ import {
   Upload,
   FileCode,
   Sparkles,
+  Scale3d,
+  Move3d,
+  Rotate3d
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Toolbar() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -41,9 +45,9 @@ export default function Toolbar() {
 
   const tools = [
     { id: 'select', icon: MousePointer2, label: 'Select' },
-    { id: 'move', icon: Move, label: 'Move' },
-    { id: 'rotate', icon: RotateCcw, label: 'Rotate' },
-    { id: 'scale', icon: Scale, label: 'Scale' },
+    { id: 'move', icon: Move3d, label: 'Move' },
+    { id: 'rotate', icon: Rotate3d, label: 'Rotate' },
+    { id: 'scale', icon: Scale3d, label: 'Scale' },
   ] as const;
 
   const shapes = [
@@ -103,13 +107,14 @@ return (
     <div className="bg-gradient-to-br from-black/70 via-gray-900/80 to-gray-800/80 backdrop-blur-xl border border-white/15 rounded-3xl shadow-xl p-5">
       <div className="flex gap-3 items-center flex-wrap">
         {/* Template Button */}
-        <button
+        <Button
           onClick={() => setShowTemplateModal(true)}
-          className="px-4 py-2 bg-emerald-500 text-white rounded-2xl shadow-md hover:bg-emerald-600 transition-colors flex items-center gap-2 text-base font-semibold"
+          variant="ghost"
+          className="rounded-2xl"
         >
           <Sparkles className="w-5 h-5" />
           Templates
-        </button>
+        </Button>
 
         {/* Tools */}
         <div className="flex gap-1 bg-white/5 rounded-xl p-1 shadow-sm">

@@ -68,7 +68,7 @@ export default function ObjectList() {
   };
 
   return (
-    <div className="w-80 max-h-full bg-gradient-to-br from-black/70 via-gray-900/80 to-gray-800/80 backdrop-blur-xl border border-white/15 rounded-3xl shadow-xl overflow-hidden">
+    <div className="w-80 h-[85dvh] max-h-full bg-gradient-to-r from-black/50 via-gray-900/20 to-gray-800/30 backdrop-blur-xl border border-white/15 rounded-3xl shadow-xl overflow-hidden">
       {/* Header */}
       <div className="p-5 border-b border-white/10 bg-gradient-to-r from-black/60 to-gray-900/60">
         <div className="flex items-center justify-between">
