@@ -4,7 +4,10 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DragInput } from '@/components/ui/drag-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMapBuilderStore } from '../../../store';
+import * as THREE from 'three/webgpu';
+
 
 interface MaterialSettingsProps {
   objectId: string;
@@ -53,7 +56,7 @@ export function MaterialSettings({ objectId }: MaterialSettingsProps) {
       {/* Material Properties */}
       <div className="space-y-4">
         <Label className="text-white/80 text-sm font-medium">Material Properties</Label>
-        
+
         <div className="space-y-4">
           <div>
             <div className="flex justify-between items-center mb-2">
@@ -115,6 +118,23 @@ export function MaterialSettings({ objectId }: MaterialSettingsProps) {
                 className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
               />
               <Label className="text-white/60 text-sm">Transparent</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/60 text-sm">Side Rendering</Label>
+              <Select
+                value={object.material?.side || 'front'}
+                onValueChange={(value) => handleUpdateMaterial('side', value)}
+              >
+                <SelectTrigger className="bg-black/20 border-white/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="front">Front</SelectItem>
+                  <SelectItem value="back">Back</SelectItem>
+                  <SelectItem value="double">Double</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

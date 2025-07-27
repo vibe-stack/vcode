@@ -128,12 +128,29 @@ export default function MapObjectMesh({ object, onClick }: MapObjectMeshProps) {
       finalColor = baseColor.clone().lerp(new THREE.Color('#ffffff'), 0.1);
     }
 
+    // Convert side string to Three.js constant
+    let sideValue: THREE.Side = THREE.FrontSide; // default
+    switch (object.material?.side) {
+      case 'front':
+        sideValue = THREE.FrontSide;
+        break;
+      case 'back':
+        sideValue = THREE.BackSide;
+        break;
+      case 'double':
+        sideValue = THREE.DoubleSide;
+        break;
+      default:
+        sideValue = THREE.FrontSide;
+    }
+
     return new THREE.MeshStandardMaterial({
       color: finalColor,
       metalness: object.material?.metalness || 0,
       roughness: object.material?.roughness || 0.5,
       transparent: object.material?.transparent || false,
       opacity: object.material?.opacity || 1,
+      side: sideValue,
     });
   };
 

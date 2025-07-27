@@ -323,7 +323,7 @@ export function ChatPanel() {
     return (
         <div className="h-full max-h-full flex flex-col w-full max-w-full min-w-0">
             {/* Header */}
-            <div className="border-b p-3 flex-shrink-0">
+            <div className="border-b p-0 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-medium">Grok Assistant</h2>
                     <div className="flex items-center gap-1">
@@ -351,7 +351,7 @@ export function ChatPanel() {
             {/* Messages */}
             <div className="flex-1 overflow-hidden w-full">
                 <div className="h-full w-full overflow-y-auto" >
-                    <div className="p-3 space-y-4 w-full">
+                    <div className="p-0 space-y-4 w-full">
                         {messages.map((message, index) => (
                             <MessageComponent
                                 key={message.id}
@@ -381,7 +381,7 @@ export function ChatPanel() {
                         onRejectAll={handleRejectAllMapChanges}
                     />
                 )}
-                <div className="px-3 pb-3">
+                <div className="px-0 pb-3">
                     <SimpleChatInput
                         onSend={handleSimpleSend}
                         onStop={handleStop}

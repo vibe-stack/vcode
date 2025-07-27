@@ -11,6 +11,10 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
     if (!xaiApiKey) {
       throw new Error('XAI API key not found. Please configure your API key in Settings > AI & Agents.');
     }
+
+    // Get selected model from settings, default to grok-4-0709
+    const selectedModel = await settingsManager.get('apps:map-builder:agent-model') || 'grok-4-0709';
+
     const model = createXai({
       apiKey: xaiApiKey,
     });
@@ -18,7 +22,7 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
       execute: async (dataStream) => {
         try {
           const result = streamText({
-            model: model("grok-3-mini-fast"),
+            model: model(selectedModel),
             system: systemPrompt,
             messages: messages,
             tools: mapBuilderToolDefinitions,

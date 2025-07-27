@@ -83,9 +83,7 @@ export interface MapBuilderState {
   cancelCreating: () => void;
   updateCreatingObject: (updates: Partial<MapObject>) => void;
   
-  // Export
-  exportAsJSON: () => string;
-  exportAsTypeScript: () => string;
+  // Import/Export
   importFromJSON: (json: string) => void;
   
   // Utility
@@ -216,65 +214,7 @@ export const useMapBuilderStore = create<MapBuilderState>()(
         creatingObject: state.creatingObject ? { ...state.creatingObject, ...updates } : null,
       })),
       
-      // Export
-      exportAsJSON: () => {
-        const { objects, grid } = get();
-        return JSON.stringify({ objects, grid }, null, 2);
-      },
-      
-      exportAsTypeScript: () => {
-        const { objects } = get();
-        const imports = `import * as THREE from 'three/webgpu';`;
-        
-        const objectsCode = objects.map(obj => {
-          const { type, position, rotation, scale, color, material } = obj;
-          
-          let geometryCode = '';
-          switch (type) {
-            case 'box':
-              geometryCode = `new THREE.BoxGeometry(${scale.join(', ')})`;
-              break;
-            case 'sphere':
-              geometryCode = `new THREE.SphereGeometry(${scale[0]}, 32, 32)`;
-              break;
-            case 'cylinder':
-              geometryCode = `new THREE.CylinderGeometry(${scale[0]}, ${scale[0]}, ${scale[1]}, 32)`;
-              break;
-            case 'plane':
-              geometryCode = `new THREE.PlaneGeometry(${scale[0]}, ${scale[1]})`;
-              break;
-            case 'cone':
-              geometryCode = `new THREE.ConeGeometry(${scale[0]}, ${scale[1]}, 32)`;
-              break;
-            case 'door':
-              geometryCode = `createDoorGeometry(${scale[0]}, ${scale[1]}, ${scale[2]}, ${obj.geometry?.cutoutWidth || 0.8}, ${obj.geometry?.cutoutHeight || 1.8}, ${obj.geometry?.cutoutRadius || 0})`;
-              break;
-          }
-          
-          const materialCode = `new THREE.MeshStandardMaterial({ 
-            color: "${color}"${material ? `,
-            metalness: ${material.metalness || 0},
-            roughness: ${material.roughness || 0.5}${material.transparent ? `,
-            transparent: true,
-            opacity: ${material.opacity || 1}` : ''}` : ''}
-          })`;
-          
-          return `
-// ${obj.name}
-const ${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')}Geometry = ${geometryCode};
-const ${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')}Material = ${materialCode};
-const ${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')} = new THREE.Mesh(${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')}Geometry, ${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')}Material);
-${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')}.position.set(${position.join(', ')});
-${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')}.rotation.set(${rotation.join(', ')});
-scene.add(${obj.name?.replace(/[^a-zA-Z0-9]/g, '_')});`;
-        }).join('\n');
-        
-        return `${imports}
-
-export function createMapObjects(scene: THREE.Scene) {${objectsCode}
-}`;
-      },
-      
+      // Import/Export
       importFromJSON: (json) => {
         try {
           const data = JSON.parse(json);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMapBuilderStore } from '../store';
 import TemplateModal from './TemplateModal';
+import ExportDialog from './ExportDialog';
 import {
   MousePointer2,
   Move,
@@ -27,18 +28,20 @@ import { Button } from '@/components/ui/button';
 
 export default function Toolbar() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const {
     activeTool,
     activeShape,
     selectedObjectIds,
     grid,
+    objects,
+    cameraPosition,
+    cameraTarget,
     setActiveTool,
     setActiveShape,
     updateGrid,
     duplicateSelected,
     deleteSelected,
-    exportAsJSON,
-    exportAsTypeScript,
     importFromJSON,
     startCreating,
     generateId,
@@ -65,28 +68,6 @@ export default function Toolbar() {
     startCreating(shapeType);
   };
 
-  const handleExportJSON = () => {
-    const json = exportAsJSON();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'map.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleExportTypeScript = () => {
-    const ts = exportAsTypeScript();
-    const blob = new Blob([ts], { type: 'text/typescript' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'map.ts';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handleImportJSON = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -103,6 +84,15 @@ export default function Toolbar() {
       }
     };
     input.click();
+  };
+
+  const exportData = {
+    objects,
+    grid,
+    camera: {
+      position: cameraPosition,
+      target: cameraTarget,
+    },
   };
 
 return (
@@ -216,18 +206,11 @@ return (
         {/* Export/Import */}
         <div className="flex gap-1 bg-white/5 rounded-xl p-1 shadow-sm">
           <button
-            onClick={handleExportJSON}
+            onClick={() => setShowExportDialog(true)}
             className="p-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white"
-            title="Export JSON"
+            title="Export Scene"
           >
             <Download className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleExportTypeScript}
-            className="p-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white"
-            title="Export TypeScript"
-          >
-            <FileCode className="w-5 h-5" />
           </button>
           <button
             onClick={handleImportJSON}
@@ -243,6 +226,13 @@ return (
       <TemplateModal 
         isOpen={showTemplateModal} 
         onClose={() => setShowTemplateModal(false)} 
+      />
+
+      {/* Export Dialog */}
+      <ExportDialog 
+        isOpen={showExportDialog} 
+        onClose={() => setShowExportDialog(false)} 
+        exportData={exportData}
       />
     </div>
   );
