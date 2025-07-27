@@ -14,7 +14,22 @@ export interface MapObject {
     roughness?: number;
     transparent?: boolean;
     opacity?: number;
+    side?: 'front' | 'back' | 'double';
+    castShadow?: boolean;
+    receiveShadow?: boolean;
   };
+  geometry?: {
+    // Box
+    width?: number;
+    height?: number;
+    depth?: number;
+    // Sphere
+    radius?: number;
+    // Cylinder & Cone
+    radiusTop?: number;
+    radiusBottom?: number;
+  };
+  visible?: boolean;
   name?: string;
 }
 

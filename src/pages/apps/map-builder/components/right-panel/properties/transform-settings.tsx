@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input } from '@/components/ui/input';
+import { DragInput } from '@/components/ui/drag-input';
 import { Label } from '@/components/ui/label';
 import { useMapBuilderStore } from '../../../store';
 
@@ -39,133 +39,118 @@ export function TransformSettings({ object }: TransformSettingsProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 bg-white/5 border border-white/10 rounded-lg">
       {/* Position */}
-      <div>
-        <Label className="text-white/80 mb-2">Position</Label>
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <Label className="text-xs text-white/50 mb-1">X</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={object.position[0].toFixed(2)}
-              onChange={(e) => handleUpdatePosition('x', parseFloat(e.target.value) || 0)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-white/50 mb-1">Y</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={object.position[1].toFixed(2)}
-              onChange={(e) => handleUpdatePosition('y', parseFloat(e.target.value) || 0)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-white/50 mb-1">Z</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={object.position[2].toFixed(2)}
-              onChange={(e) => handleUpdatePosition('z', parseFloat(e.target.value) || 0)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
+      <div className="space-y-3">
+        <Label className="text-white/80 text-sm font-medium">Position</Label>
+        <div className="space-y-2">
+          <DragInput
+            label="X"
+            value={object.position[0]}
+            onChange={(value) => handleUpdatePosition('x', value)}
+            step={0.1}
+            precision={2}
+            compact
+          />
+          <DragInput
+            label="Y"
+            value={object.position[1]}
+            onChange={(value) => handleUpdatePosition('y', value)}
+            step={0.1}
+            precision={2}
+            compact
+          />
+          <DragInput
+            label="Z"
+            value={object.position[2]}
+            onChange={(value) => handleUpdatePosition('z', value)}
+            step={0.1}
+            precision={2}
+            compact
+          />
         </div>
       </div>
 
       {/* Rotation */}
-      <div>
-        <Label className="text-white/80 mb-2">Rotation (degrees)</Label>
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <Label className="text-xs text-white/50 mb-1">X</Label>
-            <Input
-              type="number"
-              step="1"
-              value={((object.rotation[0] * 180) / Math.PI).toFixed(1)}
-              onChange={(e) => handleUpdateRotation('x', parseFloat(e.target.value) || 0)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-white/50 mb-1">Y</Label>
-            <Input
-              type="number"
-              step="1"
-              value={((object.rotation[1] * 180) / Math.PI).toFixed(1)}
-              onChange={(e) => handleUpdateRotation('y', parseFloat(e.target.value) || 0)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-white/50 mb-1">Z</Label>
-            <Input
-              type="number"
-              step="1"
-              value={((object.rotation[2] * 180) / Math.PI).toFixed(1)}
-              onChange={(e) => handleUpdateRotation('z', parseFloat(e.target.value) || 0)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
+      <div className="space-y-3">
+        <Label className="text-white/80 text-sm font-medium">Rotation</Label>
+        <div className="space-y-2">
+          <DragInput
+            label="X"
+            value={(object.rotation[0] * 180) / Math.PI}
+            onChange={(value) => handleUpdateRotation('x', value)}
+            step={1}
+            precision={1}
+            suffix="°"
+            compact
+          />
+          <DragInput
+            label="Y"
+            value={(object.rotation[1] * 180) / Math.PI}
+            onChange={(value) => handleUpdateRotation('y', value)}
+            step={1}
+            precision={1}
+            suffix="°"
+            compact
+          />
+          <DragInput
+            label="Z"
+            value={(object.rotation[2] * 180) / Math.PI}
+            onChange={(value) => handleUpdateRotation('z', value)}
+            step={1}
+            precision={1}
+            suffix="°"
+            compact
+          />
         </div>
       </div>
 
       {/* Scale */}
-      <div>
-        <Label className="text-white/80 mb-2">Scale</Label>
+      <div className="space-y-3">
+        <Label className="text-white/80 text-sm font-medium">Scale</Label>
         
         {/* Uniform Scale */}
-        <div className="mb-3">
-          <Label className="text-xs text-white/50 mb-1">Uniform</Label>
-          <Input
-            type="number"
-            step="0.1"
-            min="0.1"
-            value={object.scale[0].toFixed(2)}
-            onChange={(e) => handleUniformScale(parseFloat(e.target.value) || 0.1)}
-            className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
+        <div className="space-y-2">
+          <DragInput
+            label="Uniform"
+            value={object.scale[0]}
+            onChange={handleUniformScale}
+            step={0.1}
+            precision={2}
+            min={0.1}
+            compact
           />
         </div>
 
         {/* Individual Scale */}
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <Label className="text-xs text-white/50 mb-1">X</Label>
-            <Input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={object.scale[0].toFixed(2)}
-              onChange={(e) => handleUpdateScale('x', parseFloat(e.target.value) || 0.1)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-white/50 mb-1">Y</Label>
-            <Input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={object.scale[1].toFixed(2)}
-              onChange={(e) => handleUpdateScale('y', parseFloat(e.target.value) || 0.1)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-white/50 mb-1">Z</Label>
-            <Input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={object.scale[2].toFixed(2)}
-              onChange={(e) => handleUpdateScale('z', parseFloat(e.target.value) || 0.1)}
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-emerald-500"
-            />
-          </div>
+        <div className="space-y-2">
+          <DragInput
+            label="X"
+            value={object.scale[0]}
+            onChange={(value) => handleUpdateScale('x', value)}
+            step={0.1}
+            precision={2}
+            min={0.1}
+            compact
+          />
+          <DragInput
+            label="Y"
+            value={object.scale[1]}
+            onChange={(value) => handleUpdateScale('y', value)}
+            step={0.1}
+            precision={2}
+            min={0.1}
+            compact
+          />
+          <DragInput
+            label="Z"
+            value={object.scale[2]}
+            onChange={(value) => handleUpdateScale('z', value)}
+            step={0.1}
+            precision={2}
+            min={0.1}
+            compact
+          />
         </div>
       </div>
     </div>
