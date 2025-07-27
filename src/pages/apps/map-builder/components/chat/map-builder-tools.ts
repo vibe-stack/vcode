@@ -6,29 +6,35 @@ export interface AddShapeParams {
   width?: number;
   height?: number;
   depth?: number;
-  position?: number[];
-  scale?: number[];
-  rotation?: number[];
+  position?: [number, number, number];
+  scale?: [number, number, number];
+  rotation?: [number, number, number];
   color?: string;
   name?: string;
 }
 
 export class MapBuilderTools {
   static async addCube(params: AddShapeParams): Promise<string> {
+    console.log("ADD CUBE CALLED", params)
     const { useMapBuilderStore } = await import('../../store');
     const store = useMapBuilderStore.getState();
     const id = store.generateId();
+
+    console.log("ADD CUBE ID", id, store)
     
     const object: Omit<MapObject, 'id'> = {
       type: 'box',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Cube ${id.slice(-4)}`
     };
     
     store.addObject(object);
+
+    console.log("ADD CUBE OBJECT", object, store.objects)
+
     return id;
   }
 
@@ -39,9 +45,9 @@ export class MapBuilderTools {
     
     const object: Omit<MapObject, 'id'> = {
       type: 'sphere',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Sphere ${id.slice(-4)}`
     };
@@ -57,9 +63,9 @@ export class MapBuilderTools {
     
     const object: Omit<MapObject, 'id'> = {
       type: 'cylinder',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Cylinder ${id.slice(-4)}`
     };
@@ -75,9 +81,9 @@ export class MapBuilderTools {
     
     const object: Omit<MapObject, 'id'> = {
       type: 'plane',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Plane ${id.slice(-4)}`
     };
@@ -96,11 +102,12 @@ export class MapBuilderTools {
   static async getObjects(): Promise<{ id: string; type: string; name: string }[]> {
     const { useMapBuilderStore } = await import('../../store');
     const store = useMapBuilderStore.getState();
+
     return store.objects.map(obj => ({
       id: obj.id,
       type: obj.type,
-      name: obj.name || `Unnamed ${obj.type}`
-    }));
+      name: obj.name
+    })) as { id: string; type: string; name: string }[];
   }
 
   static async getObject(id: string): Promise<MapObject | null> {
@@ -142,7 +149,7 @@ export const addCube = tool({
   description: 'Add a cube/box object to the 3D scene',
   parameters: addShapeParams,
   execute: async (params) => {
-    return await MapBuilderTools.addCube(params);
+    return await MapBuilderTools.addCube(params as AddShapeParams);
   },
 });
 
@@ -150,7 +157,7 @@ export const addSphere = tool({
   description: 'Add a sphere object to the 3D scene',
   parameters: addShapeParams,
   execute: async (params) => {
-    return await MapBuilderTools.addSphere(params);
+    return await MapBuilderTools.addSphere(params as AddShapeParams);
   },
 });
 
@@ -158,7 +165,7 @@ export const addCylinder = tool({
   description: 'Add a cylinder object to the 3D scene',
   parameters: addShapeParams,
   execute: async (params) => {
-    return await MapBuilderTools.addCylinder(params);
+    return await MapBuilderTools.addCylinder(params as AddShapeParams);
   },
 });
 
@@ -166,7 +173,7 @@ export const addPlane = tool({
   description: 'Add a plane object to the 3D scene',
   parameters: addShapeParams,
   execute: async (params) => {
-    return await MapBuilderTools.addPlane(params);
+    return await MapBuilderTools.addPlane(params as AddShapeParams);
   },
 });
 
