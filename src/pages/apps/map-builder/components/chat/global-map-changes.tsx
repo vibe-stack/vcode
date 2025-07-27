@@ -27,9 +27,6 @@ export function GlobalMapChanges({ sessionId, onAcceptAll, onRejectAll }: Global
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <AlertCircle className="h-4 w-4" />
-          <span>
-            {pendingSnapshots.length} pending map change{pendingSnapshots.length !== 1 ? 's' : ''}
-          </span>
         </div>
         
         <div className="flex items-center gap-2">
@@ -40,7 +37,7 @@ export function GlobalMapChanges({ sessionId, onAcceptAll, onRejectAll }: Global
             className="h-7 text-xs text-destructive hover:text-destructive"
           >
             <X className="h-3 w-3 mr-1" />
-            Reject All
+            Reject
           </Button>
           <Button
             variant="ghost"
@@ -49,7 +46,7 @@ export function GlobalMapChanges({ sessionId, onAcceptAll, onRejectAll }: Global
             className="h-7 text-xs text-green-600 hover:text-green-700"
           >
             <Check className="h-3 w-3 mr-1" />
-            Accept All
+            Accept
           </Button>
         </div>
       </div>

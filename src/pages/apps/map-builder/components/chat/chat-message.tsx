@@ -59,7 +59,7 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                         return (
                             <ReasoningDisplay
                                 key={`${message.id}-reasoning-${index}`}
-                                reasoning={(part as any).reasoning}
+                                reasoning={(part as any).reasoningDetails ?? part.reasoning ?? (part.details?.[0]?.type === "text" && part.details?.[0]?.text) ?? "Thinking..."}
                                 details={(part as any).details}
                             />
                         );
@@ -128,10 +128,10 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
 }
 
 const MarkdownRenderer = ({ content }: { content?: string }) => {
-    
+
     return (
         <div className="markdown-content max-w-full min-w-0 overflow-hidden">
-            <Markdown 
+            <Markdown
                 remarkPlugins={[remarkGfm]}
                 components={markdownComponents}
             >

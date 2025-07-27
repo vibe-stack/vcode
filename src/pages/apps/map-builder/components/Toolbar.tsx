@@ -99,79 +99,79 @@ export default function Toolbar() {
     input.click();
   };
 
-  return (
-    <div className="bg-black/50 backdrop-blur-md border border-white/20 rounded-2xl p-3">
-      <div className="flex gap-2 items-center">
+return (
+    <div className="bg-gradient-to-br from-black/70 via-gray-900/80 to-gray-800/80 backdrop-blur-xl border border-white/15 rounded-3xl shadow-xl p-5">
+      <div className="flex gap-3 items-center flex-wrap">
         {/* Template Button */}
         <button
           onClick={() => setShowTemplateModal(true)}
-          className="px-3 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors flex items-center gap-2 text-sm font-medium"
+          className="px-4 py-2 bg-emerald-500 text-white rounded-2xl shadow-md hover:bg-emerald-600 transition-colors flex items-center gap-2 text-base font-semibold"
         >
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-5 h-5" />
           Templates
         </button>
 
         {/* Tools */}
-        <div className="flex gap-1 bg-white/10 rounded-xl p-1">
+        <div className="flex gap-1 bg-white/5 rounded-xl p-1 shadow-sm">
           {tools.map((tool) => {
             const Icon = tool.icon;
             return (
               <button
                 key={tool.id}
                 onClick={() => setActiveTool(tool.id)}
-                className={`p-2 rounded-lg transition-all ${
+                className={`p-3 rounded-xl transition-all text-lg ${
                   activeTool === tool.id
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
                 title={tool.label}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-5 h-5" />
               </button>
             );
           })}
         </div>
 
         {/* Shapes */}
-        <div className="flex gap-1 bg-white/10 rounded-xl p-1">
+        <div className="flex gap-1 bg-white/5 rounded-xl p-1 shadow-sm">
           {shapes.map((shape) => {
             const Icon = shape.icon;
             return (
               <button
                 key={shape.id}
                 onClick={() => handleCreateShape(shape.id)}
-                className={`p-2 rounded-lg transition-all ${
+                className={`p-3 rounded-xl transition-all text-lg ${
                   activeShape === shape.id && activeTool === 'add'
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
                 title={`Add ${shape.label}`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-5 h-5" />
               </button>
             );
           })}
         </div>
 
         {/* Grid Controls */}
-        <div className="flex items-center gap-2 bg-white/10 rounded-xl p-2">
+        <div className="flex items-center gap-2 bg-white/5 rounded-xl p-2 shadow-sm">
           <button
             onClick={() => updateGrid({ visible: !grid.visible })}
-            className={`p-1 rounded-lg transition-all ${
+            className={`p-2 rounded-xl transition-all ${
               grid.visible
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-emerald-500 text-white shadow-md'
                 : 'text-white/70 hover:bg-white/10 hover:text-white'
             }`}
             title="Toggle Grid"
           >
-            <Grid3X3 className="w-4 h-4" />
+            <Grid3X3 className="w-5 h-5" />
           </button>
-          <label className="flex items-center gap-1 text-sm text-white/80">
+          <label className="flex items-center gap-1 text-base text-white/80">
             <input
               type="checkbox"
               checked={grid.snapToGrid}
               onChange={(e) => updateGrid({ snapToGrid: e.target.checked })}
-              className="rounded accent-emerald-500"
+              className="rounded accent-emerald-500 w-4 h-4"
             />
             Snap
           </label>
@@ -179,7 +179,7 @@ export default function Toolbar() {
             type="number"
             value={grid.divisions}
             onChange={(e) => updateGrid({ divisions: parseInt(e.target.value) || 10 })}
-            className="w-16 px-2 py-1 text-xs bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50"
+            className="w-20 px-3 py-2 text-sm bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 shadow-sm"
             min="1"
             max="100"
             title="Grid Divisions"
@@ -187,47 +187,47 @@ export default function Toolbar() {
         </div>
 
         {/* Object Actions */}
-        <div className="flex gap-1 bg-white/10 rounded-xl p-1">
+        <div className="flex gap-1 bg-white/5 rounded-xl p-1 shadow-sm">
           <button
             onClick={duplicateSelected}
             disabled={selectedObjectIds.length === 0}
-            className="p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed text-white/70 hover:bg-white/10 hover:text-white disabled:hover:bg-transparent disabled:hover:text-white/70"
+            className="p-3 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed text-white/70 hover:bg-white/10 hover:text-white disabled:hover:bg-transparent disabled:hover:text-white/70"
             title="Duplicate Selected"
           >
-            <Copy className="w-4 h-4" />
+            <Copy className="w-5 h-5" />
           </button>
           <button
             onClick={deleteSelected}
             disabled={selectedObjectIds.length === 0}
-            className="p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:hover:bg-transparent disabled:hover:text-red-400"
+            className="p-3 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:hover:bg-transparent disabled:hover:text-red-400"
             title="Delete Selected"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-5 h-5" />
           </button>
         </div>
 
         {/* Export/Import */}
-        <div className="flex gap-1 bg-white/10 rounded-xl p-1">
+        <div className="flex gap-1 bg-white/5 rounded-xl p-1 shadow-sm">
           <button
             onClick={handleExportJSON}
-            className="p-2 rounded-lg transition-all text-white/70 hover:bg-white/10 hover:text-white"
+            className="p-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white"
             title="Export JSON"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-5 h-5" />
           </button>
           <button
             onClick={handleExportTypeScript}
-            className="p-2 rounded-lg transition-all text-white/70 hover:bg-white/10 hover:text-white"
+            className="p-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white"
             title="Export TypeScript"
           >
-            <FileCode className="w-4 h-4" />
+            <FileCode className="w-5 h-5" />
           </button>
           <button
             onClick={handleImportJSON}
-            className="p-2 rounded-lg transition-all text-white/70 hover:bg-white/10 hover:text-white"
+            className="p-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white"
             title="Import JSON"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-5 h-5" />
           </button>
         </div>
       </div>

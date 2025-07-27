@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sphere } from 'three';
 
 type MapBuilderToolName = 'addCube' | 'addSphere' | 'addCylinder' | 'addPlane' | 'removeObject' | 'getObjects' | 'getObject' | 'getFullScene';
 
@@ -50,7 +51,7 @@ export function MapToolDisplay({ toolName, args, result, state }: MapToolDisplay
     switch (toolName) {
       case 'addCube':
         return {
-          summary: `Adding cube${args?.position ? ` at position (${args.position.x}, ${args.position.y}, ${args.position.z})` : ''}`,
+          summary: `Adding cube`,
           details: { 
             position: args?.position,
             size: args?.size,
@@ -60,7 +61,7 @@ export function MapToolDisplay({ toolName, args, result, state }: MapToolDisplay
         };
       case 'addSphere':
         return {
-          summary: `Adding sphere${args?.position ? ` at position (${args.position.x}, ${args.position.y}, ${args.position.z})` : ''}`,
+          summary: `Adding Sphere`,
           details: { 
             position: args?.position,
             radius: args?.radius,
@@ -70,7 +71,7 @@ export function MapToolDisplay({ toolName, args, result, state }: MapToolDisplay
         };
       case 'addCylinder':
         return {
-          summary: `Adding cylinder${args?.position ? ` at position (${args.position.x}, ${args.position.y}, ${args.position.z})` : ''}`,
+          summary: `Adding cylinder`,
           details: { 
             position: args?.position,
             radius: args?.radius,
@@ -81,7 +82,7 @@ export function MapToolDisplay({ toolName, args, result, state }: MapToolDisplay
         };
       case 'removeObject':
         return {
-          summary: `Removing object with ID: ${args?.id || 'unknown'}`,
+          summary: `Removing object (#${args?.id || 'unknown'})`,
           details: { id: args?.id }
         };
       case 'getObjects':
@@ -91,7 +92,7 @@ export function MapToolDisplay({ toolName, args, result, state }: MapToolDisplay
         };
       case 'getObject':
         return {
-          summary: `Getting object with ID: ${args?.id || 'unknown'}`,
+          summary: `Getting object (#${args?.id || 'unknown'})`,
           details: { id: args?.id }
         };
       case 'getFullScene':

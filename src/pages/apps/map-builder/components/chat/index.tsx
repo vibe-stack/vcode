@@ -11,11 +11,13 @@ import { mapBuilderChatPersistenceService } from './map-builder-chat-persistence
 import { SimpleChatHistory } from './simple-chat-history';
 import { GlobalMapChanges } from './global-map-changes';
 import { useMapSnapshotStore } from './map-snapshot-store';
+import { useMapBuilderStore } from '../../store';
 import { StreamingIndicator } from './streaming-indicator';
 
 export function ChatPanel() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
+    const [userMessageInitialState, setUserMessageInitialState] = useState<any>(null);
 
     const { messages, append, setMessages, isLoading, addToolResult, stop, status } = useChat({
         api: '/api/map-builder',
@@ -49,6 +51,28 @@ export function ChatPanel() {
             }
         });
     }, [messages]);
+
+    // Capture initial state when user sends a message (before AI responds)
+    React.useEffect(() => {
+        // When a new assistant message appears, store the initial state we captured
+        if (messages.length >= 2 && userMessageInitialState) {
+            const lastTwoMessages = messages.slice(-2);
+            const [userMsg, assistantMsg] = lastTwoMessages;
+            
+            if (userMsg.role === 'user' && assistantMsg.role === 'assistant') {
+                const snapshotStore = useMapSnapshotStore.getState();
+                const existingInitialState = snapshotStore.getMessageInitialState(assistantMsg.id);
+                
+                if (!existingInitialState) {
+                    // Store the state captured when the user sent their message
+                    console.log(`💾 Storing initial state for assistant message ${assistantMsg.id}`);
+                    snapshotStore.setMessageInitialState(assistantMsg.id, userMessageInitialState);
+                    // Clear the temporary state
+                    setUserMessageInitialState(null);
+                }
+            }
+        }
+    }, [messages, userMessageInitialState]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -142,9 +166,14 @@ export function ChatPanel() {
 
     const handleSimpleSend = useCallback((content: string) => {
         if (!content.trim()) return;
+        const currentState = useMapBuilderStore.getState().objects;
 
         // Mark that user has interacted with chat
         setHasUserInteracted(true);
+
+        // Capture the current state before user sends message
+        console.log(`📸 User sending message, capturing current state (${currentState.length} objects)`);
+        setUserMessageInitialState(currentState);
 
         // Create message parts with text content only
         const messageParts: any[] = [{ type: 'text', text: content }];
@@ -357,7 +386,7 @@ export function ChatPanel() {
                         onSend={handleSimpleSend}
                         onStop={handleStop}
                         isLoading={isLoading}
-                        placeholder="Ask me anything about your 3D scene..."
+                        placeholder="What do you want to build?"
                         isNewChat={messages.length === 0 && !hasUserInteracted}
                     />
                 </div>

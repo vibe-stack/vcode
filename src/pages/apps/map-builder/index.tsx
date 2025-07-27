@@ -63,7 +63,7 @@ export default function MapBuilderPage() {
             backTo="/?section=apps"
         >
             <div 
-                className="relative h-full w-full bg-background"
+                className="relative flex-1 h-full w-full bg-background"
                 onKeyDown={handleKeyDown}
                 tabIndex={0}
             >

@@ -1,5 +1,6 @@
 import { MapBuilderTools } from './map-builder-tools';
 import { useMapSnapshotStore } from './map-snapshot-store';
+import { useMapBuilderStore } from '../../store';
 
 interface PendingToolCall {
   id: string;
@@ -24,9 +25,26 @@ class MapBuilderToolExecutionService {
     }
 
     try {
-      // Take snapshot before executing
-      const { useMapBuilderStore } = await import('../../store');
-      const beforeState = useMapBuilderStore.getState().objects;
+      // Get current state
+      const currentState = useMapBuilderStore.getState().objects;
+      
+      // Find the message this tool call belongs to
+      const lastMessage = messages[messages.length - 1];
+      const messageId = lastMessage?.id || 'unknown';
+      
+      // Store initial state for this message if not already stored
+      const snapshotStore = useMapSnapshotStore.getState();
+      const existingInitialState = snapshotStore.getMessageInitialState(messageId);
+      if (!existingInitialState) {
+        // This is the first tool in this message, capture the current state as initial
+        console.log(`📸 Capturing initial state for message ${messageId} (${currentState.length} objects)`);
+        snapshotStore.setMessageInitialState(messageId, currentState);
+      } else {
+        console.log(`✅ Using existing initial state for message ${messageId} (${existingInitialState.length} objects)`);
+      }
+      
+      // Use the stored initial state as the "before state" for all tools in this message
+      const initialState = snapshotStore.getMessageInitialState(messageId) || currentState;
       
       let result: any;
       
@@ -57,20 +75,17 @@ class MapBuilderToolExecutionService {
           break;
         default:
           throw new Error(`Unknown tool: ${pendingCall.toolName}`);
-      }      // Take snapshot after executing (only for modification tools)
-      if (['addCube', 'addSphere', 'addCylinder', 'removeObject'].includes(pendingCall.toolName)) {
+      }      
+      
+      // Take snapshot after executing (only for modification tools)
+      if (['addCube', 'addSphere', 'addCylinder', 'addPlane', 'removeObject'].includes(pendingCall.toolName)) {
         const afterState = useMapBuilderStore.getState().objects;
-        const snapshotStore = useMapSnapshotStore.getState();
-        
-        // Find the message this tool call belongs to
-        const lastMessage = messages[messages.length - 1];
-        const messageId = lastMessage?.id || 'unknown';
         
         snapshotStore.createSnapshot(
           sessionId,
           messageId,
           `${pendingCall.toolName} executed`,
-          beforeState,
+          initialState, // Use initial state instead of current state
           afterState
         );
       }

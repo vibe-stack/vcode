@@ -21,7 +21,7 @@ export default function AppLayout({
   backTo = "/"
 }: AppLayoutProps) {
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-[calc(100vh-4rem)] flex-col">
       <div className="flex-1 overflow-hidden">
         {children}
       </div>

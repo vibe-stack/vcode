@@ -1,4 +1,12 @@
 import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { useMapBuilderStore } from '../store';
 import { mapTemplates, createObjectsFromTemplate } from '../templates';
 import { 
@@ -18,7 +26,7 @@ interface TemplateModalProps {
 export default function TemplateModal({ isOpen, onClose }: TemplateModalProps) {
   const { generateId, objects } = useMapBuilderStore();
 
-  if (!isOpen) return null;
+  // Dialog handles open state
 
   const templateIcons = {
     'empty': Sparkles,
@@ -60,35 +68,34 @@ export default function TemplateModal({ isOpen, onClose }: TemplateModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-black/80 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/20">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-black/80 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl max-w-6xl md:max-w-7xl w-full max-h-[90vh] overflow-y-auto p-0" showCloseButton={false}>
+        <DialogHeader className="flex items-center justify-between p-6 border-b border-white/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Choose a Template</h2>
-              <p className="text-white/60">
+              <DialogTitle className="text-2xl font-bold text-white">Choose a Template</DialogTitle>
+              <DialogDescription className="text-white/60">
                 Start with a pre-built scene or begin from scratch
-              </p>
+              </DialogDescription>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-white/10 transition-colors text-white/70 hover:text-white"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+          <DialogClose asChild>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl hover:bg-white/10 transition-colors text-white/70 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </DialogClose>
+        </DialogHeader>
         <div className="p-6">
           {/* Templates Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {mapTemplates.map((template) => {
               const Icon = templateIcons[template.id as keyof typeof templateIcons] || Shapes;
-              
               return (
                 <button
                   key={template.id}
@@ -120,7 +127,6 @@ export default function TemplateModal({ isOpen, onClose }: TemplateModalProps) {
               );
             })}
           </div>
-
           {/* Warning for existing objects */}
           {objects.length > 0 && (
             <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
@@ -140,7 +146,6 @@ export default function TemplateModal({ isOpen, onClose }: TemplateModalProps) {
               </div>
             </div>
           )}
-
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 mt-6">
             <button
@@ -151,7 +156,7 @@ export default function TemplateModal({ isOpen, onClose }: TemplateModalProps) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

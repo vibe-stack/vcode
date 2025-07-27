@@ -9,6 +9,8 @@ interface ReasoningDisplayProps {
 export function ReasoningDisplay({ reasoning, details }: ReasoningDisplayProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
+    console.log("got reasoning:", reasoning, "with details:", details);
+
     // If we have details, process them; otherwise use the reasoning string
     const reasoningText = details 
         ? details.map(detail => detail.type === 'text' ? detail.text : '<redacted>').join('')

@@ -68,37 +68,37 @@ export default function ObjectList() {
   };
 
   return (
-    <div className="w-80 max-h-full bg-black/50 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden">
+    <div className="w-80 max-h-full bg-gradient-to-br from-black/70 via-gray-900/80 to-gray-800/80 backdrop-blur-xl border border-white/15 rounded-3xl shadow-xl overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-white/20">
+      <div className="p-5 border-b border-white/10 bg-gradient-to-r from-black/60 to-gray-900/60">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Objects</h3>
+          <h3 className="text-xl font-bold text-white tracking-tight">Objects</h3>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors shadow-sm"
           >
             {isCollapsed ? (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5" />
             ) : (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-5 h-5" />
             )}
           </button>
         </div>
-        <p className="text-sm text-white/60 mt-1">
+        <p className="text-sm text-white/50 mt-2 font-medium">
           {objects.length} object{objects.length !== 1 ? 's' : ''}
         </p>
       </div>
 
       {/* Object List */}
       {!isCollapsed && (
-        <div className="overflow-y-auto max-h-96">
+        <div className="overflow-y-auto max-h-96 px-3 py-2">
           {objects.length === 0 ? (
-            <div className="p-4 text-center text-white/60">
-              <p>No objects in the scene</p>
-              <p className="text-xs mt-1 text-white/40">Add objects using the toolbar above</p>
+            <div className="p-6 text-center text-white/60">
+              <p className="text-base font-medium">No objects in the scene</p>
+              <p className="text-xs mt-2 text-white/40">Add objects using the toolbar above</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/10">
+            <div className="space-y-4">
               {objects.map((object) => {
                 const Icon = getObjectIcon(object.type);
                 const isSelected = selectedObjectIds.includes(object.id);
@@ -108,82 +108,64 @@ export default function ObjectList() {
                   <div
                     key={object.id}
                     onClick={(e) => handleObjectClick(object.id, e)}
-                    className={`p-3 cursor-pointer transition-all ${
+                    className={`group relative p-4 rounded-2xl shadow-sm cursor-pointer transition-all border border-transparent ${
                       isSelected
-                        ? 'bg-emerald-500/20 border-l-2 border-emerald-400'
-                        : 'hover:bg-white/5'
+                        ? 'bg-emerald-500/10 border-emerald-400/60 ring-2 ring-emerald-400/40'
+                        : 'bg-white/5 hover:bg-white/10 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Icon className="w-4 h-4 text-white/60 flex-shrink-0" />
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/10">
+                          <Icon className="w-5 h-5 text-white/70" />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate text-white">
+                          <p className="text-base font-semibold truncate text-white">
                             {object.name || `${object.type}_${object.id.slice(0, 6)}`}
                           </p>
-                          <p className="text-xs text-white/50 capitalize">
+                          <p className="text-xs text-white/50 capitalize mt-0.5">
                             {object.type}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         {/* Visibility Toggle */}
                         <button
                           onClick={(e) => handleVisibilityToggle(object.id, e)}
-                          className={`p-1 rounded-lg transition-colors ${
+                          className={`p-2 rounded-xl transition-colors shadow-sm ${
                             isVisible
-                              ? 'text-white/70 hover:bg-white/10 hover:text-white'
-                              : 'text-white/40 hover:bg-white/10 hover:text-white/60'
+                              ? 'text-white/80 bg-white/5 hover:bg-white/15 hover:text-white'
+                              : 'text-white/40 bg-white/5 hover:bg-white/10 hover:text-white/60'
                           }`}
                           title={isVisible ? 'Hide object' : 'Show object'}
                         >
                           {isVisible ? (
-                            <Eye className="w-3 h-3" />
+                            <Eye className="w-4 h-4" />
                           ) : (
-                            <EyeOff className="w-3 h-3" />
+                            <EyeOff className="w-4 h-4" />
                           )}
                         </button>
 
                         {/* Duplicate */}
                         <button
                           onClick={(e) => handleDuplicate(object.id, e)}
-                          className="p-1 rounded-lg transition-colors text-white/70 hover:bg-white/10 hover:text-white"
+                          className="p-2 rounded-xl transition-colors shadow-sm text-white/70 bg-white/5 hover:bg-white/15 hover:text-white"
                           title="Duplicate object"
                         >
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-4 h-4" />
                         </button>
 
                         {/* Delete */}
                         <button
                           onClick={(e) => handleDelete(object.id, e)}
-                          className="p-1 rounded-lg transition-colors text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                          className="p-2 rounded-xl transition-colors shadow-sm text-red-400 bg-white/5 hover:bg-red-500/20 hover:text-red-300"
                           title="Delete object"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
-
-                    {/* Object Details */}
-                    {isSelected && (
-                      <div className="mt-2 text-xs text-white/60 space-y-1">
-                        <div>
-                          Position: ({object.position.map(v => v.toFixed(1)).join(', ')})
-                        </div>
-                        <div>
-                          Scale: ({object.scale.map(v => v.toFixed(1)).join(', ')})
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>Color:</span>
-                          <div
-                            className="w-3 h-3 rounded border border-white/30"
-                            style={{ backgroundColor: object.color }}
-                          />
-                          <span>{object.color}</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
