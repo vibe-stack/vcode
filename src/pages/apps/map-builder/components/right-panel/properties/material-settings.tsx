@@ -7,11 +7,14 @@ import { DragInput } from '@/components/ui/drag-input';
 import { useMapBuilderStore } from '../../../store';
 
 interface MaterialSettingsProps {
-  object: any;
+  objectId: string;
 }
 
-export function MaterialSettings({ object }: MaterialSettingsProps) {
+export function MaterialSettings({ objectId }: MaterialSettingsProps) {
   const { updateObject } = useMapBuilderStore();
+  const object = useMapBuilderStore((state) => state.getObjectById(objectId));
+
+  if (!object) return null;
 
   const handleUpdateProperty = (property: string, value: any) => {
     updateObject(object.id, { [property]: value });

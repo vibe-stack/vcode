@@ -4,11 +4,14 @@ import { Label } from '@/components/ui/label';
 import { useMapBuilderStore } from '../../../../store';
 
 interface BoxSettingsProps {
-  object: any;
+  objectId: string;
 }
 
-export function BoxSettings({ object }: BoxSettingsProps) {
+export function BoxSettings({ objectId }: BoxSettingsProps) {
   const { updateObject } = useMapBuilderStore();
+  const object = useMapBuilderStore((state) => state.getObjectById(objectId));
+
+  if (!object) return null;
 
   const handleUpdateGeometry = (property: string, value: number) => {
     updateObject(object.id, {

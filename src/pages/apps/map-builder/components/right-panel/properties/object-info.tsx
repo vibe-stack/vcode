@@ -5,11 +5,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useMapBuilderStore } from '../../../store';
 
 interface ObjectInfoProps {
-  object: any;
+  objectId: string;
 }
 
-export function ObjectInfo({ object }: ObjectInfoProps) {
+export function ObjectInfo({ objectId }: ObjectInfoProps) {
   const { updateObject } = useMapBuilderStore();
+  const object = useMapBuilderStore((state) => state.getObjectById(objectId));
+
+  if (!object) return null;
 
   const handleUpdateProperty = (property: string, value: any) => {
     updateObject(object.id, { [property]: value });

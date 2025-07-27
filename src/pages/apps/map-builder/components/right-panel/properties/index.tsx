@@ -37,17 +37,17 @@ export function PropertiesTab() {
         );
     }
 
-    const selectedObject = getObjectById(selectedObjectIds[0]);
-    if (!selectedObject) return null;
+    const selectedObjectId = selectedObjectIds[0];
+    if (!getObjectById(selectedObjectId)) return null;
 
     return (
         <div className="p-6 space-y-6">
             <h3 className="text-lg font-semibold text-white">Properties</h3>
 
-            <ObjectInfo object={selectedObject} />
-            <TransformSettings object={selectedObject} />
-            <GeometrySettings object={selectedObject} />
-            <MaterialSettings object={selectedObject} />
+            <ObjectInfo objectId={selectedObjectId} />
+            <TransformSettings objectId={selectedObjectId} />
+            <GeometrySettings objectId={selectedObjectId} />
+            <MaterialSettings objectId={selectedObjectId} />
         </div>
     );
 }

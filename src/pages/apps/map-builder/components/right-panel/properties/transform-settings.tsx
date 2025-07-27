@@ -4,11 +4,14 @@ import { Label } from '@/components/ui/label';
 import { useMapBuilderStore } from '../../../store';
 
 interface TransformSettingsProps {
-  object: any;
+  objectId: string;
 }
 
-export function TransformSettings({ object }: TransformSettingsProps) {
+export function TransformSettings({ objectId }: TransformSettingsProps) {
   const { updateObject } = useMapBuilderStore();
+  const object = useMapBuilderStore((state) => state.getObjectById(objectId));
+
+  if (!object) return null;
 
   const handleUpdatePosition = (axis: 'x' | 'y' | 'z', value: number) => {
     const newPosition = [...object.position] as [number, number, number];

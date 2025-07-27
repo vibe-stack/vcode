@@ -1,25 +1,30 @@
 import React from 'react';
+import { useMapBuilderStore } from '../../../../store';
 import { BoxSettings } from './box-settings';
 import { SphereSettings } from './sphere-settings';
 import { CylinderSettings } from './cylinder-settings';
 import { ConeSettings } from './cone-settings';
 
 interface GeometrySettingsProps {
-  object: any;
+  objectId: string;
 }
 
-export function GeometrySettings({ object }: GeometrySettingsProps) {
+export function GeometrySettings({ objectId }: GeometrySettingsProps) {
+  const object = useMapBuilderStore((state) => state.getObjectById(objectId));
+
+  if (!object) return null;
+
   switch (object.type) {
     case 'box':
-      return <BoxSettings object={object} />;
+      return <BoxSettings objectId={objectId} />;
     case 'sphere':
-      return <SphereSettings object={object} />;
+      return <SphereSettings objectId={objectId} />;
     case 'cylinder':
-      return <CylinderSettings object={object} />;
+      return <CylinderSettings objectId={objectId} />;
     case 'cone':
-      return <ConeSettings object={object} />;
+      return <ConeSettings objectId={objectId} />;
     case 'plane':
-      return <BoxSettings object={object} />; // Plane uses width/height like box
+      return <BoxSettings objectId={objectId} />; // Plane uses width/height like box
     default:
       return null;
   }

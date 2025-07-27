@@ -4,11 +4,14 @@ import { Label } from '@/components/ui/label';
 import { useMapBuilderStore } from '../../../../store';
 
 interface CylinderSettingsProps {
-  object: any;
+  objectId: string;
 }
 
-export function CylinderSettings({ object }: CylinderSettingsProps) {
+export function CylinderSettings({ objectId }: CylinderSettingsProps) {
   const { updateObject } = useMapBuilderStore();
+  const object = useMapBuilderStore((state) => state.getObjectById(objectId));
+
+  if (!object) return null;
 
   const handleUpdateGeometry = (property: 'radius' | 'height', value: number) => {
     updateObject(object.id, {
