@@ -10,12 +10,14 @@ import { addAgentEventListeners } from "./agents/agent-listeners";
 import { addIndexEventListeners } from "./index/index-listeners";
 import registerShellListeners from "./shell/shell-listeners";
 import { addTypescriptLSPEventListeners } from "./typescript-lsp/typescript-lsp-listeners";
+import { addMapBuilderEventListeners } from "./map-builder/map-builder-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   addWindowEventListeners(mainWindow);
   addThemeEventListeners();
   addProjectEventListeners(mainWindow);
   addAIEventListeners();
+  addMapBuilderEventListeners();
   addSettingsEventListeners();
   addGitEventListeners(mainWindow);
   addTerminalEventListeners(mainWindow);

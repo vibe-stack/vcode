@@ -34,18 +34,6 @@ export interface EnhancedChatMessage {
   createdAt?: Date;
 }
 
-export interface TiptapContent {
-  type: string;
-  content?: TiptapContent[];
-  attrs?: Record<string, any>;
-  text?: string;
-}
-
-export interface SerializedChatData {
-  messages: EnhancedChatMessage[];
-  version: string;
-}
-
 export interface ChatSession {
   id: string;
   title: string;

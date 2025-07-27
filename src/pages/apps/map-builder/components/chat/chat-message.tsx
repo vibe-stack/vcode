@@ -3,8 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
-import { ToolCallHandler } from './tool-call-handler';
-import { AttachmentDisplay } from './attachment-display';
+import { MapToolCallDisplay } from './map-tool-call-display';
 import { ReasoningDisplay } from './reasoning-display';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -46,14 +45,11 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
             <div className="space-y-3 min-w-0">
                 {message.parts.map((part, index) => {
                     if (part.type === 'text') {
-                        // Filter out attachment XML tags from text content
-                        const cleanedText = part.text.replace(/<attached_files>[\s\S]*?<\/attached_files>/g, '').trim();
-                        
-                        // Only render if there's actual content after removing attachment tags
-                        if (cleanedText) {
+                        // Render text content directly since we don't have attachments
+                        if (part.text.trim()) {
                             return (
                                 <div key={index} className="min-w-0">
-                                    <MarkdownRenderer content={cleanedText} />
+                                    <MarkdownRenderer content={part.text.trim()} />
                                 </div>
                             );
                         }
@@ -69,7 +65,7 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                         );
                     } else if (part.type === 'tool-invocation') {
                         return (
-                            <ToolCallHandler
+                            <MapToolCallDisplay
                                 key={`${message.id}-tool-${index}`}
                                 toolCallId={part.toolInvocation.toolCallId}
                                 toolName={part.toolInvocation.toolName}
@@ -80,20 +76,8 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                                 onCancel={onToolCancel}
                             />
                         );
-                    } else if ((part as any).type === 'attachments') {
-                        return (
-                            <AttachmentDisplay
-                                key={`${message.id}-attachments-${index}`}
-                                attachments={(part as any).attachments.map((att: any, attIndex: number) => ({
-                                    id: `attachment-${message.id}-${attIndex}`,
-                                    type: att.type,
-                                    name: att.name || (att.path ? att.path.split('/').pop() : 'Unknown'),
-                                    url: att.url,
-                                    path: att.path,
-                                }))}
-                            />
-                        );
                     }
+                    // Remove attachment display entirely
                     return null;
                 })}
             </div>
@@ -144,8 +128,6 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
 }
 
 const MarkdownRenderer = ({ content }: { content?: string }) => {
-    // Debug: log the content being rendered
-    console.log('MarkdownRenderer content:', content);
     
     return (
         <div className="markdown-content max-w-full min-w-0 overflow-hidden">

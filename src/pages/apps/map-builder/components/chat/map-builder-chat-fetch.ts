@@ -1,31 +1,73 @@
-import { mapBuilderToolDefinitions } from './map-builder-tools';
-
 export async function mapBuilderChatFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  try {
-    // Convert input to string URL if needed
-    const url = typeof input === 'string' ? input : input.toString();
-    
-    // Parse the request body to add our tools
-    const body = JSON.parse(init.body as string);
-    
-    // Add our map builder tools to the request
-    body.tools = mapBuilderToolDefinitions;
-    
-    // Make the request with our modified body
-    const modifiedInit = {
-      ...init,
-      body: JSON.stringify(body)
-    };
-    
-    const response = await fetch(url, modifiedInit);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        // Parse the request body to get messages
+        const body = JSON.parse(init.body as string);
+        const messages = body.messages;
+
+        // Generate a unique request ID
+        const requestId = crypto.randomUUID();
+
+        // Create a readable stream
+        const stream = new ReadableStream({
+            start(controller) {
+                const handleChunk = (data: { requestId: string, chunk: Uint8Array }) => {
+                    const chunkString = new TextDecoder().decode(data.chunk);
+                    console.log("Received chunk for request:", data.requestId, chunkString);
+                    if (data.requestId === requestId) {
+                        controller.enqueue(data.chunk);
+                    }
+                };
+                
+                const handleEnd = (data: { requestId: string }) => {
+                    console.log("Stream ended for request:", data.requestId);
+                    if (data.requestId === requestId) {
+                        controller.close();
+                    }
+                };
+                
+                const handleError = (data: { requestId: string, error: string }) => {
+                    console.error("FAILED", data.error, data.requestId);
+                    if (data.requestId === requestId) {
+                        controller.error(new Error(data.error));
+                    }
+                };
+                
+                window.mapBuilderAI.onStreamChunk(handleChunk);
+                window.mapBuilderAI.onStreamEnd(handleEnd);
+                window.mapBuilderAI.onStreamError(handleError);
+
+                // Send the message via IPC
+                const requestData = { 
+                    messages, 
+                    requestId,
+                };
+                
+                window.mapBuilderAI.sendMessage(requestData)
+                    .then(response => {
+                        console.log("Map builder AI request sent successfully", response);
+                    })
+                    .catch((error) => {
+                        console.error("Map builder AI request error:", error);
+                        controller.error(error);
+                    });
+            },
+
+            cancel() {
+                // Clean up listeners when stream is cancelled
+                window.mapBuilderAI.removeAllListeners();
+            }
+        });
+
+        // Return a Response object with the stream
+        return new Response(stream, {
+            status: 200,
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Vercel-AI-Data-Stream': 'v1',
+            }
+        });
+    } catch (error) {
+        console.error('Map builder chat fetch error:', error);
+        throw error;
     }
-    
-    return response;
-  } catch (error) {
-    console.error('Map builder chat fetch error:', error);
-    throw error;
-  }
 }

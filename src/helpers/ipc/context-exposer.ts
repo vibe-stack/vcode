@@ -9,12 +9,14 @@ import { exposeShellContext } from "./shell/shell-context";
 import { exposeAgentContext } from "./agents/agent-context";
 import { exposeIndexContext } from "./index/index-context";
 import { exposeTypescriptLSPContext } from "./typescript-lsp/typescript-lsp-context";
+import { exposeMapBuilderContext } from "./map-builder/map-builder-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
   exposeThemeContext();
   exposeProjectContext();
   exposeAIContext();
+  exposeMapBuilderContext();
   exposeSettingsContext();
   exposeGitContext();
   exposeTerminalContext();

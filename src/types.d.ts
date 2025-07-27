@@ -74,6 +74,14 @@ interface AI {
   removeAllListeners: () => void;
 }
 
+interface MapBuilderAI {
+  sendMessage: (payload: { messages: import('ai').CoreMessage[], requestId: string }) => Promise<{ success: boolean, requestId: string }>;
+  onStreamChunk: (callback: (data: { requestId: string, chunk: Uint8Array }) => void) => void;
+  onStreamEnd: (callback: (data: { requestId: string }) => void) => void;
+  onStreamError: (callback: (data: { requestId: string, error: string }) => void) => void;
+  removeAllListeners: () => void;
+}
+
 interface SettingsApi {
   // Regular settings
   get: <T = any>(key: string) => Promise<T | undefined>;
@@ -186,6 +194,7 @@ declare interface Window {
   electronWindow: ElectronWindow;
   projectApi: ProjectApi;
   ai: AI;
+  mapBuilderAI: MapBuilderAI;
   settingsApi: SettingsApi;
   terminalApi: TerminalApi;
   shellApi: ShellApi;

@@ -5,7 +5,7 @@ import { ChatPanel } from '../chat';
 
 export default function RightPanel() {
   return (
-    <div className="w-80 h-[85dvh] max-h-full bg-black/30 backdrop-blur-md border border-white/20 rounded-2xl p-4 overflow-hidden flex flex-col">
+    <div className="w-96 h-[85dvh] max-h-full bg-black/30 backdrop-blur-md border border-white/20 rounded-2xl p-4 overflow-hidden flex flex-col">
       <Tabs defaultValue="properties" className="flex-1 flex flex-col bg-transparent">
         <TabsList className="grid w-full grid-cols-2 bg-white/10 border border-white/20">
           <TabsTrigger 

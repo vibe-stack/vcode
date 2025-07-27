@@ -22,7 +22,6 @@ interface MapSnapshotState {
   revertSnapshot: (snapshotId: string) => Promise<void>;
   getSessionSnapshots: (sessionId: string) => MapSnapshot[];
   getMessageSnapshots: (sessionId: string, messageId: string) => MapSnapshot[];
-  getPendingSnapshots: (sessionId: string) => MapSnapshot[];
   acceptAllSnapshots: (sessionId: string, messageId?: string) => void;
   revertAllSnapshots: (sessionId: string, messageId?: string) => Promise<void>;
   acceptAllPendingSnapshots: (sessionId: string) => void;
@@ -91,12 +90,6 @@ export const useMapSnapshotStore = create<MapSnapshotState>()(
       getMessageSnapshots: (sessionId, messageId) => {
         return get().snapshots.filter(snapshot => 
           snapshot.sessionId === sessionId && snapshot.messageId === messageId
-        );
-      },
-      
-      getPendingSnapshots: (sessionId) => {
-        return get().snapshots.filter(snapshot => 
-          snapshot.sessionId === sessionId && !snapshot.accepted
         );
       },
       

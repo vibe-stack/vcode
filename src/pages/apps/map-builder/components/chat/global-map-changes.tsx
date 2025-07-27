@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X, AlertCircle } from 'lucide-react';
 import { useMapSnapshotStore } from './map-snapshot-store';
@@ -10,8 +10,12 @@ interface GlobalMapChangesProps {
 }
 
 export function GlobalMapChanges({ sessionId, onAcceptAll, onRejectAll }: GlobalMapChangesProps) {
-  const pendingSnapshots = useMapSnapshotStore(state => 
-    state.getPendingSnapshots(sessionId)
+  const snapshots = useMapSnapshotStore(state => state.snapshots);
+  
+  const pendingSnapshots = useMemo(() => 
+    snapshots.filter(snapshot => 
+      snapshot.sessionId === sessionId && !snapshot.accepted
+    ), [snapshots, sessionId]
   );
 
   if (pendingSnapshots.length === 0) {

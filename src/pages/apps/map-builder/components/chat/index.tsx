@@ -24,6 +24,7 @@ export function ChatPanel() {
         onResponse: () => { },
         onFinish: () => { },
         onError: (error) => {
+            console.error('Chat API error:', error);
             // Optionally handle error, but no console output
         },
     });
@@ -111,7 +112,10 @@ export function ChatPanel() {
         mapBuilderChatPersistenceService.cleanupOldSessions();
 
         return () => {
-            // No window.ai cleanup needed for map builder
+            // Clean up map builder AI listeners
+            if (window.mapBuilderAI) {
+                window.mapBuilderAI.removeAllListeners();
+            }
         };
     }, []);
 
@@ -267,7 +271,7 @@ export function ChatPanel() {
     }, [currentSessionId]);
 
     return (
-        <div className="h-full flex flex-col border-l bg-background w-full max-w-full min-w-0">
+        <div className="h-full flex flex-col w-full max-w-full min-w-0">
             {/* Header */}
             <div className="border-b p-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
@@ -319,7 +323,7 @@ export function ChatPanel() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t flex-shrink-0">
+            <div className="flex-shrink-0">
                 {currentSessionId && (
                     <GlobalMapChanges
                         sessionId={currentSessionId}

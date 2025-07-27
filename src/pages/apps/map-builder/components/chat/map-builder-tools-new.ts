@@ -6,9 +6,9 @@ export interface AddShapeParams {
   width?: number;
   height?: number;
   depth?: number;
-  position?: number[];
-  scale?: number[];
-  rotation?: number[];
+  position?: [number, number, number];
+  scale?: [number, number, number];
+  rotation?: [number, number, number];
   color?: string;
   name?: string;
 }
@@ -21,9 +21,9 @@ export class MapBuilderTools {
     
     const object: Omit<MapObject, 'id'> = {
       type: 'box',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Cube ${id.slice(-4)}`
     };
@@ -39,9 +39,9 @@ export class MapBuilderTools {
     
     const object: Omit<MapObject, 'id'> = {
       type: 'sphere',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Sphere ${id.slice(-4)}`
     };
@@ -57,9 +57,9 @@ export class MapBuilderTools {
     
     const object: Omit<MapObject, 'id'> = {
       type: 'cylinder',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Cylinder ${id.slice(-4)}`
     };
@@ -75,9 +75,9 @@ export class MapBuilderTools {
     
     const object: Omit<MapObject, 'id'> = {
       type: 'plane',
-      position: (params.position && params.position.length === 3) ? [params.position[0], params.position[1], params.position[2]] : [0, 0, 0],
-      rotation: (params.rotation && params.rotation.length === 3) ? [params.rotation[0], params.rotation[1], params.rotation[2]] : [0, 0, 0],
-      scale: (params.scale && params.scale.length === 3) ? [params.scale[0], params.scale[1], params.scale[2]] : [params.width || 1, params.height || 1, params.depth || 1],
+      position: params.position || [0, 0, 0],
+      rotation: params.rotation || [0, 0, 0],
+      scale: params.scale || [params.width || 1, params.height || 1, params.depth || 1],
       color: params.color || '#ffffff',
       name: params.name || `Plane ${id.slice(-4)}`
     };
@@ -89,7 +89,7 @@ export class MapBuilderTools {
   static async removeObject(id: string): Promise<string> {
     const { useMapBuilderStore } = await import('../../store');
     const store = useMapBuilderStore.getState();
-    store.deleteObject(id);
+    store.removeObject(id);
     return `Object ${id} removed successfully`;
   }
 
@@ -99,7 +99,7 @@ export class MapBuilderTools {
     return store.objects.map(obj => ({
       id: obj.id,
       type: obj.type,
-      name: obj.name || `Unnamed ${obj.type}`
+      name: obj.name
     }));
   }
 
