@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Message } from 'ai';
-import { MapToolCallDisplay } from './map-tool-call-display';
+import { MapToolCallHandler } from './map-tool-call-handler';
 import { ReasoningDisplay } from './reasoning-display';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -65,7 +65,7 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
                         );
                     } else if (part.type === 'tool-invocation') {
                         return (
-                            <MapToolCallDisplay
+                            <MapToolCallHandler
                                 key={`${message.id}-tool-${index}`}
                                 toolCallId={part.toolInvocation.toolCallId}
                                 toolName={part.toolInvocation.toolName}

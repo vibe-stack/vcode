@@ -11,6 +11,12 @@ interface PendingToolCall {
 class MapBuilderToolExecutionService {
   private pendingCalls = new Map<string, PendingToolCall>();
 
+  // Get tools that require confirmation
+  getToolsRequiringConfirmation(): string[] {
+    // Only modification tools require confirmation
+    return [];
+  }
+
   async executeApprovedTool(toolCallId: string, messages: any[], sessionId: string): Promise<string> {
     const pendingCall = this.pendingCalls.get(toolCallId);
     if (!pendingCall) {
@@ -34,6 +40,9 @@ class MapBuilderToolExecutionService {
         case 'addCylinder':
           result = await MapBuilderTools.addCylinder(pendingCall.args);
           break;
+        case 'addPlane':
+          result = await MapBuilderTools.addPlane(pendingCall.args);
+          break;
         case 'removeObject':
           result = await MapBuilderTools.removeObject(pendingCall.args.id);
           break;
@@ -48,9 +57,7 @@ class MapBuilderToolExecutionService {
           break;
         default:
           throw new Error(`Unknown tool: ${pendingCall.toolName}`);
-      }
-
-      // Take snapshot after executing (only for modification tools)
+      }      // Take snapshot after executing (only for modification tools)
       if (['addCube', 'addSphere', 'addCylinder', 'removeObject'].includes(pendingCall.toolName)) {
         const afterState = useMapBuilderStore.getState().objects;
         const snapshotStore = useMapSnapshotStore.getState();

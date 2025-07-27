@@ -29,6 +29,27 @@ export function ChatPanel() {
         },
     });
 
+    // Add tool calls to pending execution when they appear in messages
+    React.useEffect(() => {
+        messages.forEach(message => {
+            if (message.role === 'assistant' && message.parts) {
+                message.parts.forEach(part => {
+                    if (part.type === 'tool-invocation' && part.toolInvocation.state === 'call') {
+                        // Add to pending calls if not already added
+                        const existingCall = mapBuilderToolExecutionService.getPendingCall(part.toolInvocation.toolCallId);
+                        if (!existingCall) {
+                            mapBuilderToolExecutionService.addPendingCall(
+                                part.toolInvocation.toolCallId,
+                                part.toolInvocation.toolName,
+                                part.toolInvocation.args
+                            );
+                        }
+                    }
+                });
+            }
+        });
+    }, [messages]);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = useCallback(() => {
