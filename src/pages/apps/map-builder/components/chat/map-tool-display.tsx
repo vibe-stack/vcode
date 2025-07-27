@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sphere } from 'three';
 
-type MapBuilderToolName = 'addCube' | 'addSphere' | 'addCylinder' | 'addPlane' | 'removeObject' | 'getObjects' | 'getObject' | 'getFullScene';
+type MapBuilderToolName = 'addCube' | 'addSphere' | 'addCylinder' | 'addPlane' | 'addDoor' | 'removeObject' | 'getObjects' | 'getObject' | 'getFullScene';
 
 interface MapToolDisplayProps {
   toolName: MapBuilderToolName;
@@ -34,6 +34,8 @@ export function MapToolDisplay({ toolName, args, result, state }: MapToolDisplay
         return `Add Sphere`;
       case 'addCylinder':
         return `Add Cylinder`;
+      case 'addDoor':
+        return `Add Door`;
       case 'removeObject':
         return `Remove Object`;
       case 'getObjects':
@@ -76,6 +78,21 @@ export function MapToolDisplay({ toolName, args, result, state }: MapToolDisplay
             position: args?.position,
             radius: args?.radius,
             height: args?.height,
+            color: args?.color,
+            material: args?.material
+          }
+        };
+      case 'addDoor':
+        return {
+          summary: `Adding door`,
+          details: { 
+            position: args?.position,
+            width: args?.width,
+            height: args?.height,
+            depth: args?.depth,
+            cutoutWidth: args?.cutoutWidth,
+            cutoutHeight: args?.cutoutHeight,
+            cutoutRadius: args?.cutoutRadius,
             color: args?.color,
             material: args?.material
           }

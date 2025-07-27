@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useMapBuilderStore } from '../store';
 import * as THREE from 'three/webgpu';
+import { createDoorGeometry } from '../utils/door-geometry';
 
 export default function SelectionBox() {
   const { selectedObjectIds, objects } = useMapBuilderStore();
@@ -29,6 +30,16 @@ export default function SelectionBox() {
           break;
         case 'plane':
           geometry = new THREE.PlaneGeometry(...obj.scale);
+          break;
+        case 'door':
+          geometry = createDoorGeometry(
+            obj.geometry?.width || obj.scale[0],
+            obj.geometry?.height || obj.scale[1], 
+            obj.geometry?.depth || obj.scale[2],
+            obj.geometry?.cutoutWidth || 0.8,
+            obj.geometry?.cutoutHeight || 1.8,
+            obj.geometry?.cutoutRadius || 0
+          );
           break;
         default:
           geometry = new THREE.BoxGeometry(...obj.scale);

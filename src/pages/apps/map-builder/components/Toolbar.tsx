@@ -20,7 +20,8 @@ import {
   Sparkles,
   Scale3d,
   Move3d,
-  Rotate3d
+  Rotate3d,
+  DoorOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -56,6 +57,7 @@ export default function Toolbar() {
     { id: 'cylinder', icon: Cylinder, label: 'Cylinder' },
     { id: 'cone', icon: Triangle, label: 'Cone' },
     { id: 'plane', icon: RectangleHorizontal, label: 'Plane' },
+    { id: 'door', icon: DoorOpen, label: 'Door' },
   ] as const;
 
   const handleCreateShape = (shapeType: typeof activeShape) => {

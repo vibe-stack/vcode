@@ -61,6 +61,9 @@ class MapBuilderToolExecutionService {
         case 'addPlane':
           result = await MapBuilderTools.addPlane(pendingCall.args);
           break;
+        case 'addDoor':
+          result = await MapBuilderTools.addDoor(pendingCall.args);
+          break;
         case 'removeObject':
           result = await MapBuilderTools.removeObject(pendingCall.args.id);
           break;
@@ -78,7 +81,7 @@ class MapBuilderToolExecutionService {
       }      
       
       // Take snapshot after executing (only for modification tools)
-      if (['addCube', 'addSphere', 'addCylinder', 'addPlane', 'removeObject'].includes(pendingCall.toolName)) {
+      if (['addCube', 'addSphere', 'addCylinder', 'addPlane', 'addDoor', 'removeObject'].includes(pendingCall.toolName)) {
         const afterState = useMapBuilderStore.getState().objects;
         
         snapshotStore.createSnapshot(

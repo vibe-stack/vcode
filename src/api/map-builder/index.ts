@@ -18,7 +18,7 @@ export async function chatApi({ messages }: { messages: CoreMessage[] }) {
       execute: async (dataStream) => {
         try {
           const result = streamText({
-            model: model("grok-4-0709"),
+            model: model("grok-3-mini-fast"),
             system: systemPrompt,
             messages: messages,
             tools: mapBuilderToolDefinitions,

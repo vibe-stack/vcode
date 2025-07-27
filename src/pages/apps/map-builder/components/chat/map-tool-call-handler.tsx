@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, X, Loader2, Check, AlertTriangle, Box, Circle, Trash2, Eye, Database } from 'lucide-react';
+import { Play, X, Loader2, Check, AlertTriangle, Box, Circle, Trash2, Eye, Database, RectangleHorizontal } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { mapBuilderToolExecutionService } from './map-tool-execution-service';
 import { MapToolDisplay } from './map-tool-display';
 
-type MapBuilderToolName = 'addCube' | 'addSphere' | 'addCylinder' | 'addPlane' | 'removeObject' | 'getObjects' | 'getObject' | 'getFullScene';
+type MapBuilderToolName = 'addCube' | 'addSphere' | 'addCylinder' | 'addPlane' | 'addDoor' | 'removeObject' | 'getObjects' | 'getObject' | 'getFullScene';
 
 interface MapToolCallHandlerProps {
   toolCallId: string;
@@ -58,11 +58,13 @@ export function MapToolCallHandler({
   const getToolLabel = () => {
     switch (toolName) {
       case 'addCube':
-        return `Add Cube${args?.position ? ` at (${args.position.x}, ${args.position.y}, ${args.position.z})` : ''}`;
+        return `Add Cube`;
       case 'addSphere':
-        return `Add Sphere${args?.position ? ` at (${args.position.x}, ${args.position.y}, ${args.position.z})` : ''}`;
+        return `Add Sphere`;
       case 'addCylinder':
-        return `Add Cylinder${args?.position ? ` at (${args.position.x}, ${args.position.y}, ${args.position.z})` : ''}`;
+        return `Add Cylinder`;
+      case 'addDoor':
+        return `Add Door`;
       case 'removeObject':
         return `Remove Object ${args?.id || ''}`;
       case 'getObjects':
@@ -84,6 +86,8 @@ export function MapToolCallHandler({
         return <Circle className="h-3 w-3" />;
       case 'addCylinder':
         return <Circle className="h-3 w-3" />;
+      case 'addDoor':
+        return <RectangleHorizontal className="h-3 w-3" />;
       case 'removeObject':
         return <Trash2 className="h-3 w-3" />;
       case 'getObjects':
@@ -103,6 +107,7 @@ export function MapToolCallHandler({
       case 'addCube':
       case 'addSphere':
       case 'addCylinder':
+      case 'addDoor':
         return 'text-amber-600';
       case 'getObjects':
       case 'getObject':

@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useMapBuilderStore } from '../store';
 import * as THREE from 'three/webgpu';
+import { createDoorGeometry } from '../utils/door-geometry';
 
 export default function CreatingObject() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -61,6 +62,15 @@ export default function CreatingObject() {
         return new THREE.PlaneGeometry(scale[0], scale[1]);
       case 'cone':
         return new THREE.ConeGeometry(scale[0], scale[1], 32);
+      case 'door':
+        return createDoorGeometry(
+          scale[0], 
+          scale[1], 
+          scale[2],
+          creatingObject.geometry?.cutoutWidth || 0.8,
+          creatingObject.geometry?.cutoutHeight || 1.8,
+          creatingObject.geometry?.cutoutRadius || 0
+        );
       default:
         return new THREE.BoxGeometry(1, 1, 1);
     }

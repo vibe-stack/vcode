@@ -4,6 +4,7 @@ import { BoxSettings } from './box-settings';
 import { SphereSettings } from './sphere-settings';
 import { CylinderSettings } from './cylinder-settings';
 import { ConeSettings } from './cone-settings';
+import { DoorSettings } from './door-settings';
 
 interface GeometrySettingsProps {
   objectId: string;
@@ -25,6 +26,8 @@ export function GeometrySettings({ objectId }: GeometrySettingsProps) {
       return <ConeSettings objectId={objectId} />;
     case 'plane':
       return <BoxSettings objectId={objectId} />; // Plane uses width/height like box
+    case 'door':
+      return <DoorSettings objectId={objectId} />;
     default:
       return null;
   }

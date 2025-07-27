@@ -4,7 +4,7 @@ import * as THREE from 'three/webgpu';
 
 export interface MapObject {
   id: string;
-  type: 'box' | 'sphere' | 'cylinder' | 'plane' | 'cone';
+  type: 'box' | 'sphere' | 'cylinder' | 'plane' | 'cone' | 'door';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
@@ -28,6 +28,10 @@ export interface MapObject {
     // Cylinder & Cone
     radiusTop?: number;
     radiusBottom?: number;
+    // Door
+    cutoutWidth?: number;
+    cutoutHeight?: number;
+    cutoutRadius?: number;
   };
   visible?: boolean;
   name?: string;
@@ -50,7 +54,7 @@ export interface MapBuilderState {
   
   // Editor state
   activeTool: 'select' | 'move' | 'rotate' | 'scale' | 'add';
-  activeShape: 'box' | 'sphere' | 'cylinder' | 'plane' | 'cone';
+  activeShape: 'box' | 'sphere' | 'cylinder' | 'plane' | 'cone' | 'door';
   isCreating: boolean;
   creatingObject: MapObject | null;
   
@@ -241,6 +245,9 @@ export const useMapBuilderStore = create<MapBuilderState>()(
               break;
             case 'cone':
               geometryCode = `new THREE.ConeGeometry(${scale[0]}, ${scale[1]}, 32)`;
+              break;
+            case 'door':
+              geometryCode = `createDoorGeometry(${scale[0]}, ${scale[1]}, ${scale[2]}, ${obj.geometry?.cutoutWidth || 0.8}, ${obj.geometry?.cutoutHeight || 1.8}, ${obj.geometry?.cutoutRadius || 0})`;
               break;
           }
           

@@ -2,7 +2,6 @@
 export const chatFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   try {
     const body = JSON.parse(init?.body as string);
-    console.log("chatFetch body:", body); // Debug log
     const requestId = crypto.randomUUID();
 
     const stream = new ReadableStream({

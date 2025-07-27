@@ -5,6 +5,7 @@ import SphereCreator from './SphereCreator';
 import CylinderCreator from './CylinderCreator';
 import ConeCreator from './ConeCreator';
 import PlaneCreator from './PlaneCreator';
+import DoorCreator from './DoorCreator';
 
 export default function ObjectCreators() {
   const { isCreating, activeShape } = useMapBuilderStore();
@@ -23,6 +24,8 @@ export default function ObjectCreators() {
       return <ConeCreator />;
     case 'plane':
       return <PlaneCreator />;
+    case 'door':
+      return <DoorCreator />;
     default:
       return null;
   }

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useMapBuilderStore, MapObject } from '../store';
 import * as THREE from 'three/webgpu';
+import { createDoorGeometry } from '../utils/door-geometry';
 
 interface MapObjectMeshProps {
   object: MapObject;
@@ -11,6 +12,7 @@ interface MapObjectMeshProps {
 export default function MapObjectMesh({ object, onClick }: MapObjectMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
+  const [currentGeometry, setCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
   const { selectedObjectIds, activeTool } = useMapBuilderStore();
   
   const isSelected = selectedObjectIds.includes(object.id);
@@ -30,18 +32,61 @@ export default function MapObjectMesh({ object, onClick }: MapObjectMeshProps) {
         return new THREE.PlaneGeometry(1, 1); // Unit size
       case 'cone':
         return new THREE.ConeGeometry(1, 1, 32); // Unit size
+      case 'door':
+        return createDoorGeometry(
+          object.geometry?.width || object.scale[0],
+          object.geometry?.height || object.scale[1], 
+          object.geometry?.depth || object.scale[2],
+          object.geometry?.cutoutWidth || 0.8,
+          object.geometry?.cutoutHeight || 1.8,
+          object.geometry?.cutoutRadius || 0
+        );
       default:
         return new THREE.BoxGeometry(1, 1, 1);
     }
   };
 
-  const geometry = createGeometry();
+  // Handle geometry updates for door type
+  useEffect(() => {
+    if (object.type === 'door') {
+      const newGeometry = createGeometry();
+      
+      // Dispose old geometry if it exists
+      if (currentGeometry) {
+        currentGeometry.dispose();
+      }
+      
+      setCurrentGeometry(newGeometry);
+      
+      // Update mesh geometry
+      if (meshRef.current) {
+        meshRef.current.geometry = newGeometry;
+      }
+      
+      return () => {
+        if (newGeometry) {
+          newGeometry.dispose();
+        }
+      };
+    } else {
+      // For non-door objects, create geometry once
+      if (!currentGeometry) {
+        const newGeometry = createGeometry();
+        setCurrentGeometry(newGeometry);
+      }
+    }
+  }, [object.type, object.geometry, object.scale]);
+
+  const geometry = currentGeometry || createGeometry();
 
   // Apply scale correctly based on object type
   const getObjectScale = () => {
     if (object.type === 'cylinder') {
       // For cylinders: [radius, height, radius] -> [x_scale, y_scale, z_scale]
       return [object.scale[0], object.scale[1], object.scale[0]] as [number, number, number];
+    } else if (object.type === 'door') {
+      // For doors, scaling is already baked into the geometry
+      return [1, 1, 1] as [number, number, number];
     }
     return object.scale;
   };
@@ -96,7 +141,9 @@ export default function MapObjectMesh({ object, onClick }: MapObjectMeshProps) {
 
   useEffect(() => {
     return () => {
-      geometry.dispose();
+      if (currentGeometry) {
+        currentGeometry.dispose();
+      }
       material.dispose();
     };
   }, []);

@@ -12,21 +12,18 @@ export async function mapBuilderChatFetch(input: RequestInfo | URL, init: Reques
             start(controller) {
                 const handleChunk = (data: { requestId: string, chunk: Uint8Array }) => {
                     const chunkString = new TextDecoder().decode(data.chunk);
-                    console.log("Received chunk for request:", data.requestId, chunkString);
                     if (data.requestId === requestId) {
                         controller.enqueue(data.chunk);
                     }
                 };
                 
                 const handleEnd = (data: { requestId: string }) => {
-                    console.log("Stream ended for request:", data.requestId);
                     if (data.requestId === requestId) {
                         controller.close();
                     }
                 };
                 
                 const handleError = (data: { requestId: string, error: string }) => {
-                    console.error("FAILED", data.error, data.requestId);
                     if (data.requestId === requestId) {
                         controller.error(new Error(data.error));
                     }
