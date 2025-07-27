@@ -4,10 +4,10 @@ import { GamepadIcon } from "lucide-react";
 import Scene from './Scene';
 import Toolbar from './components/Toolbar';
 import ObjectList from './components/ObjectList';
-import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { useMapBuilderStore } from './store';
+import RightPanel from './components/right-panel';
 
 export default function MapBuilderPage() {
     const [showShortcuts, setShowShortcuts] = useState(false);
@@ -87,7 +87,7 @@ export default function MapBuilderPage() {
                 
                 {/* Floating Properties Panel */}
                 <div className="absolute right-4 top-20 bottom-4 z-10">
-                    <PropertiesPanel />
+                    <RightPanel />
                 </div>
                 
                 {/* Status Bar */}

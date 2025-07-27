@@ -1,0 +1,130 @@
+/* Markdown-specific styles for better typography and spacing */
+.markdown-content {
+  line-height: 1.6;
+  color: hsl(var(--foreground));
+}
+
+.markdown-content > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Code block improvements */
+.markdown-content pre {
+  font-family: 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  tab-size: 2;
+  white-space: pre;
+  word-wrap: normal;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.markdown-content pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+.markdown-content pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown-content pre::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+.markdown-content pre::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border) / 0.8);
+}
+
+/* Inline code improvements - only apply to code elements without custom classes */
+.markdown-content code:not([class*="bg-"]) {
+  font-family: 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.875rem;
+}
+
+/* Table improvements */
+.markdown-content table {
+  border-spacing: 0;
+  width: 100%;
+  overflow: auto;
+  word-break: normal;
+  word-break: keep-all;
+}
+
+.markdown-content table th,
+.markdown-content table td {
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+/* List improvements */
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-content li > p {
+  margin-bottom: 0;
+}
+
+/* Task list improvements */
+.markdown-content .task-list-item {
+  list-style-type: none;
+  margin-left: -1.5rem;
+}
+
+.markdown-content .task-list-item input {
+  margin-right: 0.5rem;
+}
+
+/* Blockquote improvements */
+.markdown-content blockquote {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 4px solid hsl(var(--primary));
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+.markdown-content blockquote > :first-child {
+  margin-top: 0;
+}
+
+.markdown-content blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* Link improvements */
+.markdown-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-content a:hover {
+  color: hsl(var(--primary) / 0.8);
+}
+
+/* Image improvements */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+/* Horizontal rule improvements */
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 2rem 0;
+}
