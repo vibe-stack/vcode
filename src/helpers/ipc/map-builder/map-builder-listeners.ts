@@ -5,13 +5,18 @@ import {
   MAP_BUILDER_STREAM_END_CHANNEL, 
   MAP_BUILDER_STREAM_ERROR_CHANNEL 
 } from './map-builder-channels';
-import { chatApi } from '@/api/map-builder';
+import { chatApi } from '@/api/general-agent';
 
 export function addMapBuilderEventListeners() {
-  ipcMain.handle(MAP_BUILDER_SEND_MESSAGE_CHANNEL, async (event, { messages, requestId }) => {
+  ipcMain.handle(MAP_BUILDER_SEND_MESSAGE_CHANNEL, async (event, { messages, requestId, agentType, systemPrompt, maxSteps }) => {
     try { 
       console.log('Map builder: Processing message request with ID:', requestId);
-      const response = await chatApi({ messages });
+      const response = await chatApi({ 
+        messages, 
+        agentType: agentType || 'mapBuilder',
+        systemPrompt,
+        maxSteps
+      });
       
       // Get the stream from the response body
       const stream = response.body;

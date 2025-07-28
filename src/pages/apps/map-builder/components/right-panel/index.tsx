@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PropertiesTab } from './properties/index';
 import { ChatPanel } from '../chat';
+// import { NewChatPanel } from '../chat/new-chat-panel';
 
 export default function RightPanel() {
     return (
@@ -28,6 +29,7 @@ export default function RightPanel() {
 
                 <TabsContent value="chat" className="flex-1 overflow-hidden mt-4 flex flex-col h-full">
                     <ChatPanel />
+                    {/* <NewChatPanel /> */}
                 </TabsContent>
             </Tabs>
         </div>

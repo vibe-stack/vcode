@@ -16,6 +16,7 @@
     "make": "NODE_ENV=production electron-forge make",
     "make:staging": "NODE_ENV=staging electron-forge make",
     "publish": "electron-forge publish",
+    "typecheck": "eslint .",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",

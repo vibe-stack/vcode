@@ -20,7 +20,7 @@ export function ChatPanel() {
     const [userMessageInitialState, setUserMessageInitialState] = useState<any>(null);
 
     const { messages, append, setMessages, isLoading, addToolResult, stop, status } = useChat({
-        api: '/api/map-builder',
+        api: '/api/general-agent',
         fetch: mapBuilderChatFetch,
         maxSteps: 50,
         onResponse: () => { },
