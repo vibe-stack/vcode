@@ -1,10 +1,13 @@
-import React from "react";
+
+import React, { Suspense } from "react";
 import { createRoute } from "@tanstack/react-router";
 import { RootRoute } from "./__root";
-import HomePage from "../pages/home";
-import WorkspacePage from "@/pages/workspace";
-import { ScreenRecorder } from "@/pages/apps";
-import MapBuilderPage from "@/pages/apps/map-builder";
+
+const LazyHomePage = React.lazy(() => import("../pages/home"));
+const LazyWorkspacePage = React.lazy(() => import("@/pages/workspace"));
+const LazyScreenRecorder = React.lazy(() => import("@/pages/apps").then(mod => ({ default: mod.ScreenRecorder })));
+const LazyMapBuilderPage = React.lazy(() => import("@/pages/apps/map-builder"));
+
 
 // TODO: Steps to add a new route:
 // 1. Create a new page component in the '../pages/' directory (e.g., NewPage.tsx)
@@ -28,25 +31,41 @@ import MapBuilderPage from "@/pages/apps/map-builder";
 export const HomeRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: "/",
-  component: HomePage,
+  component: () => (
+    <Suspense fallback={null}>
+      <LazyHomePage />
+    </Suspense>
+  ),
 });
 
 export const WorkspaceRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: "/workspace",
-  component: WorkspacePage,
+  component: () => (
+    <Suspense fallback={null}>
+      <LazyWorkspacePage />
+    </Suspense>
+  ),
 });
 
 export const ScreenRecorderRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: "/apps/screen-recorder",
-  component: ScreenRecorder,
+  component: () => (
+    <Suspense fallback={null}>
+      <LazyScreenRecorder />
+    </Suspense>
+  ),
 });
 
 export const MapBuilderRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: "/apps/map-builder",
-  component: MapBuilderPage,
+  component: () => (
+    <Suspense fallback={null}>
+      <LazyMapBuilderPage />
+    </Suspense>
+  ),
 });
 
 export const rootTree = RootRoute.addChildren([
