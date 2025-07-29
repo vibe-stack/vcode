@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { DirectoryNode, RecentProject, projectApi } from '@/services/project-api';
-import { router } from '@/routes/router';
 import { useGitStore } from '@/stores/git';
 import { initializeTypeScriptProject } from '@/config/monaco-languages';
 

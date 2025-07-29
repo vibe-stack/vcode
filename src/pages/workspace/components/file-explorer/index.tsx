@@ -242,16 +242,19 @@ export function FileExplorer() {
         if (dragExpandTimeout) {
             clearTimeout(dragExpandTimeout);
         }
-        
         setDragOverFolder(folderPath);
-        
         // Only set timeout if we're not already expanded
         if (!expandedFolders.has(folderPath)) {
             const timeout = setTimeout(() => {
-                setExpandedFolders(prev => new Set(prev).add(folderPath));
+                // Only expand if still hovered
                 setDragExpandTimeout(null);
+                setDragOverFolder(current => {
+                    if (current === folderPath) {
+                        setExpandedFolders(prev => new Set(prev).add(folderPath));
+                    }
+                    return current;
+                });
             }, 1000);
-            
             setDragExpandTimeout(timeout);
         }
     }, [dragExpandTimeout, expandedFolders]);

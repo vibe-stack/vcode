@@ -141,11 +141,11 @@ export const FileTreeNode = (({
         }
     }, [isDirectory, node.path, onFileDragStart, isInlineEditing]);
 
+    // Allow dropping on any item in a folder (not just the folder row)
     const handleDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        // If this node is a directory, or if it is a file and its parent is a directory, treat the parent as drop target
         if (isDirectory) {
-            event.preventDefault();
-            
-            // Use the new auto-expansion system if available
             if (onDragEnterFolder && !isDraggedOver) {
                 onDragEnterFolder(node.path);
             } else if (!onDragEnterFolder && !isExpanded && !dragHoverTimer) {
@@ -155,6 +155,12 @@ export const FileTreeNode = (({
                     setDragHoverTimer(null);
                 }, 1000);
                 setDragHoverTimer(timer);
+            }
+        } else if (onDragEnterFolder && node.path && node.path.includes("/")) {
+            // For files, treat their parent folder as the drop target
+            const parentPath = node.path.substring(0, node.path.lastIndexOf("/"));
+            if (parentPath) {
+                onDragEnterFolder(parentPath);
             }
         }
     }, [isDirectory, isExpanded, dragHoverTimer, onToggleFolder, node.path, onDragEnterFolder, isDraggedOver]);
@@ -179,15 +185,15 @@ export const FileTreeNode = (({
             clearTimeout(dragHoverTimer);
             setDragHoverTimer(null);
         }
-        
-        // Only allow dropping on directories
-        if (isDirectory && onFileDrop) {
-            const draggedFilePath = event.dataTransfer.getData('text/plain');
-            if (draggedFilePath && draggedFilePath !== node.path) {
-                await onFileDrop(draggedFilePath, node.path);
-            }
+        const draggedFilePath = event.dataTransfer.getData('text/plain');
+        // If dropping on a directory, use its path. If dropping on a file, use its parent folder as the drop target.
+        let targetFolderPath = node.path;
+        if (!isDirectory && node.path && node.path.includes("/")) {
+            targetFolderPath = node.path.substring(0, node.path.lastIndexOf("/"));
         }
-        
+        if (onFileDrop && draggedFilePath && draggedFilePath !== targetFolderPath) {
+            await onFileDrop(draggedFilePath, targetFolderPath);
+        }
         // Clear drag state
         if (onDragEnd) {
             onDragEnd();
