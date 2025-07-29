@@ -3,10 +3,14 @@ import { useProjectStore } from "@/stores/project";
 import { useTerminalStore } from "@/stores/terminal";
 import { detectLineEnding, detectIndentation, detectEncoding, getLanguageFromExtension } from "@/stores/buffers/utils";
 import { Button } from "@/components/ui/button";
-import { Terminal, Check } from "lucide-react";
+import { Terminal, Check, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { GitBranchSwitcher } from "./git-branch-switcher";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { typescriptLSPClient } from '@/services/typescript-lsp';
+// LSP status types
+type LSPStatus = 'running' | 'loading' | 'error' | 'stopped';
+
 import { Switch } from "@/components/ui/switch";
 
 
@@ -17,6 +21,54 @@ export function WorkspaceFooter() {
     const { currentProject } = useProjectStore();
     const { buffers, activeBufferId } = useBufferStore();
     const { isVisible: isTerminalVisible, setVisible: setTerminalVisible, tabs, createTab } = useTerminalStore();
+
+    // LSP status state
+    const [lspStatus, setLspStatus] = useState<LSPStatus>('loading');
+    const [lspError, setLspError] = useState<string | null>(null);
+    const [lspPopoverOpen, setLspPopoverOpen] = useState(false);
+    const [lspRestarting, setLspRestarting] = useState(false);
+
+    // Poll LSP status
+    useEffect(() => {
+        let mounted = true;
+        async function pollStatus() {
+            setLspStatus('loading');
+            setLspError(null);
+            try {
+                const status = await typescriptLSPClient.getStatus();
+                if (!mounted) return;
+                if (status.isRunning) {
+                    setLspStatus('running');
+                } else {
+                    setLspStatus('stopped');
+                }
+            } catch (e: any) {
+                setLspStatus('error');
+                setLspError(e?.message || 'Unknown error');
+            }
+        }
+        pollStatus();
+        const interval = setInterval(pollStatus, 4000);
+        return () => { mounted = false; clearInterval(interval); };
+    }, []);
+
+    // Restart LSP
+    const handleRestartLSP = async () => {
+        setLspRestarting(true);
+        setLspError(null);
+        setLspStatus('loading');
+        try {
+            if (currentProject) {
+                await typescriptLSPClient.initialize(currentProject);
+            }
+            setLspStatus('running');
+        } catch (e: any) {
+            setLspStatus('error');
+            setLspError(e?.message || 'Failed to restart LSP');
+        } finally {
+            setLspRestarting(false);
+        }
+    };
 
 
     // Index status state
@@ -271,6 +323,57 @@ export function WorkspaceFooter() {
             <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
                 <div className="flex items-center gap-4">
                     <GitBranchSwitcher />
+                    {/* LSP Status Button */}
+                    <Popover open={lspPopoverOpen} onOpenChange={setLspPopoverOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 px-2 flex items-center gap-1 hover:bg-gray-700"
+                                onClick={() => setLspPopoverOpen(true)}
+                                aria-label="LSP Status"
+                            >
+                                {lspStatus === 'loading' && <Loader2 className="h-3 w-3 animate-spin text-yellow-400" />}
+                                {lspStatus === 'running' && <Check className="h-3 w-3 text-green-400" />}
+                                {lspStatus === 'error' && <AlertCircle className="h-3 w-3 text-red-400" />}
+                                {lspStatus === 'stopped' && <AlertCircle className="h-3 w-3 text-gray-400" />}
+                                <span className="hidden sm:inline text-xs">
+                                    {lspStatus === 'loading' && 'Typescript'}
+                                    {lspStatus === 'running' && 'Typescript'}
+                                    {lspStatus === 'error' && 'Typescript: Error'}
+                                    {lspStatus === 'stopped' && 'Typescript: Stopped'}
+                                </span>
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-4" align="start">
+                            <div className="flex flex-col gap-2">
+                                <div className="font-bold text-white text-xs mb-1">TypeScript LSP Status</div>
+                                <div className="flex items-center gap-2">
+                                    {lspStatus === 'loading' && <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />}
+                                    {lspStatus === 'running' && <Check className="h-4 w-4 text-green-400" />}
+                                    {lspStatus === 'error' && <AlertCircle className="h-4 w-4 text-red-400" />}
+                                    {lspStatus === 'stopped' && <AlertCircle className="h-4 w-4 text-gray-400" />}
+                                    <span className="text-xs">
+                                        {lspStatus === 'loading' && 'Loading...'}
+                                        {lspStatus === 'running' && 'Running'}
+                                        {lspStatus === 'error' && 'Error'}
+                                        {lspStatus === 'stopped' && 'Stopped'}
+                                    </span>
+                                </div>
+                                {lspError && <div className="text-xs text-red-400">{lspError}</div>}
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className="mt-2 flex items-center gap-1"
+                                    onClick={handleRestartLSP}
+                                    disabled={lspRestarting || lspStatus === 'loading'}
+                                >
+                                    <RefreshCw className={lspRestarting ? 'animate-spin h-3 w-3' : 'h-3 w-3'} />
+                                    {lspRestarting ? 'Restarting...' : 'Restart LSP'}
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <Button
                         variant="ghost"
                         size="sm"
