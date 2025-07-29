@@ -1,7 +1,9 @@
 import React from 'react';
+import { useSearch } from '@tanstack/react-router';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { FileExplorer, ChatPanel, PersistentTerminalPanel, EditorArea, AutoView, HiddenTerminalContainer } from './components';
 import { useProjectStore } from '@/stores/project';
+import { useCallback } from 'react';
 import { useEffect, useRef, useLayoutEffect } from 'react';
 import { WorkspaceFooter } from './components/footer';
 import { useEditorContentStore } from '@/stores/editor-content';
@@ -11,28 +13,29 @@ import WorkspaceHeader from '@/components/WorkspaceHeader';
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalKeymapProvider } from '@/services/keymaps/main';
 
+
 export default function WorkspacePage() {
-  const { currentProject, fileTree } = useProjectStore();
+  const { currentProject, setCurrentProject } = useProjectStore();
   const { view, leftPanelSize, rightPanelSize, onResizeLeftPanel, onResizeRightPanel } = useEditorContentStore();
   const { isVisible } = useTerminalStore();
   const panelGroupRef = useRef(null);
 
   // Calculate panel sizes based on current view
   const hasRightPanel = view !== "agents" && view !== "auto";
-
-  // Use stable panel sizes that always add up to 100%
   const stableLeftSize = hasRightPanel ? leftPanelSize : Math.min(leftPanelSize, 35);
   const stableRightSize = hasRightPanel ? rightPanelSize : 0;
   const stableCenterSize = 100 - stableLeftSize - stableRightSize;
 
-  useEffect(() => {
-    // Ensure we have a project loaded
-    if (!currentProject) {
-      // Navigate back to home if no project is loaded
-      window.history.back();
-      return;
+  const search = useSearch({ from: '/workspace' });
+  React.useEffect(() => {
+    const projectPath = search?.project;
+    if (!currentProject && projectPath) {
+      setCurrentProject(projectPath);
+    } else if (!currentProject && !projectPath) {
+      // No project loaded and no project param, redirect to home
+      window.location.replace('/');
     }
-  }, [currentProject]);
+  }, [currentProject, setCurrentProject, search]);
 
   return (
     <GlobalKeymapProvider>

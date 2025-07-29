@@ -83,16 +83,6 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
 
             // Initialize TypeScript project integration
             await initializeTypeScriptProject(projectPath);
-
-            // Navigate to workspace (you might want to handle this differently)
-
-            // window.history.pushState({}, '', '/workspace');
-            router.navigate({
-                to: '/workspace',
-            });
-            window.dispatchEvent(new PopStateEvent('popstate'));
-
-
         } catch (error) {
             console.error('Error setting current project:', error);
         } finally {
@@ -105,28 +95,20 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
     // Clear current project
     clearCurrentProject: () => {
         get().unwatchCurrentProject();
-        
         // Clear git store
         useGitStore.getState().clearGitState();
-        
         set((state) => {
             state.currentProject = null;
             state.projectName = null;
             state.fileTree = null;
         });
-
-        // Navigate back to home
-        if (typeof window !== 'undefined' && window.location.pathname === '/workspace') {
-            window.history.pushState({}, '', '/');
-            window.dispatchEvent(new PopStateEvent('popstate'));
-        }
     },
 
     // Load file tree
     loadFileTree: async (rootPath: string) => {
         try {
             const tree = await projectApi.getDirectoryTree(rootPath, {
-                depth: 10,
+                depth: 20,
                 includeFiles: true
             });
             set((state) => {
@@ -274,8 +256,12 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
         const { fileTree } = get();
         if (!fileTree) return;
 
-        // For now, just refresh the entire tree
-        // In a more sophisticated implementation, you could update specific nodes
-        get().refreshFileTree();
+        // Only auto-refresh for modifications, not for create/delete which are often part of renames
+        // This prevents the double refresh issue that causes navigation problems
+        if (action === 'modified') {
+            setTimeout(() => get().refreshFileTree(), 50);
+        }
+        // For create/delete, we let the UI components handle the refresh manually
+        // since they have better context about when it's safe to do so
     },
 })))

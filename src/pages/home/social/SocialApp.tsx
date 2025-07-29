@@ -25,21 +25,17 @@ export default function SocialApp() {
     loadRecentProjects();
   }, [loadRecentProjects]);
 
-  const handleProjectOpen = async (project: ProjectCardData) => {
-    try {
-      // If it's a local project (has a path), open it directly
-      if ((project as any).path) {
-        await setCurrentProject((project as any).path);
-      } else {
-        // For social projects, we'd need to clone/download them first
-        console.log('Opening social project:', project);
-        // This would typically involve:
-        // 1. Clone the repository
-        // 2. Set up the local project
-        // 3. Open it in the IDE
-      }
-    } catch (error) {
-      console.error('Error opening project:', error);
+  const handleProjectOpen = (project: ProjectCardData) => {
+    // If it's a local project (has a path), navigate to workspace with project param
+    if ((project as any).path) {
+      window.location.href = `/workspace?project=${encodeURIComponent((project as any).path)}`;
+    } else {
+      // For social projects, we'd need to clone/download them first
+      console.log('Opening social project:', project);
+      // This would typically involve:
+      // 1. Clone the repository
+      // 2. Set up the local project
+      // 3. Open it in the IDE
     }
   };
 

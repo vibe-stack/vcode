@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { DirectoryNode } from '@/services/project-api';
 import { useFileGitStatus } from '@/hooks/use-file-git-status';
 import { getGitStatusColor, getGitStatusIcon, getGitStatusTooltip } from '@/services/git-api';
@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/utils/tailwind';
 import { Button } from '@/components/ui/button';
-import { CreateFilePopover } from './create-file-popover';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -37,6 +36,18 @@ interface FileTreeNodeProps {
     onToggleFolder: (path: string) => void;
     onNodeRenamed?: (oldPath: string, newPath: string) => void;
     onNodeDeleted?: (path: string) => void;
+    selectedItems?: Set<string>;
+    onItemSelect?: (path: string, isSelected: boolean, event?: React.MouseEvent) => void;
+    onCreateInlineItem?: (parentPath: string, type: 'file' | 'folder') => void;
+    onRenameItem?: (itemPath: string, type: 'file' | 'folder') => void;
+    inlineEditingItem?: { path: string; type: 'file' | 'folder'; isNew: boolean; parentPath?: string } | null;
+    onInlineEditSubmit?: (newName: string, originalPath: string, type: 'file' | 'folder', isNew: boolean) => Promise<void>;
+    onInlineEditCancel?: () => void;
+    onDragEnterFolder?: (folderPath: string) => void;
+    onDragLeaveFolder?: (folderPath: string) => void;
+    onDragEnd?: () => void;
+    onFileDrop?: (draggedFilePath: string, targetFolderPath: string) => Promise<void>;
+    dragOverFolder?: string | null;
 }
 
 export const FileTreeNode = (({
@@ -47,19 +58,45 @@ export const FileTreeNode = (({
     expandedFolders,
     onToggleFolder,
     onNodeRenamed,
-    onNodeDeleted
+    onNodeDeleted,
+    selectedItems = new Set(),
+    onItemSelect,
+    onCreateInlineItem,
+    onRenameItem,
+    inlineEditingItem,
+    onInlineEditSubmit,
+    onInlineEditCancel,
+    onDragEnterFolder,
+    onDragLeaveFolder,
+    onDragEnd,
+    onFileDrop,
+    dragOverFolder,
 }: FileTreeNodeProps) => {
     const [isHovered, setIsHovered] = useState(false);
-    const [isRenaming, setIsRenaming] = useState(false);
-    const [renamingValue, setRenamingValue] = useState('');
+    const [dragHoverTimer, setDragHoverTimer] = useState<NodeJS.Timeout | null>(null);
     const isExpanded = level === 0 || expandedFolders.has(node.path);
     const isDirectory = node.type === 'directory';
     const hasChildren = node.children && node.children.length > 0;
+    const isSelected = selectedItems.has(node.path);
+    const isInlineEditing = inlineEditingItem?.path === node.path;
+    const isDraggedOver = dragOverFolder === node.path;
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const { openFile: openFileInSplit, createSplit } = useEditorSplitStore();
 
     // Use the new hook to get git status for only this specific file
     const gitFileStatus = useFileGitStatus(node.path);
+
+    // Focus input when entering inline editing mode
+    useEffect(() => {
+        if (isInlineEditing && inputRef.current) {
+            inputRef.current.focus();
+            // If it's a rename operation, select all text
+            if (!inlineEditingItem?.isNew) {
+                inputRef.current.select();
+            }
+        }
+    }, [isInlineEditing, inlineEditingItem?.isNew]);
 
     // Memoize git status display values
     const { gitColor, gitIcon, gitTooltip } = useMemo(() => {
@@ -74,19 +111,88 @@ export const FileTreeNode = (({
         };
     }, [gitFileStatus]);
 
-    const handleClick = useCallback(() => {
+    const handleClick = useCallback((event: React.MouseEvent) => {
+        if (isInlineEditing) return;
+
+        if (onItemSelect) {
+            // Handle multi-selection
+            if (event.metaKey || event.ctrlKey) {
+                // Cmd/Ctrl + click for multi-select
+                onItemSelect(node.path, !isSelected, event);
+            } else if (event.shiftKey) {
+                // Shift + click for range selection
+                onItemSelect(node.path, true, event);
+            } else {
+                // Regular click - clear selection and select this item
+                onItemSelect(node.path, true, event);
+            }
+        }
+
         if (isDirectory) {
             onToggleFolder(node.path);
-        } else {
+        } else if (!event.metaKey && !event.ctrlKey && !event.shiftKey) {
             onFileClick(node.path);
         }
-    }, [isDirectory, node.path, onToggleFolder, onFileClick]);
+    }, [isDirectory, node.path, onToggleFolder, onFileClick, isSelected, onItemSelect, isInlineEditing]);
 
     const handleDragStart = useCallback((event: React.DragEvent) => {
-        if (!isDirectory) {
+        if (!isDirectory && !isInlineEditing) {
             onFileDragStart(node.path, event);
         }
-    }, [isDirectory, node.path, onFileDragStart]);
+    }, [isDirectory, node.path, onFileDragStart, isInlineEditing]);
+
+    const handleDragOver = useCallback((event: React.DragEvent) => {
+        if (isDirectory) {
+            event.preventDefault();
+            
+            // Use the new auto-expansion system if available
+            if (onDragEnterFolder && !isDraggedOver) {
+                onDragEnterFolder(node.path);
+            } else if (!onDragEnterFolder && !isExpanded && !dragHoverTimer) {
+                // Fallback to old behavior if new system not available
+                const timer = setTimeout(() => {
+                    onToggleFolder(node.path);
+                    setDragHoverTimer(null);
+                }, 1000);
+                setDragHoverTimer(timer);
+            }
+        }
+    }, [isDirectory, isExpanded, dragHoverTimer, onToggleFolder, node.path, onDragEnterFolder, isDraggedOver]);
+
+    const handleDragLeave = useCallback((event: React.DragEvent) => {
+        // Only trigger leave if we're actually leaving this element (not entering a child)
+        if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+            if (dragHoverTimer) {
+                clearTimeout(dragHoverTimer);
+                setDragHoverTimer(null);
+            }
+            
+            if (onDragLeaveFolder) {
+                onDragLeaveFolder(node.path);
+            }
+        }
+    }, [dragHoverTimer, onDragLeaveFolder, node.path]);
+
+    const handleDrop = useCallback(async (event: React.DragEvent) => {
+        event.preventDefault();
+        if (dragHoverTimer) {
+            clearTimeout(dragHoverTimer);
+            setDragHoverTimer(null);
+        }
+        
+        // Only allow dropping on directories
+        if (isDirectory && onFileDrop) {
+            const draggedFilePath = event.dataTransfer.getData('text/plain');
+            if (draggedFilePath && draggedFilePath !== node.path) {
+                await onFileDrop(draggedFilePath, node.path);
+            }
+        }
+        
+        // Clear drag state
+        if (onDragEnd) {
+            onDragEnd();
+        }
+    }, [dragHoverTimer, isDirectory, onFileDrop, node.path, onDragEnd]);
 
     // Context menu handlers
     const handleOpen = useCallback(() => {
@@ -128,41 +234,22 @@ export const FileTreeNode = (({
     }, [node.path]);
 
     const handleRename = useCallback(() => {
-        setIsRenaming(true);
-        setRenamingValue(node.name);
-    }, [node.name]);
-
-    const handleRenameSubmit = useCallback(async () => {
-        if (renamingValue.trim() && renamingValue !== node.name) {
-            try {
-                const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
-                const newPath = `${parentPath}/${renamingValue.trim()}`;
-                
-                if (isDirectory) {
-                    await projectApi.renameFolder(node.path, newPath);
-                } else {
-                    await projectApi.renameFile(node.path, newPath);
-                }
-                
-                onNodeRenamed?.(node.path, newPath);
-            } catch (error) {
-                console.error('Failed to rename:', error);
-            }
+        if (onRenameItem) {
+            onRenameItem(node.path, isDirectory ? 'folder' : 'file');
         }
-        setIsRenaming(false);
-        setRenamingValue('');
-    }, [renamingValue, node.name, node.path, isDirectory, onNodeRenamed]);
+    }, [node.path, isDirectory, onRenameItem]);
 
-    const handleRenamingKeyDown = useCallback((event: React.KeyboardEvent) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            handleRenameSubmit();
-        } else if (event.key === 'Escape') {
-            event.preventDefault();
-            setIsRenaming(false);
-            setRenamingValue('');
+    const handleCreateFile = useCallback(() => {
+        if (onCreateInlineItem) {
+            onCreateInlineItem(node.path, 'file');
         }
-    }, [handleRenameSubmit]);
+    }, [node.path, onCreateInlineItem]);
+
+    const handleCreateFolder = useCallback(() => {
+        if (onCreateInlineItem) {
+            onCreateInlineItem(node.path, 'folder');
+        }
+    }, [node.path, onCreateInlineItem]);
 
     const handleDelete = useCallback(async () => {
         if (confirm(`Are you sure you want to delete "${node.name}"?`)) {
@@ -179,6 +266,30 @@ export const FileTreeNode = (({
         }
     }, [node.path, node.name, isDirectory, onNodeDeleted]);
 
+    const handleInlineInputKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const inputValue = (event.target as HTMLInputElement).value.trim();
+            if (inputValue && onInlineEditSubmit && inlineEditingItem) {
+                onInlineEditSubmit(inputValue, inlineEditingItem.path, inlineEditingItem.type, inlineEditingItem.isNew);
+            }
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            if (onInlineEditCancel) {
+                onInlineEditCancel();
+            }
+        }
+    }, [onInlineEditSubmit, onInlineEditCancel, inlineEditingItem]);
+
+    const handleInlineInputBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+        const inputValue = event.target.value.trim();
+        if (inputValue && onInlineEditSubmit && inlineEditingItem) {
+            onInlineEditSubmit(inputValue, inlineEditingItem.path, inlineEditingItem.type, inlineEditingItem.isNew);
+        } else if (onInlineEditCancel) {
+            onInlineEditCancel();
+        }
+    }, [onInlineEditSubmit, onInlineEditCancel, inlineEditingItem]);
+
     return (
         <div>
             <ContextMenu>
@@ -187,14 +298,19 @@ export const FileTreeNode = (({
                         className={cn(
                             "flex items-center gap-1 px-2 py-1 cursor-default hover:bg-accent hover:text-accent-foreground rounded-sm group",
                             "text-sm select-none relative",
+                            isSelected && "bg-accent/50",
+                            isDraggedOver && isDirectory && "bg-accent border-2 border-accent-foreground/25",
                             gitColor
                         )}
                         style={{ paddingLeft: `${level * 12 + 8}px` }}
                         onClick={handleClick}
                         onMouseEnter={() => setIsHovered(true)}
                         onMouseLeave={() => setIsHovered(false)}
-                        draggable={!isDirectory}
+                        draggable={!isDirectory && !isInlineEditing}
                         onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
                         title={gitTooltip}
                     >
                         {isDirectory && (
@@ -221,62 +337,25 @@ export const FileTreeNode = (({
                             )}
                         </div>
 
-                        {isRenaming ? (
+                        {isInlineEditing ? (
                             <input
+                                ref={inputRef}
                                 type="text"
-                                value={renamingValue}
-                                onChange={(e) => setRenamingValue(e.target.value)}
-                                onKeyDown={handleRenamingKeyDown}
-                                onBlur={handleRenameSubmit}
-                                className="flex-1 bg-background/50 border-0 outline-0 focus:ring-1 focus:ring-ring rounded px-1 text-sm"
-                                autoFocus
-                                onFocus={(e) => e.target.select()}
+                                defaultValue={inlineEditingItem?.isNew ? '' : node.name}
+                                onKeyDown={handleInlineInputKeyDown}
+                                onBlur={handleInlineInputBlur}
+                                className="flex-1 bg-background/90 border border-ring rounded px-1 text-sm outline-none"
+                                placeholder={inlineEditingItem?.type === 'folder' ? 'folder name' : 'file name'}
                             />
                         ) : (
                             <span className="flex-1 truncate">{node.name}</span>
                         )}
                         
                         {/* Git status indicator */}
-                        {gitIcon && (
+                        {gitIcon && !isInlineEditing && (
                             <span className={cn("text-xs font-mono", gitColor)} title={gitTooltip}>
                                 {gitIcon}
                             </span>
-                        )}
-
-                        {/* Action buttons for directories on hover */}
-                        {isDirectory && isHovered && !isRenaming && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <CreateFilePopover
-                                    basePath={node.path}
-                                    defaultType="file"
-                                    trigger={
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-5 w-5 p-0 hover:bg-accent-foreground/10"
-                                            title="Create file"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <FileText className="h-3 w-3" />
-                                        </Button>
-                                    }
-                                />
-                                <CreateFilePopover
-                                    basePath={node.path}
-                                    defaultType="folder"
-                                    trigger={
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-5 w-5 p-0 hover:bg-accent-foreground/10"
-                                            title="Create folder"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <FolderPlus className="h-3 w-3" />
-                                        </Button>
-                                    }
-                                />
-                            </div>
                         )}
                     </div>
                 </ContextMenuTrigger>
@@ -290,6 +369,19 @@ export const FileTreeNode = (({
                             <ContextMenuItem onClick={handleOpenInSplit}>
                                 <SplitSquareHorizontal className="h-4 w-4 mr-2" />
                                 Open in Split
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                        </>
+                    )}
+                    {isDirectory && (
+                        <>
+                            <ContextMenuItem onClick={handleCreateFile}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                New File
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={handleCreateFolder}>
+                                <FolderPlus className="h-4 w-4 mr-2" />
+                                New Folder
                             </ContextMenuItem>
                             <ContextMenuSeparator />
                         </>
@@ -319,9 +411,9 @@ export const FileTreeNode = (({
                 </ContextMenuContent>
             </ContextMenu>
 
-            {isDirectory && isExpanded && hasChildren && (
+            {isDirectory && isExpanded && (
                 <div>
-                    {node.children!.map((child) => (
+                    {hasChildren && node.children!.map((child) => (
                         <FileTreeNode
                             key={child.path}
                             node={child}
@@ -332,28 +424,69 @@ export const FileTreeNode = (({
                             onToggleFolder={onToggleFolder}
                             onNodeRenamed={onNodeRenamed}
                             onNodeDeleted={onNodeDeleted}
+                            selectedItems={selectedItems}
+                            onItemSelect={onItemSelect}
+                            onCreateInlineItem={onCreateInlineItem}
+                            onRenameItem={onRenameItem}
+                            inlineEditingItem={inlineEditingItem}
+                            onInlineEditSubmit={onInlineEditSubmit}
+                            onInlineEditCancel={onInlineEditCancel}
+                            onDragEnterFolder={onDragEnterFolder}
+                            onDragLeaveFolder={onDragLeaveFolder}
+                            onDragEnd={onDragEnd}
+                            onFileDrop={onFileDrop}
+                            dragOverFolder={dragOverFolder}
                         />
                     ))}
+                    {/* Show inline editing item if it's being created in this directory */}
+                    {inlineEditingItem?.isNew && inlineEditingItem.parentPath === node.path && (
+                        <div
+                            className="flex items-center gap-1 px-2 py-1 rounded-sm text-sm relative"
+                            style={{ paddingLeft: `${(level + 1) * 12 + 8}px` }}
+                        >
+                            <div className="flex items-center justify-center w-4 h-4">
+                                {inlineEditingItem.type === 'folder' ? (
+                                    <Folder className="h-4 w-4 text-emerald-500" />
+                                ) : (
+                                    <File className="h-4 w-4 text-muted-foreground" />
+                                )}
+                            </div>
+                            <input
+                                type="text"
+                                ref={(el) => {
+                                    if (el && !el.value) {
+                                        el.focus();
+                                    }
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        const value = (event.target as HTMLInputElement).value.trim();
+                                        if (value && onInlineEditSubmit) {
+                                            onInlineEditSubmit(value, inlineEditingItem.path, inlineEditingItem.type, true);
+                                        }
+                                    } else if (event.key === 'Escape') {
+                                        event.preventDefault();
+                                        if (onInlineEditCancel) {
+                                            onInlineEditCancel();
+                                        }
+                                    }
+                                }}
+                                onBlur={(event) => {
+                                    const value = event.target.value.trim();
+                                    if (value && onInlineEditSubmit) {
+                                        onInlineEditSubmit(value, inlineEditingItem.path, inlineEditingItem.type, true);
+                                    } else if (onInlineEditCancel) {
+                                        onInlineEditCancel();
+                                    }
+                                }}
+                                className="flex-1 bg-background/90 border border-ring rounded px-1 text-sm outline-none"
+                                placeholder={inlineEditingItem.type === 'folder' ? 'folder name' : 'file name'}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
 });
-// , (prevProps, nextProps) => {
-//     // Custom comparison function to prevent unnecessary re-renders
-//     // Only re-render if the node itself or its dependencies have changed
-//     return (
-//         prevProps.node.path === nextProps.node.path &&
-//         prevProps.node.name === nextProps.node.name &&
-//         prevProps.node.type === nextProps.node.type &&
-//         prevProps.level === nextProps.level &&
-//         prevProps.expandedFolders === nextProps.expandedFolders &&
-//         prevProps.onFileClick === nextProps.onFileClick &&
-//         prevProps.onFileDragStart === nextProps.onFileDragStart &&
-//         prevProps.onToggleFolder === nextProps.onToggleFolder &&
-//         prevProps.onNodeRenamed === nextProps.onNodeRenamed &&
-//         prevProps.onNodeDeleted === nextProps.onNodeDeleted
-//     );
-// });
-
-// FileTreeNode.displayName = 'FileTreeNode';

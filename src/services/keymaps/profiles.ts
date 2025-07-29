@@ -82,6 +82,26 @@ export const createDefaultKeyBindings = (): KeyBinding[] => {
       context: 'editor'
     },
     
+    // File Explorer operations
+    {
+      id: 'explorer.newFile',
+      description: 'New file in explorer',
+      key: `${cmdKey}+shift+n`,
+      command: 'explorer.newFile',
+      enabled: true,
+      category: 'file',
+      context: 'global'
+    },
+    {
+      id: 'explorer.newFolder',
+      description: 'New folder in explorer',
+      key: `${cmdKey}+shift+${isMacOS() ? 'option' : 'alt'}+n`,
+      command: 'explorer.newFolder',
+      enabled: true,
+      category: 'file',
+      context: 'global'
+    },
+    
     // Edit operations
     {
       id: 'edit.undo',

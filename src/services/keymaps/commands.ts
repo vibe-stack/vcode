@@ -517,6 +517,29 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
       return !!(terminalStore.activeTabId && typeof window !== 'undefined' && window.terminalApi);
     }
   });
+
+  // File Explorer commands
+  commands.set('explorer.newFile', {
+    execute: async () => {
+      // Dispatch an event that the file explorer can listen to
+      window.dispatchEvent(new CustomEvent('explorer:createFile'));
+    },
+    canExecute: () => {
+      const projectStore = useProjectStore.getState();
+      return !!projectStore.currentProject;
+    }
+  });
+
+  commands.set('explorer.newFolder', {
+    execute: async () => {
+      // Dispatch an event that the file explorer can listen to
+      window.dispatchEvent(new CustomEvent('explorer:createFolder'));
+    },
+    canExecute: () => {
+      const projectStore = useProjectStore.getState();
+      return !!projectStore.currentProject;
+    }
+  });
   
   return commands;
 };

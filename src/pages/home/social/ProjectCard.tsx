@@ -12,6 +12,7 @@ import {
   MessageSquare,
   ExternalLink
 } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
 export interface ProjectCardData {
   id: string;
@@ -77,11 +78,10 @@ export default function ProjectCard({
     large: 'h-80'
   }[size];
 
-  return (
-    <Card 
-      className={`group cursor-pointer hover:shadow-lg transition-all duration-200 border-border/50 ${cardHeight} ${className}`}
-      onClick={handleCardClick}
-    >
+  // If the project is local, wrap the card in a link to /workspace?project=...
+  const isLocal = (project as any).path;
+  const cardContent = (
+    <>
       {/* Cover Image */}
       {project.coverImage && (
         <div className="relative h-36 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 rounded-t-lg overflow-hidden">
@@ -91,7 +91,6 @@ export default function ProjectCard({
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent group-hover:from-black/30 transition-colors" />
-          
           {/* Badges */}
           <div className="absolute top-3 left-3 flex gap-2">
             {project.featured && (
@@ -104,13 +103,12 @@ export default function ProjectCard({
                 Trending
               </Badge>
             )}
-            {(project as any).path && (
+            {isLocal && (
               <Badge variant="outline" className="bg-white/90 border-blue-200 text-blue-700 text-xs py-0 h-5">
                 Local
               </Badge>
             )}
           </div>
-
           {/* Quick Actions */}
           <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button 
@@ -152,7 +150,6 @@ export default function ProjectCard({
             <ExternalLink className="h-3 w-3" />
           </Button>
         </div>
-
         {/* Author */}
         <div className="flex items-center gap-2 mb-3">
           <Avatar className="h-5 w-5">
@@ -165,7 +162,6 @@ export default function ProjectCard({
             {project.author.name}
           </span>
         </div>
-
         {/* Tags */}
         <div className="flex flex-wrap gap-1 mb-3">
           {project.tags.slice(0, 3).map((tag) => (
@@ -179,7 +175,6 @@ export default function ProjectCard({
             </Badge>
           )}
         </div>
-
         {/* Stats */}
         <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
           <div className="flex items-center gap-3">
@@ -196,7 +191,6 @@ export default function ProjectCard({
               <span>{formatNumber(project.stats.downloads)}</span>
             </div>
           </div>
-          
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <Heart className="h-3 w-3" />
@@ -209,6 +203,18 @@ export default function ProjectCard({
           </div>
         </div>
       </div>
+    </>
+  );
+
+  // FIX: Only one return statement, valid JSX
+  return isLocal ? (
+    <Link to="/workspace" search={{ project: (project as any).path }} style={{ textDecoration: 'none', display: 'block' }}>
+      <Card className={`group cursor-pointer hover:shadow-lg transition-all duration-200 border-border/50 ${cardHeight} ${className}`}>{cardContent}</Card>
+    </Link>
+  ) : (
+    <Card className={`group cursor-pointer hover:shadow-lg transition-all duration-200 border-border/50 ${cardHeight} ${className}`} onClick={handleCardClick}>
+      {cardContent}
     </Card>
   );
+
 }
