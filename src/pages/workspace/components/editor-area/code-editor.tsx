@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import { useBufferStore } from '@/stores/buffers';
 import { BufferContent } from '@/stores/buffers';
 import { getLanguageFromExtension } from '@/stores/buffers/utils';
 import { Editor as MonacoEditor, loader } from '@monaco-editor/react';
@@ -59,6 +60,12 @@ export function CodeEditor({ buffer, isFocused = false, onChange, onFocus }: Cod
     updateLocalContent, 
     saveBuffer 
   } = useBufferSyncManager(buffer);
+
+  // Sync local isDirty to global buffer for TabBar
+  const setBufferDirty = useBufferStore(state => state.setBufferDirty);
+  useEffect(() => {
+    setBufferDirty(buffer.id, isDirty);
+  }, [isDirty, buffer.id, setBufferDirty]);
 
   // Memoize language detection
   const language = useMemo(() => {

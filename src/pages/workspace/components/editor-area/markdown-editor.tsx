@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useBufferStore } from '@/stores/buffers';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { Document } from '@tiptap/extension-document';
 import { Paragraph } from '@tiptap/extension-paragraph';
@@ -83,6 +84,10 @@ export function MarkdownEditor({ buffer, isFocused = false, onChange, onFocus }:
     saveBuffer 
   } = useBufferSyncManager(buffer);
 
+  // Get updateBufferContent and setBufferDirty from store
+  const updateBufferContent = useBufferStore(state => state.updateBufferContent);
+  const setBufferDirty = useBufferStore(state => state.setBufferDirty);
+
   // Convert buffer content to string
   const markdownContent = useMemo(() => {
     if (typeof localContent === 'string') {
@@ -114,6 +119,11 @@ export function MarkdownEditor({ buffer, isFocused = false, onChange, onFocus }:
     
     setHeadings(headingNodes);
   }, []);
+
+  // Sync local dirty state to global buffer.isDirty for TabBar
+  useEffect(() => {
+    setBufferDirty(buffer.id, isDirty);
+  }, [isDirty, buffer.id, setBufferDirty]);
 
   const editor = useEditor({
     extensions: [
@@ -228,6 +238,9 @@ export function MarkdownEditor({ buffer, isFocused = false, onChange, onFocus }:
       const content = editor.getHTML();
       const markdown = htmlToMarkdown(content);
       updateLocalContent(markdown);
+      // Always update global buffer content and dirty state for TabBar
+      updateBufferContent(buffer.id, markdown);
+      setBufferDirty(buffer.id, markdown !== (typeof buffer.content === 'string' ? buffer.content : new TextDecoder().decode(buffer.content || new Uint8Array())));
       onChange?.(markdown);
       updateHeadings(editor);
     },
@@ -271,6 +284,18 @@ export function MarkdownEditor({ buffer, isFocused = false, onChange, onFocus }:
       </div>
     );
   }
+
+  // Cmd+S handler for markdown: save buffer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveBuffer();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveBuffer]);
 
   return (
     <div className="h-full flex flex-col relative">

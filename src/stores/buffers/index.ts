@@ -603,13 +603,32 @@ export const useBufferStore = create<BufferState>((set, get) => ({
             const newBuffers = new Map(state.buffers);
             const buffer = newBuffers.get(bufferId);
             if (buffer) {
+                // Compare with last saved content for dirty state
+                let lastSavedContent = buffer.content;
+                let isDirty = false;
+                if (typeof content === 'string' && typeof lastSavedContent === 'string') {
+                    isDirty = content !== lastSavedContent;
+                } else if (content instanceof Uint8Array && lastSavedContent instanceof Uint8Array) {
+                    if (content.length !== lastSavedContent.length) {
+                        isDirty = true;
+                    } else {
+                        for (let i = 0; i < content.length; i++) {
+                            if (content[i] !== lastSavedContent[i]) {
+                                isDirty = true;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback: if types differ, mark as dirty
+                    isDirty = true;
+                }
                 newBuffers.set(bufferId, {
                     ...buffer,
                     content,
-                    isDirty: typeof content === 'string' ? content.length > 0 : (content instanceof Uint8Array ? content.length > 0 : false),
+                    isDirty,
                     lastModified: new Date(),
                 });
-
                 // Update TypeScript service in real-time for TypeScript/JavaScript files
                 if (buffer.filePath && typeof content === 'string' && (
                     buffer.filePath.endsWith('.ts') || 
