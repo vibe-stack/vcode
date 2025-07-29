@@ -13,6 +13,7 @@ import { useProjectStore } from '@/stores/project';
 import { useThemeStore } from '@/stores/theme';
 import { typescriptLSPClient } from '@/services/typescript-lsp';
 import { useBufferSyncManager } from './hooks/useBufferSyncManager';
+import { registerDarkSummerNightTheme } from '@/themes/dark-summer-night-monaco';
 
 setupMonacoEnvironment();
 
@@ -23,6 +24,7 @@ loader.init().then(async (monacoInstance) => {
   registerDarkMatrixTheme();
   registerVibesLightTheme();
   registerDuneTheme();
+  registerDarkSummerNightTheme();
   enhanceMonacoLanguages();
   registerCustomLanguages();
 });

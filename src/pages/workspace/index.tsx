@@ -19,7 +19,7 @@ export default function WorkspacePage() {
 
   // Calculate panel sizes based on current view
   const hasRightPanel = view !== "agents" && view !== "auto";
-  
+
   // Use stable panel sizes that always add up to 100%
   const stableLeftSize = hasRightPanel ? leftPanelSize : Math.min(leftPanelSize, 35);
   const stableRightSize = hasRightPanel ? rightPanelSize : 0;
@@ -38,72 +38,72 @@ export default function WorkspacePage() {
     <GlobalKeymapProvider>
       <div className="flex h-screen flex-col">
         <WorkspaceHeader />
-      <main className="h-full grow flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          <div className="w-full bg-background h-full max-h-full relative flex flex-col workspace-layout">
-            {/* Hidden container for keeping all terminals alive */}
-            <HiddenTerminalContainer />
-            
-            <ResizablePanelGroup direction="horizontal">
-              {/* Left Panel - File Explorer */}
-              <ResizablePanel 
-                defaultSize={stableLeftSize} 
-                onResize={onResizeLeftPanel} 
-                minSize={15} 
-                maxSize={50}
-              >
-                <div className="h-full w-full">
-                  <FileExplorer />
-                </div>
-              </ResizablePanel>
+        <main className="h-full grow flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <div className="w-full bg-background h-full max-h-full relative flex flex-col workspace-layout">
+              {/* Hidden container for keeping all terminals alive */}
+              <HiddenTerminalContainer />
 
-              <ResizableHandle />
-
-              {/* Center Panel - Main Content Area */}
-              <ResizablePanel defaultSize={stableCenterSize} minSize={30}>
-                {view === "auto" ? (
-                  // Auto view takes the full center panel
-                  <AutoView />
-                ) : (
-                  // Other views use the resizable vertical layout
-                  <ResizablePanelGroup direction="vertical" className="h-full">
-                    <ResizablePanel defaultSize={70} minSize={30}>
-                      {view === "code" && <EditorArea />}
-                      {view === "agents" && <AgentsView />}
-                    </ResizablePanel>
-
-                    {isVisible && <>
-                      <ResizableHandle />
-                      <ResizablePanel defaultSize={30} minSize={15}>
-                        <PersistentTerminalPanel />
-                      </ResizablePanel></>
-                    }
-                  </ResizablePanelGroup>
-                )}
-              </ResizablePanel>
-
-              {/* Right Panel - Chat (always present but conditionally visible) */}
-              {hasRightPanel && <ResizableHandle />}
-              {hasRightPanel && (
-                <ResizablePanel 
-                  defaultSize={stableRightSize} 
-                  onResize={onResizeRightPanel} 
-                  minSize={15} 
+              <ResizablePanelGroup direction="horizontal">
+                {/* Left Panel - File Explorer */}
+                <ResizablePanel
+                  defaultSize={stableLeftSize}
+                  onResize={onResizeLeftPanel}
+                  minSize={15}
                   maxSize={50}
                 >
                   <div className="h-full w-full">
-                    <ChatPanel />
+                    <FileExplorer />
                   </div>
                 </ResizablePanel>
-              )}
-            </ResizablePanelGroup>
-            
-            <WorkspaceFooter />
+
+                <ResizableHandle />
+
+                {/* Center Panel - Main Content Area */}
+                <ResizablePanel defaultSize={stableCenterSize} minSize={30}>
+                  {view === "auto" ? (
+                    // Auto view takes the full center panel
+                    <AutoView />
+                  ) : (
+                    // Other views use the resizable vertical layout
+                    <ResizablePanelGroup direction="vertical" className="h-full">
+                      <ResizablePanel defaultSize={70} minSize={30}>
+                        {view === "code" && <EditorArea />}
+                        {view === "agents" && <AgentsView />}
+                      </ResizablePanel>
+
+                      {isVisible && <>
+                        <ResizableHandle />
+                        <ResizablePanel defaultSize={30} minSize={15}>
+                          <PersistentTerminalPanel />
+                        </ResizablePanel></>
+                      }
+                    </ResizablePanelGroup>
+                  )}
+                </ResizablePanel>
+
+                {/* Right Panel - Chat (always present but conditionally visible) */}
+                {hasRightPanel && <ResizableHandle />}
+                {hasRightPanel && (
+                  <ResizablePanel
+                    defaultSize={stableRightSize}
+                    onResize={onResizeRightPanel}
+                    minSize={15}
+                    maxSize={50}
+                  >
+                    <div className="h-full w-full">
+                      <ChatPanel />
+                    </div>
+                  </ResizablePanel>
+                )}
+              </ResizablePanelGroup>
+
+              <WorkspaceFooter />
+            </div>
           </div>
-        </div>
-      </main>
-      <Toaster />
-    </div>
+        </main>
+        <Toaster />
+      </div>
     </GlobalKeymapProvider>
   );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { BufferContent } from '@/stores/buffers';
 import { CodeEditor } from './code-editor';
 import { ContentViewer } from './content-viewer';
+import { MarkdownEditor } from './markdown-editor';
 
 export interface ContentRendererProps {
   /** The buffer to render */
@@ -19,7 +20,20 @@ export interface ContentRendererProps {
  * based on the buffer type
  */
 export function ContentRenderer({ buffer, isFocused = false, onChange, onFocus }: ContentRendererProps) {
-  // Use code editor for text files, content viewer for everything else
+  // Use markdown editor for markdown files
+  if (buffer.isEditable && buffer.type === 'text' && 
+      (buffer.extension === 'md' || buffer.extension === 'markdown')) {
+    return (
+      <MarkdownEditor
+        buffer={buffer}
+        isFocused={isFocused}
+        onChange={onChange}
+        onFocus={onFocus}
+      />
+    );
+  }
+
+  // Use code editor for other text files
   if (buffer.isEditable && buffer.type === 'text') {
     return (
       <CodeEditor

@@ -4,6 +4,7 @@ import * as monaco from 'monaco-editor';
 import { registerDarkMatrixTheme } from '@/themes/dark-matrix-monaco';
 import { registerVibesLightTheme } from '@/themes/vibes-light-monaco';
 import { registerDuneTheme } from '@/themes/dune-monaco';
+import { registerDarkSummerNightTheme } from '@/themes/dark-summer-night-monaco';
 
 // Note: We'll import the settings store dynamically to avoid circular dependencies
 
@@ -130,6 +131,39 @@ const defaultPresets: ThemePreset[] = [
       '--scrollbar-thumb': 'oklch(0.7200 0.0450 62.0000)',
       '--scrollbar-thumb-hover': 'oklch(0.6800 0.0550 58.0000)',
     }
+  },
+  {
+    id: 'dark-summer-night',
+    name: 'Dark Summer Night',
+    description: 'Incredibly zen, calming, sunset-inspired dark theme for a soothing summer night coding experience',
+    type: 'dark',
+    uiTheme: 'dark',
+    monacoTheme: 'dark-summer-night',
+    cssVariables: {
+      '--background': 'oklch(0.18 0.02 270)', // deep indigo
+      '--foreground': 'oklch(0.92 0.01 300)', // soft moonlight
+      '--card': 'oklch(0.22 0.02 270)',
+      '--card-foreground': 'oklch(0.92 0.01 300)',
+      '--popover': 'oklch(0.22 0.02 270)',
+      '--popover-foreground': 'oklch(0.92 0.01 300)',
+      '--primary': 'oklch(0.75 0.13 50)', // sunset orange
+      '--primary-foreground': 'oklch(0.18 0.02 270)',
+      '--secondary': 'oklch(0.32 0.04 250)', // dusk blue
+      '--secondary-foreground': 'oklch(0.92 0.01 300)',
+      '--muted': 'oklch(0.22 0.02 270)',
+      '--muted-foreground': 'oklch(0.75 0.03 300)',
+      '--accent': 'oklch(0.60 0.10 140)', // leafy green
+      '--accent-foreground': 'oklch(0.18 0.02 270)',
+      '--destructive': 'oklch(0.45 0.15 30)', // soft coral
+      '--destructive-foreground': 'oklch(0.92 0.01 300)',
+      '--border': 'oklch(0.22 0.02 270)',
+      '--input': 'oklch(0.22 0.02 270)',
+      '--ring': 'oklch(0.75 0.13 50)',
+      // Scrollbar styling - zen dusk
+      '--scrollbar-track': 'oklch(0.22 0.02 270)',
+      '--scrollbar-thumb': 'oklch(0.32 0.04 250)',
+      '--scrollbar-thumb-hover': 'oklch(0.45 0.07 50)',
+    }
   }
 ];
 
@@ -145,6 +179,7 @@ export const useThemeStore = create<ThemeState>()(
         registerDarkMatrixTheme();
         registerVibesLightTheme();
         registerDuneTheme();
+        registerDarkSummerNightTheme();
       },
 
       setTheme: async (themeId: string) => {

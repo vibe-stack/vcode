@@ -180,3 +180,5 @@ export const duneTheme: monaco.editor.IStandaloneThemeData = {
 export const registerDuneTheme = () => {
   monaco.editor.defineTheme('dune', duneTheme);
 };
+
+
