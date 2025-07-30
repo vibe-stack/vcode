@@ -123,8 +123,21 @@ export const useKeymapStore = create<KeymapState>()(
             console.error(`Error executing command ${binding.command}:`, error);
           });
         }
-        
-        // Prevent default behavior
+
+        // For edit commands, if in an editable field, let the browser/editor handle it
+        const editCommands = [
+          'edit.copy', 'edit.paste', 'edit.cut', 'edit.selectAll'
+        ];
+        const target = event.target as HTMLElement;
+        if (
+          editCommands.includes(binding.command) &&
+          (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+        ) {
+          // Do not prevent default, let native behavior happen
+          return false;
+        }
+
+        // Prevent default behavior for all other cases
         event.preventDefault();
         event.stopPropagation();
         return true;

@@ -25,6 +25,7 @@ export function ContentRenderer({ buffer, isFocused = false, onChange, onFocus }
       (buffer.extension === 'md' || buffer.extension === 'markdown')) {
     return (
       <MarkdownEditor
+        key={buffer.id}
         buffer={buffer}
         isFocused={isFocused}
         onChange={onChange}

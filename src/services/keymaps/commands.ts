@@ -328,12 +328,21 @@ export const registerDefaultCommands = (): Map<string, KeyCommand> => {
   
   commands.set('edit.paste', {
     execute: async () => {
+      // Only handle paste if not in an input, textarea, or contenteditable
+      // const active = document.activeElement as HTMLElement | null;
+      // if (active && (
+      //   active.tagName === 'INPUT' ||
+      //   active.tagName === 'TEXTAREA' ||
+      //   active.isContentEditable
+      // )) {
+      //   // Let the browser/editor handle paste
+      //   return;
+      // }
       console.log('Paste...');
       // You would implement paste functionality
     },
     canExecute: () => {
-      const bufferStore = useBufferStore.getState();
-      return bufferStore.activeBufferId !== null;
+      return true; 
     }
   });
   
