@@ -118,7 +118,7 @@ export default function MyProjectsSection({
         <div className="px-8 py-6">
           {filteredProjects.length === 0 ? (
             <div className="text-center py-16">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/60 flex items-center justify-center">
                 <FolderOpen className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-medium mb-2">

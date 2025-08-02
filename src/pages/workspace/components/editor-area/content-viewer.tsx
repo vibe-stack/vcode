@@ -18,7 +18,7 @@ export function ContentViewer({ buffer, isFocused = false, onFocus }: ContentVie
   const contentDisplay = useMemo(() => {
     if (buffer.isLoading) {
       return (
-        <div className="h-full flex items-center justify-center bg-background">
+        <div className="h-full flex items-center justify-center bg-background/70">
           <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       );
@@ -26,7 +26,7 @@ export function ContentViewer({ buffer, isFocused = false, onFocus }: ContentVie
 
     if (buffer.error) {
       return (
-        <div className="h-full flex items-center justify-center bg-background">
+        <div className="h-full flex items-center justify-center bg-background/70">
           <div className="text-center">
             <p className="text-destructive text-sm mb-2">Error loading file</p>
             <p className="text-xs text-muted-foreground">{buffer.error}</p>
@@ -77,14 +77,14 @@ function ImageViewer({ buffer, onFocus }: { buffer: BufferContent; onFocus?: () 
 
   if (!imageUrl) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-background/70">
         <p className="text-muted-foreground text-sm">Unable to display image</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-background p-4">
+    <div className="h-full flex items-center justify-center bg-background/70 p-4">
       <div className="max-w-full max-h-full overflow-auto">
         <img
           src={imageUrl}
@@ -115,7 +115,7 @@ function PDFViewer({ buffer, onFocus }: { buffer: BufferContent; onFocus?: () =>
 
   if (!pdfUrl) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-background/70">
         <p className="text-muted-foreground text-sm">Unable to display PDF</p>
       </div>
     );
@@ -143,14 +143,14 @@ function VideoViewer({ buffer, onFocus }: { buffer: BufferContent; onFocus?: () 
 
   if (!videoUrl) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-background/70">
         <p className="text-muted-foreground text-sm">Unable to display video</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-background p-4" onClick={() => onFocus?.()}>
+    <div className="h-full flex items-center justify-center bg-background/70 p-4" onClick={() => onFocus?.()}>
       <video
         src={videoUrl}
         controls
@@ -176,14 +176,14 @@ function AudioViewer({ buffer, onFocus }: { buffer: BufferContent; onFocus?: () 
 
   if (!audioUrl) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-background/70">
         <p className="text-muted-foreground text-sm">Unable to play audio</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-background p-4" onClick={() => onFocus?.()}>
+    <div className="h-full flex items-center justify-center bg-background/70 p-4" onClick={() => onFocus?.()}>
       <div className="text-center">
         <div className="mb-4">
           <h3 className="text-lg font-medium mb-2">{buffer.name}</h3>
@@ -215,7 +215,7 @@ function BinaryViewer({ buffer, onFocus }: { buffer: BufferContent; onFocus?: ()
   }, [buffer.fileSize, buffer.mimeType]);
 
   return (
-    <div className="h-full flex items-center justify-center bg-background" onClick={() => onFocus?.()}>
+    <div className="h-full flex items-center justify-center bg-background/70" onClick={() => onFocus?.()}>
       <div className="text-center">
         <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-lg flex items-center justify-center">
           <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">

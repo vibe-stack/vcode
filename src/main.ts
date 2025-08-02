@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import { cleanupTerminals } from "./helpers/ipc/terminal/terminal-listeners";
+import { createApplicationMenu } from "./helpers/application-menu/menu-setup";
 // "electron-squirrel-startup" seems broken when packaging with vite
 //import started from "electron-squirrel-startup";
 import path from "path";
@@ -43,7 +44,11 @@ function createWindow() {
       webSecurity: false,
       preload: preload,
     },
-    frame: true,
+    vibrancy: 'fullscreen-ui',    // on MacOS
+    backgroundMaterial: 'acrylic', // on Windows 11
+    transparent: true,
+    frame: false,
+    titleBarStyle: "default",
   });
 
   // Save window size/position on close
@@ -57,6 +62,9 @@ function createWindow() {
   });
 
   registerListeners(mainWindow);
+
+  // Set up application menu
+  createApplicationMenu();
 
   // Initialize auto-updater for production builds using update-electron-app
   // DISABLED CAUSE I GOT NO CODE SIGNING CERTIFICATE

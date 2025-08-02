@@ -46,6 +46,27 @@ export interface CodeEditorProps {
  */
 export function CodeEditor({ buffer, isFocused = false, onChange, onFocus }: CodeEditorProps) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+
+  // Inject Monaco background opacity style on mount
+  useEffect(() => {
+    const styleId = 'monaco-bg-opacity-style';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      // Use color-mix if supported, fallback to hex with opacity overlay
+      style.textContent = `
+        .monaco-editor^ {
+          background-color: color-mix(in srgb, var(--vscode-editor-background) 20%, transparent) !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    return () => {
+      const style = document.getElementById(styleId);
+      if (style) style.remove();
+    };
+  }, []);
+
   const currentProject = useProjectStore((s) => s.currentProject);
   const { currentTheme, getTheme } = useThemeStore();
   
@@ -205,7 +226,7 @@ export function CodeEditor({ buffer, isFocused = false, onChange, onFocus }: Cod
   // Show loading state
   if (buffer.isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-background/70">
         <p className="text-muted-foreground text-sm">Loading...</p>
       </div>
     );
@@ -214,7 +235,7 @@ export function CodeEditor({ buffer, isFocused = false, onChange, onFocus }: Cod
   // Show error state
   if (buffer.error) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-background/70">
         <div className="text-center">
           <p className="text-destructive text-sm mb-2">Error loading file</p>
           <p className="text-xs text-muted-foreground">{buffer.error}</p>
@@ -226,7 +247,7 @@ export function CodeEditor({ buffer, isFocused = false, onChange, onFocus }: Cod
   // Show readonly overlay for non-editable files
   if (!buffer.isEditable) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-background/70">
         <div className="text-center">
           <p className="text-muted-foreground text-sm mb-2">
             Cannot edit {buffer.type} file

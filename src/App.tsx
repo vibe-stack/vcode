@@ -11,6 +11,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { useProjectStore } from "./stores/project";
 import { useThemeStore } from "./stores/theme";
 import { useSettingsStore } from "./stores/settings";
+import { WindowWrapper } from "./layouts/WindowWrapper";
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -21,17 +22,17 @@ export default function App() {
   useEffect(() => {
     // Initialize settings store first
     initializeSettings();
-    
+
     // Initialize themes
     initializeThemes();
-    
+
     // Apply the current theme
     setTheme(currentTheme);
-    
+
     // Sync with the old theme system for backward compatibility
     syncThemeWithLocal();
     updateAppLanguage(i18n);
-    
+
     // Auto-open last project on startup (temporarily disabled)
     // autoOpenLastProject();
   }, [i18n, autoOpenLastProject, initializeThemes, setTheme, currentTheme, initializeSettings]);
@@ -46,6 +47,8 @@ export default function App() {
 const root = createRoot(document.getElementById("app")!);
 root.render(
   <React.StrictMode>
-    <App />
+    <WindowWrapper>
+      <App />
+    </WindowWrapper>
   </React.StrictMode>,
 );

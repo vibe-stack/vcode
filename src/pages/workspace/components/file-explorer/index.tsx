@@ -358,7 +358,7 @@ export function FileExplorer() {
     return (
         <div className="h-full flex flex-col border-r">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'files' | 'search' | 'ask' | 'git')} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-4 border-b rounded-none h-10">
+                <TabsList className="grid w-full grid-cols-4 rounded-none h-10">
                     <TabsTrigger value="files" className="flex items-center gap-2">
                         <Files className="h-3 w-3" />
                     </TabsTrigger>

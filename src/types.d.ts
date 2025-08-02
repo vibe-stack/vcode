@@ -189,6 +189,27 @@ interface ElectronAPI {
   onTypescriptLSPNotification: (callback: (notification: any) => void) => void;
 }
 
+// Context Menu Types
+interface ContextMenuItem {
+  id: string;
+  label: string;
+  type?: 'normal' | 'separator' | 'submenu';
+  enabled?: boolean;
+  visible?: boolean;
+  accelerator?: string;
+  submenu?: ContextMenuItem[];
+}
+
+interface ShowContextMenuOptions {
+  items: ContextMenuItem[];
+  x?: number;
+  y?: number;
+}
+
+interface ContextMenuApi {
+  show: (options: ShowContextMenuOptions) => Promise<string | null>;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
@@ -200,6 +221,7 @@ declare interface Window {
   shellApi: ShellApi;
   indexApi: IndexApi;
   electronAPI: ElectronAPI;
+  contextMenuApi: ContextMenuApi;
 }
 
 declare module "@joplin/turndown-plugin-gfm" {

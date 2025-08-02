@@ -41,7 +41,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   if (!editor) {
     return (
       <div className="relative w-full">
-        <div className="flex-1 resize-none min-h-0 h-20 border rounded-md p-3 bg-muted animate-pulse">
+        <div className="flex-1 resize-none min-h-0 h-20 border-0 rounded-md p-3 animate-pulse">
           <div className="text-muted-foreground text-xs">Loading editor...</div>
         </div>
       </div>
@@ -76,7 +76,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      <div className="relative border rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      <div className="relative rounded-md focus-within:ring-0 focus-within:ring-transparent focus-within:ring-offset-2">
         <EditorContent
           editor={editor}
           className={cn(

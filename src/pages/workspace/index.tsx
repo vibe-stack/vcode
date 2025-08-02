@@ -12,6 +12,7 @@ import { useTerminalStore } from '@/stores/terminal';
 import WorkspaceHeader from '@/components/WorkspaceHeader';
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalKeymapProvider } from '@/services/keymaps/main';
+import { useApplicationMenuHandlers } from '@/hooks/useApplicationMenuHandlers';
 
 
 export default function WorkspacePage() {
@@ -20,13 +21,16 @@ export default function WorkspacePage() {
   const { isVisible } = useTerminalStore();
   const panelGroupRef = useRef(null);
 
+  // Set up application menu handlers
+  useApplicationMenuHandlers();
+
   // Calculate panel sizes based on current view
   const hasRightPanel = view !== "agents" && view !== "auto";
   const stableLeftSize = hasRightPanel ? leftPanelSize : Math.min(leftPanelSize, 35);
   const stableRightSize = hasRightPanel ? rightPanelSize : 0;
   const stableCenterSize = 100 - stableLeftSize - stableRightSize;
 
-  const search = useSearch({ from: '/workspace' });
+  const search = useSearch({ from: '/workspace' }) as { project?: string };
   React.useEffect(() => {
     const projectPath = search?.project;
     if (!currentProject && projectPath) {
@@ -39,11 +43,11 @@ export default function WorkspacePage() {
 
   return (
     <GlobalKeymapProvider>
-      <div className="flex h-screen flex-col">
+      <div className="flex h-full flex-1 flex-col">
         <WorkspaceHeader />
         <main className="h-full grow flex flex-col overflow-hidden">
           <div className="flex-1 overflow-hidden">
-            <div className="w-full bg-background h-full max-h-full relative flex flex-col workspace-layout">
+            <div className="w-full bg-background/80 h-full max-h-full relative flex flex-col workspace-layout">
               {/* Hidden container for keeping all terminals alive */}
               <HiddenTerminalContainer />
 

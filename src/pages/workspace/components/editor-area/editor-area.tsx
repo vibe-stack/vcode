@@ -379,7 +379,7 @@ export function EditorArea() {
     <EditorKeymapProvider>
       <div
         ref={dragRef}
-        className="h-full bg-background relative"
+        className="h-full relative"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDropEvent}

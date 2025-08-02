@@ -185,7 +185,6 @@
     @apply overflow-hidden;
   }
   .draglayer {
-    @apply bg-background;
     -webkit-app-region: drag;
   }
 
@@ -203,11 +202,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
   }
 }
 :root {
-  --background: oklch(0.9900 0 0);
+  --background: oklch(99.107% 0.00011 271.152 / 0.406);
   --foreground: oklch(0 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0 0 0);
@@ -256,7 +255,7 @@
 }
 
 .dark {
-  --background: oklch(0 0 0);
+  --background: oklch(0% 0 0 / 0.394);
   --foreground: oklch(1 0 0);
   --card: oklch(0.1400 0 0);
   --card-foreground: oklch(1 0 0);

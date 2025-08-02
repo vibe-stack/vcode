@@ -83,9 +83,9 @@ export default function HomeSection({
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full select-none">
       {/* Left: Timeline Feed */}
-      <div className="w-full max-w-xl border-r border-border/50 bg-background">
+      <div className="w-full max-w-xl border-r border-border/50">
         <Timeline user={mockUser} />
       </div>
 

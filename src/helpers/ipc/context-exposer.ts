@@ -10,6 +10,9 @@ import { exposeAgentContext } from "./agents/agent-context";
 import { exposeIndexContext } from "./index/index-context";
 import { exposeTypescriptLSPContext } from "./typescript-lsp/typescript-lsp-context";
 import { exposeMapBuilderContext } from "./map-builder/map-builder-context";
+import { exposeContextMenuContext } from "./context-menu/context-menu-context";
+import { exposeApplicationMenuContext } from "../application-menu/menu-context";
+import { exposeFileDialogContext } from "../file-dialog/file-dialog-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -24,4 +27,7 @@ export default function exposeContexts() {
   exposeAgentContext();
   exposeIndexContext();
   exposeTypescriptLSPContext();
+  exposeContextMenuContext();
+  exposeApplicationMenuContext();
+  exposeFileDialogContext();
 }

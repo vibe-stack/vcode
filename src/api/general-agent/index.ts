@@ -69,7 +69,7 @@ export async function chatApi({
             system: finalSystemPrompt,
             messages: messages,
             tools: finalTools,
-            maxSteps: maxSteps,
+            maxSteps: 50,
           });
           result.mergeIntoDataStream(dataStream, {
             sendReasoning: true,

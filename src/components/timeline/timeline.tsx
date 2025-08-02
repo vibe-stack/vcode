@@ -178,10 +178,10 @@ export default function Timeline({ user, className = '' }: TimelineProps) {
   };
 
   return (
-    <div className={`flex flex-col h-full bg-background ${className}`}>
+    <div className={`flex flex-col h-full ${className}`}>
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-border/50  sticky top-0 z-10">
+        <div className="flex items-center justify-between select-none">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Timeline</h2>
             <p className="text-sm text-muted-foreground">Stay connected with your network</p>

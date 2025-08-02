@@ -13,7 +13,7 @@ export default function SocialLayout({
   className 
 }: SocialLayoutProps) {
   return (
-    <div className={cn("flex h-full bg-background", className)}>
+    <div className={cn("flex h-full bg-background/70", className)}>
       {/* Sidebar */}
       {sidebar}
       

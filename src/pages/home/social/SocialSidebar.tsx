@@ -42,7 +42,7 @@ export default function SocialSidebar({
 }: SocialSidebarProps) {
   return (
     <div className={cn(
-      "flex flex-col w-64 bg-background border-r border-border",
+      "flex flex-col w-64 border-r border-border select-none",
       className
     )}>
       {/* Header */}

@@ -126,7 +126,7 @@ export function EditorPane({ paneId, className }: EditorPaneProps) {
   return (
     <>
       <div 
-        className={cn("flex flex-col h-full bg-background", className)}
+        className={cn("flex flex-col h-full", className)}
         onClick={handlePaneClick}
         data-pane-id={paneId}
       >

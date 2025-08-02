@@ -11,6 +11,8 @@ import { addIndexEventListeners } from "./index/index-listeners";
 import registerShellListeners from "./shell/shell-listeners";
 import { addTypescriptLSPEventListeners } from "./typescript-lsp/typescript-lsp-listeners";
 import { addMapBuilderEventListeners } from "./map-builder/map-builder-listeners";
+import { addContextMenuListeners } from "./context-menu/context-menu-listeners";
+import { addFileDialogListeners } from "../file-dialog/file-dialog-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   addWindowEventListeners(mainWindow);
@@ -25,4 +27,6 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addIndexEventListeners();
   addTypescriptLSPEventListeners(mainWindow);
   registerShellListeners();
+  addContextMenuListeners();
+  addFileDialogListeners();
 }
