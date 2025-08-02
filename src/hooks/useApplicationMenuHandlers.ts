@@ -28,7 +28,7 @@ declare global {
 }
 
 export function useApplicationMenuHandlers() {
-  const { createBuffer, saveBuffer, saveBufferAs, activeBufferId, getBuffer } = useBufferStore();
+  const { createBuffer, saveBuffer, saveBufferAs, activeBufferId, getBuffer, setActiveBuffer } = useBufferStore();
   const { openProject } = useProjectStore();
 
   useEffect(() => {
@@ -36,7 +36,9 @@ export function useApplicationMenuHandlers() {
 
     // New File handler
     const unsubscribeNewFile = window.applicationMenuApi.onNewFile(() => {
-      createBuffer('Untitled', '');
+      // Create a new buffer and immediately set it as active
+      const newBufferId = createBuffer('Untitled', '');
+      setActiveBuffer(newBufferId);
     });
 
     // New Window handler - handled by main process, no action needed here
@@ -118,5 +120,5 @@ export function useApplicationMenuHandlers() {
       unsubscribeSaveAsFile();
       unsubscribeCloseWindow();
     };
-  }, [activeBufferId, createBuffer, saveBuffer, saveBufferAs, getBuffer]);
+  }, [activeBufferId, createBuffer, saveBuffer, saveBufferAs, getBuffer, setActiveBuffer]);
 }

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useBufferSyncManager } from './hooks/useBufferSyncManager';
+import { useBufferSyncManager } from '../hooks/useBufferSyncManager';
 import { useBufferStore } from '@/stores/buffers';
 import { htmlToMarkdown, markdownToHtml } from './markdownUtils';
-import { HeadingNode, MarkdownEditorProps } from './types';
+import { HeadingNode, MarkdownEditorProps } from '../types';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { Document } from '@tiptap/extension-document';
 import { Paragraph } from '@tiptap/extension-paragraph';

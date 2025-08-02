@@ -95,8 +95,10 @@ export function createApplicationMenu() {
           click: (menuItem, browserWindow) => {
             if (browserWindow && browserWindow instanceof BrowserWindow) {
               if (isMac) {
+                // On macOS, close the specific window that triggered the menu
                 browserWindow.close();
               } else {
+                // On Windows/Linux, exit the entire application
                 app.quit();
               }
             }
@@ -152,23 +154,21 @@ export function createApplicationMenu() {
     },
 
     // Window Menu
-    {
-      label: 'Window',
-      submenu: [
-        { role: 'minimize' },
-        { role: 'close' },
-        ...(isMac ? [
-          { type: 'separator' as const },
-          { role: 'front' as const },
-          { type: 'separator' as const },
-          { role: 'window' as const }
-        ] : [
-          { role: 'close' as const }
-        ])
-      ]
-    },
-
-    // Help Menu
+      {
+        label: 'Window',
+        submenu: [
+          { role: 'minimize' },
+          ...(isMac ? [
+            { role: 'close' as const },
+            { type: 'separator' as const },
+            { role: 'front' as const },
+            { type: 'separator' as const },
+            { role: 'window' as const }
+          ] : [
+            { role: 'close' as const }
+          ])
+        ]
+      },    // Help Menu
     {
       role: 'help',
       submenu: [
@@ -195,11 +195,13 @@ function createNewWindow() {
 
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
+  
+  // Use the same preload script path as the main window
   const preload = path.join(__dirname, "preload.js");
 
   const newWindow = new BrowserWindow({
-    width: width * 0.8,
-    height: height * 0.8,
+    width: Math.floor(width * 0.8),
+    height: Math.floor(height * 0.8),
     webPreferences: {
       devTools: true,
       contextIsolation: true,
@@ -213,6 +215,18 @@ function createNewWindow() {
     transparent: true,
     frame: false,
     titleBarStyle: "default",
+  });
+
+  // Save window size/position on close (same as main window)
+  newWindow.on("close", () => {
+    const bounds = newWindow.getBounds();
+    try {
+      const userDataPath = app.getPath("userData");
+      const windowStatePath = path.join(userDataPath, `window-state-${newWindow.id}.json`);
+      fs.writeFileSync(windowStatePath, JSON.stringify(bounds));
+    } catch (e) {
+      // ignore
+    }
   });
 
   // Load the same URL as the current window, but without project parameter
@@ -231,9 +245,24 @@ function createNewWindow() {
     }
   }
 
-  // Register listeners for the new window
-  const registerListeners = require('../ipc/listeners-register').default;
-  registerListeners(newWindow);
+  // Register listeners for the new window - use dynamic import path resolution
+  try {
+    // Get the absolute path for the listeners module
+    const listenersModulePath = path.resolve(__dirname, '../ipc/listeners-register');
+    delete require.cache[listenersModulePath]; // Clear cache to ensure fresh import
+    const registerListeners = require(listenersModulePath);
+    
+    if (typeof registerListeners === 'function') {
+      registerListeners(newWindow);
+    } else if (registerListeners.default && typeof registerListeners.default === 'function') {
+      registerListeners.default(newWindow);
+    } else {
+      console.error('registerListeners is not a function:', typeof registerListeners);
+    }
+  } catch (error) {
+    console.error('Failed to register listeners for new window:', error);
+    console.error('Available exports:', Object.keys(require('../ipc/listeners-register')));
+  }
 
   return newWindow;
 }

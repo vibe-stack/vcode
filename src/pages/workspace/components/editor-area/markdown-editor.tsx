@@ -1,13 +1,13 @@
 import React from 'react';
 import { cn } from '@/utils/tailwind';
 import "./styles/tiptap.css";
-import { MarkdownEditorToolbar } from './markdown-editor-toolbar';
-import { MarkdownEditorOutline } from './markdown-editor-outline';
-import { useMarkdownEditor } from './useMarkdownEditor';
+import { MarkdownEditorToolbar } from './markdown/markdown-editor-toolbar';
+import { MarkdownEditorOutline } from './markdown/markdown-editor-outline';
+import { useMarkdownEditor } from './markdown/useMarkdownEditor';
 import { MarkdownEditorProps } from './types';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { MarkdownSearch } from './markdown-search';
-import { useMarkdownSearch } from './useMarkdownSearch';
+import { MarkdownSearch } from './markdown/markdown-search';
+import { useMarkdownSearch } from './markdown/useMarkdownSearch';
 
 export function MarkdownEditor(props: MarkdownEditorProps) {
   const {
@@ -46,6 +46,7 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
     <div className="h-full flex flex-col relative">
       {/* Search Bar */}
       <MarkdownSearch
+        key="markdown-search"
         isVisible={isSearchVisible}
         query={searchQuery}
         setQuery={setSearchQuery}

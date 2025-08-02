@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 interface MarkdownSearchProps {
   isVisible: boolean;
@@ -23,12 +23,24 @@ export const MarkdownSearch: React.FC<MarkdownSearchProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Stable event handlers
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+  }, [setQuery]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { e.preventDefault(); gotoNext(); }
+    else if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) { e.preventDefault(); gotoNext(); }
+    else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) { e.preventDefault(); gotoPrev(); }
+    else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+  }, [gotoNext, gotoPrev, onClose]);
+
   useEffect(() => {
     if (isVisible) {
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [isVisible]);
-
+  
   if (!isVisible) return null;
 
   return (
@@ -39,13 +51,8 @@ export const MarkdownSearch: React.FC<MarkdownSearchProps> = ({
         className="search-input px-2 py-1 text-sm bg-transparent outline-none min-w-[120px]"
         placeholder="Search..."
         value={query}
-        onChange={e => setQuery(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter') { e.preventDefault(); gotoNext(); }
-          else if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) { e.preventDefault(); gotoNext(); }
-          else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) { e.preventDefault(); gotoPrev(); }
-          else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-        }}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
         autoFocus
       />
       <span className="text-xs text-muted-foreground select-none">
