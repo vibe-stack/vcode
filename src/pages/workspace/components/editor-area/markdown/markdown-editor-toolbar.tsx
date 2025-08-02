@@ -13,7 +13,7 @@ interface ToolbarProps {
 }
 
 export const MarkdownEditorToolbar: React.FC<ToolbarProps> = ({ editor }) => (
-  <div className="flex flex-wrap gap-1 items-center px-1 py-1 rounded-md bg-background/80 border border-border shadow-sm">
+  <div className="flex flex-wrap gap-1 items-center py-1">
     {/* Text type dropdown */}
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

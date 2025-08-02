@@ -51,7 +51,7 @@ export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) 
   };
 
   return (
-    <div ref={wrapperRef} className="relative w-full max-w-xs min-w-[350px]">
+    <div ref={wrapperRef} className="relative w-full max-w-xs min-w-[350px] isolate z-180">
       <Command>
         <CommandInput
           placeholder="Global Commands (soon)"
@@ -59,7 +59,7 @@ export default function GlobalCommands({ onOpenSettings }: GlobalCommandsProps) 
           onBlur={() => setFocused(false)}
         />
         {focused && (
-          <div className="absolute left-0 right-0 top-10 border rounded-md z-50 mt-1 w-full bg-background/50 backdrop-blur-sm">
+          <div className="absolute left-0 right-0 top-10 border rounded-md  z-[190] mt-1 w-full bg-background/50 backdrop-blur-sm">
             <CommandList>
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandSeparator />

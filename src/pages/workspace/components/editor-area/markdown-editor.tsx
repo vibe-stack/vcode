@@ -8,6 +8,8 @@ import { MarkdownEditorProps } from './types';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { MarkdownSearch } from './markdown/markdown-search';
 import { useMarkdownSearch } from './markdown/useMarkdownSearch';
+import { Button } from '@/components/ui/button';
+import { TableOfContentsIcon } from 'lucide-react';
 
 export function MarkdownEditor(props: MarkdownEditorProps) {
   const {
@@ -61,7 +63,6 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
       <div className="border-b border-border bg-background/50 p-2 flex flex-col sticky top-0 z-20">
         <div className="flex items-center justify-between mb-1">
           <div className="text-sm text-muted-foreground">Markdown Editor</div>
-          <div className="text-xs text-muted-foreground">{headings.length} headings</div>
         </div>
         <MarkdownEditorToolbar editor={editor} />
       </div>
@@ -87,12 +88,13 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
 
       {/* Outline toggle button when hidden */}
       {!isOutlineVisible && !isSearchVisible && (
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setIsOutlineVisible(true)}
-          className="absolute top-2 right-2 z-10 px-3 py-1 bg-background border border-border rounded-md text-sm hover:bg-muted transition-colors"
+          className="absolute top-2 right-4 z-50 text-xs"
         >
-          Show Outline
-        </button>
+          <TableOfContentsIcon size={16} className="text-muted-foreground" />
+        </Button>
       )}
     </div>
   );
