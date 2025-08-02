@@ -4,7 +4,7 @@
 
 # ⚠️ **Important Note**
 > 
-> **This project was built in just 72 hours, so expect some rough edges.** There is currently a known issue with `node-pty` in production builds. For the best experience, please run the IDE locally by cloning the repository and using `npm run start`.
+> **This project was built in just 72 hours, so expect some rough edges.** There is currently a known issue with `node-pty` in production builds. For the best experience, please run the IDE locally by cloning the repository and using `npm run start`. Update: production builds should work now, but are quite large (1 GB+). Will fix it once the software is stable.
 
 # vCode IDE
 

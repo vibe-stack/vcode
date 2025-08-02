@@ -70,11 +70,11 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-background">
           <EditorContent
             ref={editorRef}
             editor={editor}
-            className="h-full"
+            className="h-full min-h-full"
             tabIndex={0}
           />
         </div>
