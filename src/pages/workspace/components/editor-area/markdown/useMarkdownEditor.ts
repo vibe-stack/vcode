@@ -33,6 +33,7 @@ import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { HardBreak } from '@tiptap/extension-hard-break';
 import { History } from '@tiptap/extension-history';
+import { SearchExtension } from './search-extension';
 
 export function useMarkdownEditor({ buffer, isFocused = false, onChange, onFocus }: MarkdownEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -95,6 +96,7 @@ export function useMarkdownEditor({ buffer, isFocused = false, onChange, onFocus
       TableHeader.configure({ HTMLAttributes: { class: 'border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 font-semibold p-2' } }),
       TableCell.configure({ HTMLAttributes: { class: 'border border-zinc-300 dark:border-zinc-700 p-2' } }),
       Highlight.configure({ HTMLAttributes: { class: 'bg-yellow-200 dark:bg-yellow-800 px-1 rounded' } }),
+      SearchExtension,
       Subscript, Superscript, HardBreak, History,
     ],
     content: markdownContent,

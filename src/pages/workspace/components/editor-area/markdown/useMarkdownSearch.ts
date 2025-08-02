@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor } from '@tiptap/react';
+import { getSearchResults } from './search-extension';
 
 interface SearchResult {
   from: number;
@@ -12,68 +13,92 @@ export function useMarkdownSearch(editor: Editor | null) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [currentMatchIdx, setCurrentMatchIdx] = useState(0);
 
-  // Find matches in the document
+  // Find matches using the search extension
   const findMatches = useCallback((query: string): SearchResult[] => {
     if (!editor || !query.trim()) return [];
     
-    const results: SearchResult[] = [];
-    const { doc } = editor.state;
-    const searchRegex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    
-    // Get all text content with positions
-    let textPos = 0;
-    const textMap: Array<{ char: string; pos: number }> = [];
-    
-    doc.descendants((node, pos) => {
-      if (node.isText && node.text) {
-        for (let i = 0; i < node.text.length; i++) {
-          textMap.push({ char: node.text[i], pos: pos + i });
-        }
-      }
-    });
-    
-    const fullText = textMap.map(item => item.char).join('');
-    let match;
-    
-    while ((match = searchRegex.exec(fullText)) !== null) {
-      const from = textMap[match.index]?.pos;
-      const to = textMap[match.index + query.length - 1]?.pos + 1;
-      
-      if (from !== undefined && to !== undefined) {
-        results.push({ from, to });
-      }
-      
-      // Prevent infinite loop
-      if (match.index === searchRegex.lastIndex) {
-        searchRegex.lastIndex++;
-      }
-    }
-    
-    return results;
+    // Use the search extension to get results
+    return getSearchResults(editor);
   }, [editor]);
 
-  // Update search results only
+  // Update search results and highlighting
   const updateSearchMatches = useCallback((query: string) => {
     if (!editor) return;
 
     if (!query.trim()) {
+      // Clear search highlighting
+      editor.commands.clearMarkdownSearch();
       setSearchResults([]);
       setCurrentMatchIdx(0);
       return;
     }
 
-    // Find new matches
-    const results = findMatches(query);
-    setSearchResults(results);
-    setCurrentMatchIdx(0);
-  }, [editor, findMatches]);
+    // Update search term in the extension (this will trigger highlighting)
+    editor.commands.setMarkdownSearchTerm(query, 0);
+    
+    // Get the results after a short delay to allow the extension to update
+    setTimeout(() => {
+      const results = getSearchResults(editor);
+      setSearchResults(results);
+      setCurrentMatchIdx(0);
+    }, 10);
+  }, [editor]);
 
-  // Jump to a specific match (just select and scroll)
+  // Jump to a specific match with proper highlighting
   const jumpToMatch = useCallback((idx: number) => {
     if (!editor || !searchResults.length || idx < 0 || idx >= searchResults.length) return;
+    
     const result = searchResults[idx];
+    
+    // Update the current index in the search extension (this will update highlighting)
+    editor.commands.setMarkdownSearchIndex(idx);
+    
+    // Set selection WITHOUT focusing or using scrollIntoView
     editor.commands.setTextSelection({ from: result.from, to: result.to });
-    editor.commands.scrollIntoView();
+    
+    // Custom scroll implementation using ProseMirror's coordsAtPos
+    try {
+      const coords = editor.view.coordsAtPos(result.from);
+      const editorDom = editor.view.dom;
+      
+      // Find the scrollable container (could be the editor itself or a parent)
+      let scrollContainer = editorDom;
+      while (scrollContainer && scrollContainer.parentElement) {
+        const style = window.getComputedStyle(scrollContainer);
+        if (style.overflow === 'auto' || style.overflow === 'scroll' || style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          break;
+        }
+        scrollContainer = scrollContainer.parentElement;
+      }
+      
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const scrollTop = scrollContainer.scrollTop;
+        const targetY = coords.top - containerRect.top + scrollTop;
+        
+        // Center the target in the container
+        const centerOffset = containerRect.height / 2;
+        const scrollTo = targetY - centerOffset;
+        
+        scrollContainer.scrollTo({
+          top: Math.max(0, scrollTo),
+          behavior: 'instant'
+        });
+      }
+    } catch (error) {
+      // Fallback: try to find the DOM element and scroll it into view
+      try {
+        const domPos = editor.view.domAtPos(result.from);
+        if (domPos.node && domPos.node.nodeType === Node.TEXT_NODE && domPos.node.parentElement) {
+          domPos.node.parentElement.scrollIntoView({
+            behavior: 'instant',
+            block: 'center'
+          });
+        }
+      } catch (fallbackError) {
+        console.warn('Could not scroll to search result:', error, fallbackError);
+      }
+    }
   }, [editor, searchResults]);
 
   // Handle keyboard shortcuts
@@ -126,11 +151,14 @@ export function useMarkdownSearch(editor: Editor | null) {
 
   // Close search and clean up
   const closeSearch = useCallback(() => {
+    if (editor) {
+      editor.commands.clearMarkdownSearch();
+    }
     setIsSearchVisible(false);
     setSearchQuery('');
     setSearchResults([]);
     setCurrentMatchIdx(0);
-  }, []);
+  }, [editor]);
 
   // Memoize setSearchQuery to prevent unnecessary re-renders
   const setSearchQueryMemo = useCallback((query: string) => {
