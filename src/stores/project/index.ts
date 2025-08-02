@@ -39,6 +39,7 @@ export interface ProjectState {
 
     // File tree updates
     refreshFileTree: () => Promise<void>;
+    expandLargeFolder: (folderPath: string) => Promise<void>;
     updateFileInTree: (filePath: string, action: 'created' | 'deleted' | 'modified') => void;
 }
 
@@ -108,7 +109,9 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
         try {
             const tree = await projectApi.getDirectoryTree(rootPath, {
                 depth: 20,
-                includeFiles: true
+                includeFiles: true,
+                includeHidden: true,
+                includeLargeFolders: false
             });
             set((state) => {
                 state.fileTree = tree;
@@ -239,6 +242,40 @@ export const useProjectStore = create(immer<ProjectState>((set, get) => ({
             await projectApi.unwatchFileChanges(currentProject);
         } catch (error) {
             console.error('Error unwatching project:', error);
+        }
+    },
+
+    // Expand large folder
+    expandLargeFolder: async (folderPath: string) => {
+        try {
+            const expandedSubtree = await projectApi.getDirectoryTree(folderPath, {
+                depth: 2,
+                includeFiles: true,
+                includeHidden: true,
+                includeLargeFolders: true
+            });
+
+            set((state) => {
+                if (state.fileTree) {
+                    // Find and replace the large folder node with the expanded version
+                    const updateNode = (node: DirectoryNode): DirectoryNode => {
+                        if (node.path === folderPath) {
+                            return { ...expandedSubtree };
+                        }
+                        if (node.children) {
+                            return {
+                                ...node,
+                                children: node.children.map(updateNode)
+                            };
+                        }
+                        return node;
+                    };
+                    
+                    state.fileTree = updateNode(state.fileTree);
+                }
+            });
+        } catch (error) {
+            console.error('Error expanding large folder:', error);
         }
     },
 

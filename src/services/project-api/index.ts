@@ -18,6 +18,9 @@ export interface DirectoryNode {
   children?: DirectoryNode[];
   size?: number;
   lastModified?: Date;
+  isHidden?: boolean;
+  isGitIgnored?: boolean;
+  isLargeFolder?: boolean;
 }
 
 export interface SearchResult {
@@ -47,6 +50,8 @@ export interface SearchInFilesOptions {
 export interface DirectoryTreeOptions {
   depth?: number;
   includeFiles?: boolean;
+  includeHidden?: boolean;
+  includeLargeFolders?: boolean;
 }
 
 declare global {

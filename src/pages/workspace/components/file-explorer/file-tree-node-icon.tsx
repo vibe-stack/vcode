@@ -5,19 +5,23 @@ import {
     File,
     Folder,
     FolderOpen,
+    Archive,
 } from 'lucide-react';
 import { FileTreeNodeIconProps } from './types';
 
 export const FileTreeNodeIcon: React.FC<FileTreeNodeIconProps> = ({
     isDirectory,
     isExpanded,
-    hasChildren
+    hasChildren,
+    isHidden,
+    isLargeFolder,
+    isPlaceholder
 }) => {
     return (
         <>
             {isDirectory && (
                 <div className="flex items-center justify-center w-4 h-4">
-                    {hasChildren && (
+                    {hasChildren && !isPlaceholder && (
                         isExpanded ? (
                             <ChevronDown className="h-3 w-3" />
                         ) : (
@@ -28,14 +32,18 @@ export const FileTreeNodeIcon: React.FC<FileTreeNodeIconProps> = ({
             )}
 
             <div className="flex items-center justify-center w-4 h-4">
-                {isDirectory ? (
-                    isExpanded ? (
+                {isPlaceholder ? (
+                    <Archive className="h-4 w-4 text-orange-500" />
+                ) : isDirectory ? (
+                    isLargeFolder ? (
+                        <Archive className="h-4 w-4 text-orange-500" />
+                    ) : isExpanded ? (
                         <FolderOpen className="h-4 w-4 text-emerald-500" />
                     ) : (
                         <Folder className="h-4 w-4 text-emerald-500" />
                     )
                 ) : (
-                    <File className="h-4 w-4 text-muted-foreground" />
+                    <File className={`h-4 w-4 ${isHidden ? 'text-muted-foreground/60' : 'text-muted-foreground'}`} />
                 )}
             </div>
         </>

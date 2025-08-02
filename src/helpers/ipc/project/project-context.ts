@@ -44,7 +44,12 @@ export function exposeProjectContext() {
     getFileStats: (filePath: string) => ipcRenderer.invoke(PROJECT_GET_FILE_STATS_CHANNEL, filePath),
     
     // Directory operations
-    getDirectoryTree: (rootPath: string, options?: { depth?: number; includeFiles?: boolean }) => 
+    getDirectoryTree: (rootPath: string, options?: { 
+      depth?: number; 
+      includeFiles?: boolean; 
+      includeHidden?: boolean; 
+      includeLargeFolders?: boolean;
+    }) => 
       ipcRenderer.invoke(PROJECT_GET_DIRECTORY_TREE_CHANNEL, rootPath, options),
     
     // File watching

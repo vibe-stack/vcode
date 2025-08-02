@@ -50,6 +50,9 @@ export interface FileTreeNodeIconProps {
     isDirectory: boolean;
     isExpanded: boolean;
     hasChildren: boolean;
+    isHidden?: boolean;
+    isLargeFolder?: boolean;
+    isPlaceholder?: boolean;
 }
 
 export interface GitStatusIndicatorProps {

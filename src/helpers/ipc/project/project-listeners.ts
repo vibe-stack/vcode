@@ -49,6 +49,9 @@ interface DirectoryNode {
   children?: DirectoryNode[];
   size?: number;
   lastModified?: Date;
+  isHidden?: boolean;
+  isGitIgnored?: boolean;
+  isLargeFolder?: boolean;
 }
 
 interface SearchResult {
@@ -147,16 +150,44 @@ async function getFileStats(filePath: string): Promise<FileStats> {
 // Build directory tree recursively
 async function buildDirectoryTree(
   rootPath: string,
-  options: { depth?: number; includeFiles?: boolean } = {}
+  options: { 
+    depth?: number; 
+    includeFiles?: boolean; 
+    includeHidden?: boolean; 
+    includeLargeFolders?: boolean;
+  } = {},
+  projectRoot?: string,
+  gitignorePatterns?: string[]
 ): Promise<DirectoryNode> {
-  const { depth = 3, includeFiles = true } = options;
+  const { 
+    depth = 3, 
+    includeFiles = true, 
+    includeHidden = true, 
+    includeLargeFolders = false 
+  } = options;
+  
+  // Initialize project root and gitignore patterns on first call
+  if (!projectRoot) {
+    projectRoot = rootPath;
+    gitignorePatterns = await getGitignorePatterns(rootPath);
+  }
   
   const stats = await fs.stat(rootPath);
+  const fileName = path.basename(rootPath);
+  const isHidden = fileName.startsWith('.');
+  
+  // Calculate relative path for gitignore matching
+  const relativePath = path.relative(projectRoot, rootPath);
+  const isGitIgnored = gitignorePatterns ? 
+    isMatchingGitignorePattern(relativePath, gitignorePatterns) : false;
+  
   const node: DirectoryNode = {
-    name: path.basename(rootPath),
+    name: fileName,
     path: rootPath,
     type: stats.isDirectory() ? 'directory' : 'file',
     lastModified: stats.mtime,
+    isHidden,
+    isGitIgnored,
   };
 
   if (stats.isFile()) {
@@ -166,12 +197,78 @@ async function buildDirectoryTree(
 
   if (stats.isDirectory() && depth > 0) {
     try {
+      // Check if this is a large folder
+      const isLarge = await isLargeFolder(rootPath);
+      node.isLargeFolder = isLarge;
+      
+      // Skip .git folder entirely
+      if (fileName === '.git') {
+        return node; // Return empty directory node without children
+      }
+      
+      // For large folders, only show a limited number of entries unless explicitly requested
+      if (isLarge && !includeLargeFolders) {
+        // For large folders like node_modules, show first 50 entries and indicate truncation
+        const entries = await fs.readdir(rootPath);
+        node.children = [];
+        
+        const limitedEntries = entries.slice(0, 50);
+        for (const entry of limitedEntries) {
+          const fullPath = path.join(rootPath, entry);
+          const entryStats = await fs.stat(fullPath);
+
+          if (entryStats.isDirectory()) {
+            const childNode = await buildDirectoryTree(
+              fullPath, 
+              { depth: 1, includeFiles, includeHidden, includeLargeFolders: false }, // Limit depth for large folders
+              projectRoot,
+              gitignorePatterns
+            );
+            node.children.push(childNode);
+          } else if (includeFiles && entryStats.isFile()) {
+            const childRelativePath = path.relative(projectRoot, fullPath);
+            const childIsGitIgnored = gitignorePatterns ? 
+              isMatchingGitignorePattern(childRelativePath, gitignorePatterns) : false;
+            
+            node.children.push({
+              name: entry,
+              path: fullPath,
+              type: 'file',
+              size: entryStats.size,
+              lastModified: entryStats.mtime,
+              isHidden: entry.startsWith('.'),
+              isGitIgnored: childIsGitIgnored,
+              isLargeFolder: false,
+            });
+          }
+        }
+        
+        // Add a note if there are more entries
+        if (entries.length > 50) {
+          node.children.push({
+            name: `... ${entries.length - 50} more items`,
+            path: `${rootPath}/__truncated__`,
+            type: 'file' as const,
+            isHidden: false,
+            isGitIgnored: false,
+            isLargeFolder: false,
+          });
+        }
+        
+        return node;
+      }
+      
       const entries = await fs.readdir(rootPath);
       node.children = [];
 
       for (const entry of entries) {
-        // Skip hidden files and common ignore patterns
-        if (entry.startsWith('.') || entry === 'node_modules' || entry === 'dist' || entry === 'build') {
+        // Skip .git folder entirely
+        if (entry === '.git') {
+          continue;
+        }
+        
+        // Skip hidden files if not including them
+        if (!includeHidden && entry.startsWith('.')) {
           continue;
         }
 
@@ -179,15 +276,27 @@ async function buildDirectoryTree(
         const entryStats = await fs.stat(fullPath);
 
         if (entryStats.isDirectory()) {
-          const childNode = await buildDirectoryTree(fullPath, { depth: depth - 1, includeFiles });
+          const childNode = await buildDirectoryTree(
+            fullPath, 
+            { depth: depth - 1, includeFiles, includeHidden, includeLargeFolders },
+            projectRoot,
+            gitignorePatterns
+          );
           node.children.push(childNode);
         } else if (includeFiles && entryStats.isFile()) {
+          const childRelativePath = path.relative(projectRoot, fullPath);
+          const childIsGitIgnored = gitignorePatterns ? 
+            isMatchingGitignorePattern(childRelativePath, gitignorePatterns) : false;
+          
           node.children.push({
             name: entry,
             path: fullPath,
             type: 'file',
             size: entryStats.size,
             lastModified: entryStats.mtime,
+            isHidden: entry.startsWith('.'),
+            isGitIgnored: childIsGitIgnored,
+            isLargeFolder: false,
           });
         }
       }
@@ -390,6 +499,45 @@ async function getGitignorePatterns(rootPath: string): Promise<string[]> {
   return [];
 }
 
+// Helper function to check if a path matches gitignore patterns
+function isMatchingGitignorePattern(relativePath: string, patterns: string[]): boolean {
+  return patterns.some(pattern => {
+    // Remove leading slash if present
+    pattern = pattern.replace(/^\//, '');
+    
+    // Simple glob-like matching
+    if (pattern.includes('*')) {
+      const regex = new RegExp(pattern.replace(/\*/g, '.*').replace(/\?/g, '.'));
+      return regex.test(relativePath);
+    }
+    
+    // Exact match or directory prefix match
+    return relativePath === pattern || 
+           relativePath.startsWith(pattern + '/') ||
+           relativePath.endsWith('/' + pattern);
+  });
+}
+
+// Helper function to check if a folder is considered "large" (for performance optimization)
+async function isLargeFolder(folderPath: string): Promise<boolean> {
+  try {
+    const entries = await fs.readdir(folderPath);
+    
+    // Consider folders with more than 1000 items as large
+    if (entries.length > 1000) {
+      return true;
+    }
+    
+    // Also check for specific large folder patterns
+    const folderName = path.basename(folderPath);
+    const largeFolderPatterns = ['node_modules', '.next', 'dist', 'build', 'coverage', '.nyc_output', 'target'];
+    
+    return largeFolderPatterns.includes(folderName);
+  } catch (error) {
+    return false;
+  }
+}
+
 export function addProjectEventListeners(window: BrowserWindow): void {
   mainWindow = window;
   
@@ -529,7 +677,12 @@ export function addProjectEventListeners(window: BrowserWindow): void {
   });
 
   // Directory operations
-  ipcMain.handle(PROJECT_GET_DIRECTORY_TREE_CHANNEL, async (_, rootPath: string, options?: { depth?: number; includeFiles?: boolean }) => {
+  ipcMain.handle(PROJECT_GET_DIRECTORY_TREE_CHANNEL, async (_, rootPath: string, options?: { 
+    depth?: number; 
+    includeFiles?: boolean; 
+    includeHidden?: boolean; 
+    includeLargeFolders?: boolean;
+  }) => {
     try {
       return await buildDirectoryTree(rootPath, options);
     } catch (error) {

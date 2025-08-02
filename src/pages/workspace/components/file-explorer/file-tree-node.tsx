@@ -182,6 +182,13 @@ export const FileTreeNode = (({
             return;
         }
 
+        // Don't handle clicks on truncated indicators
+        if (node.path.includes('__truncated__')) {
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+        }
+
         if (onItemSelect) {
             // Handle multi-selection
             if (event.metaKey || event.ctrlKey) {
@@ -211,6 +218,9 @@ export const FileTreeNode = (({
                     "text-sm select-none relative",
                     isSelected && "bg-accent/50",
                     isDraggedOver && isDirectory && "bg-accent border-2 border-accent-foreground/25",
+                    node.isGitIgnored && "opacity-60", // Make gitignored files/folders semi-transparent
+                    node.isHidden && "text-muted-foreground", // Style hidden files differently
+                    node.path.includes('__truncated__') && "cursor-default hover:bg-transparent", // Make truncated items non-interactive
                     gitColor
                 )}
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
@@ -229,6 +239,9 @@ export const FileTreeNode = (({
                     isDirectory={isDirectory}
                     isExpanded={isExpanded}
                     hasChildren={!!hasChildren}
+                    isHidden={node.isHidden}
+                    isLargeFolder={node.isLargeFolder}
+                    isPlaceholder={node.name.includes('more items')}
                 />
 
                 {isInlineEditing ? (
@@ -240,7 +253,12 @@ export const FileTreeNode = (({
                         onBlur={handleInlineInputBlur}
                     />
                 ) : (
-                    <span className="flex-1 truncate">{node.name}</span>
+                    <span className={cn(
+                        "flex-1 truncate",
+                        node.name.includes('more items') && "text-orange-600 italic font-medium opacity-70"
+                    )}>
+                        {node.name}
+                    </span>
                 )}
                 
                 <GitStatusIndicator

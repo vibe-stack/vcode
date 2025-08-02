@@ -17,7 +17,10 @@ import {
     FileText,
     FolderPlus,
     MessageSquare,
-    FileQuestionMarkIcon
+    FileQuestionMarkIcon,
+    Settings,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import { FileTreeNode } from './file-tree-node';
 import { GitPanel } from './git-panel';
@@ -26,9 +29,10 @@ import { AskPanel } from './ask-panel';
 import { InlineEditingItem } from './inline-editing-item';
 import { useEditorContentStore } from '@/stores/editor-content';
 import { createNestedPath, getPathRange, flattenDirectoryTree } from './utils';
+import { cn } from '@/utils/tailwind';
 
 export function FileExplorer() {
-    const { fileTree, projectName, currentProject, refreshFileTree } = useProjectStore();
+    const { fileTree, projectName, currentProject, refreshFileTree, expandLargeFolder } = useProjectStore();
     const { isGitRepo } = useGitStore();
     const { openFile: openFileInSplit, startDrag } = useEditorSplitStore();
     const setView = useEditorContentStore((s) => s.setView);
@@ -45,9 +49,16 @@ export function FileExplorer() {
     } | null>(null);
     const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
     const [dragExpandTimeout, setDragExpandTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [showHiddenFiles, setShowHiddenFiles] = useState<boolean>(true);
+    const [showGitIgnoredFiles, setShowGitIgnoredFiles] = useState<boolean>(true);
 
     const handleFileClick = useCallback(async (filePath: string) => {
         try {
+            // Check if this is a truncated indicator (not clickable)
+            if (filePath.includes('__truncated__')) {
+                return;
+            }
+            
             // Use the split store to open the file
             setView('code');
             await openFileInSplit(filePath);
@@ -316,10 +327,22 @@ export function FileExplorer() {
 
     const filteredTree = useCallback((node: DirectoryNode): DirectoryNode | null => {
         if (!searchQuery.trim()) {
+            // Apply visibility filters
+            if (!showHiddenFiles && node.isHidden) {
+                return null;
+            }
+            if (!showGitIgnoredFiles && node.isGitIgnored) {
+                return null;
+            }
+            
             if (node.type === 'directory' && node.children) {
+                const filteredChildren = node.children
+                    .map(child => filteredTree(child))
+                    .filter(Boolean) as DirectoryNode[];
+                    
                 return {
                     ...node,
-                    children: sortChildren(node.children).map(child => filteredTree(child)).filter(Boolean) as DirectoryNode[]
+                    children: sortChildren(filteredChildren)
                 };
             }
             return node;
@@ -327,6 +350,14 @@ export function FileExplorer() {
 
         const query = searchQuery.toLowerCase();
         const matchesSearch = node.name.toLowerCase().includes(query);
+
+        // Apply visibility filters even when searching
+        if (!showHiddenFiles && node.isHidden) {
+            return null;
+        }
+        if (!showGitIgnoredFiles && node.isGitIgnored) {
+            return null;
+        }
 
         if (node.type === 'file') {
             return matchesSearch ? node : null;
@@ -343,7 +374,7 @@ export function FileExplorer() {
         }
 
         return null;
-    }, [searchQuery]);
+    }, [searchQuery, showHiddenFiles, showGitIgnoredFiles]);
 
     if (!fileTree) {
         return (
@@ -404,6 +435,15 @@ export function FileExplorer() {
                                 onClick={handleCreateNewFolder}
                             >
                                 <FolderPlus className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn("h-6 w-6 p-0", showHiddenFiles && "bg-accent")}
+                                title={showHiddenFiles ? "Hide hidden files" : "Show hidden files"}
+                                onClick={() => setShowHiddenFiles(!showHiddenFiles)}
+                            >
+                                {showHiddenFiles ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                             </Button>
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                                 <MoreHorizontal className="h-3 w-3" />
