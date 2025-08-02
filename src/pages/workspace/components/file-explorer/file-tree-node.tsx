@@ -34,15 +34,16 @@ export const FileTreeNode = (({
     onFileDrop,
     dragOverFolder,
 }: FileTreeNodeProps) => {
-    const [isHovered, setIsHovered] = useState(false);
     const isExpanded = level === 0 || expandedFolders.has(node.path);
     const isDirectory = node.type === 'directory';
     const hasChildren = node.children && node.children.length > 0;
     const isSelected = selectedItems.has(node.path);
     const isInlineEditing = inlineEditingItem?.path === node.path;
 
-    // Use the new hook to get git status for only this specific file
+    // Use the optimized hook to get git status for only this specific file
     const gitFileStatus = useFileGitStatus(node.path);
+    
+    // Test comment to trigger git status change - final test
 
     // Custom hooks for functionality
     const { inputRef, handleInlineInputKeyDown, handleInlineInputBlur } = useInlineEditing({
@@ -162,7 +163,7 @@ export const FileTreeNode = (({
         contextMenuActions
     ]);
 
-    // Memoize git status display values
+    // Memoize git status display values based on the actual status strings, not the object reference
     const { gitColor, gitIcon, gitTooltip } = useMemo(() => {
         if (!gitFileStatus) {
             return { gitColor: '', gitIcon: '', gitTooltip: '' };
@@ -173,7 +174,7 @@ export const FileTreeNode = (({
             gitIcon: getGitStatusIcon(gitFileStatus.workingTreeStatus, gitFileStatus.indexStatus),
             gitTooltip: getGitStatusTooltip(gitFileStatus.workingTreeStatus, gitFileStatus.indexStatus)
         };
-    }, [gitFileStatus]);
+    }, [gitFileStatus?.workingTreeStatus, gitFileStatus?.indexStatus]);
 
     const handleClick = useCallback((event: React.MouseEvent) => {
         if (isInlineEditing || (inlineEditingItem?.isNew && inlineEditingItem.parentPath === node.path)) {
@@ -226,8 +227,6 @@ export const FileTreeNode = (({
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
                 onClick={handleClick}
                 onContextMenu={handleContextMenu}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
                 draggable={!isDirectory && !isInlineEditing}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}

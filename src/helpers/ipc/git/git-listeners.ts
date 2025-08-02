@@ -162,9 +162,37 @@ async function getGitStatus(projectPath: string): Promise<GitStatus> {
       const lines = statusOutput.split('\n').filter(line => line.trim());
       
       for (const line of lines) {
+        if (line.length < 2) {
+          continue;
+        }
+        
         const indexStatus = line[0];
         const workingTreeStatus = line[1];
-        const filePath = line.substring(3);
+        
+        // Git porcelain format: "XY filename" where X and Y are status codes
+        // Find the first space after the status codes to get the filename
+        let filePath = '';
+        if (line.length >= 3 && line[2] === ' ') {
+          // Standard format: "XY filename"
+          filePath = line.substring(3);
+        } else if (line.length >= 2 && line[1] === ' ') {
+          // Alternate format: "X filename" (when working tree status is not used)
+          filePath = line.substring(2);
+        } else {
+          // Fallback: find first space and take everything after it
+          const spaceIndex = line.indexOf(' ');
+          if (spaceIndex !== -1) {
+            filePath = line.substring(spaceIndex + 1);
+          } else {
+            continue;
+          }
+        }
+        
+        // Handle quoted filenames (git quotes filenames with spaces or special chars)
+        if (filePath.startsWith('"') && filePath.endsWith('"')) {
+          // Remove quotes and unescape
+          filePath = filePath.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+        }
         
         files.push({
           path: path.join(projectPath, filePath),

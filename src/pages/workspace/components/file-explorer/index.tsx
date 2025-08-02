@@ -33,7 +33,7 @@ import { cn } from '@/utils/tailwind';
 
 export function FileExplorer() {
     const { fileTree, projectName, currentProject, refreshFileTree, expandLargeFolder } = useProjectStore();
-    const { isGitRepo } = useGitStore();
+    const isGitRepo = useGitStore((state) => state.isGitRepo);
     const { openFile: openFileInSplit, startDrag } = useEditorSplitStore();
     const setView = useEditorContentStore((s) => s.setView);
     const [searchQuery, setSearchQuery] = useState('');
