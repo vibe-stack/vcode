@@ -50,6 +50,11 @@ export const useChatEditor = ({
       ShiftEnterSend,
     ],
     content: '',
+    editorProps: {
+      attributes: {
+        class: 'chatinput',
+      },
+    },
     editable: !disabled,
     onUpdate: ({ editor }) => {
       // Update attachments when mentions change (but don't mark as user input yet)

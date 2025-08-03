@@ -4,12 +4,96 @@
   line-height: 1.75;
   color: hsl(var(--foreground));
   max-width: 100%;
-  padding: 2rem 3rem;
+  /* padding: 2rem 3rem; */
   margin: 0 auto;
   background: hsl(var(--background));
   min-height: 100%;
   overflow-wrap: break-word;
   font-size: 16px;
+}
+
+/* Text selection styling for both light and dark themes */
+.tiptap ::selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+.tiptap ::-moz-selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* More aggressive selection styling to ensure visibility */
+.tiptap .ProseMirror-selectednode,
+.tiptap .ProseMirror-selection {
+  background-color: #3b82f6 !important;
+}
+
+.tiptap * ::selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+.tiptap * ::-moz-selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Fallback selection styles for when ProseMirror overrides */
+.tiptap[contenteditable="true"] ::selection,
+.tiptap .ProseMirror ::selection,
+.tiptap .prose ::selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+.tiptap[contenteditable="true"] ::-moz-selection,
+.tiptap .ProseMirror ::-moz-selection,
+.tiptap .prose ::-moz-selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Comment marks styling */
+.tiptap .comment-mark {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tiptap .comment-mark:hover {
+  background-color: hsl(var(--yellow-200) / 0.25) !important;
+  border-color: hsl(var(--yellow-400) / 0.5) !important;
+}
+
+/* CRITICAL: Override any TipTap default selection styles */
+.ProseMirror ::selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+.ProseMirror ::-moz-selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Target the actual editor content wrapper */
+.tiptap div[contenteditable="true"] ::selection,
+.tiptap [data-tippy-content] ::selection,
+.tiptap .prose ::selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Nuclear option - target everything */
+* ::selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+* ::-moz-selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
 }
 
 /* Remove margin from first element */

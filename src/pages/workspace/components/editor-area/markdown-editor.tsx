@@ -70,7 +70,7 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor */}
-        <div className="flex-1 overflow-auto bg-background">
+        <div className="flex-1 overflow-auto bg-background py-2 px-3">
           <EditorContent
             ref={editorRef}
             editor={editor}
@@ -83,6 +83,8 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
           isVisible={isOutlineVisible}
           onJump={jumpToHeading}
           onHide={() => setIsOutlineVisible(false)}
+          editor={editor}
+          fileId={props.buffer.filePath || props.buffer.id}
         />
       </div>
 

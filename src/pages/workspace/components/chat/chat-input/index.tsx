@@ -80,7 +80,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <EditorContent
           editor={editor}
           className={cn(
-            "min-h-[80px] max-h-[200px] overflow-y-auto p-0 text-xs",
+            "min-h-[80px] max-h-[200px] overflow-y-auto p-0 text-xs chat-input",
             "prose prose-sm max-w-none dark:prose-invert",
             "[&_.mention]:bg-accent [&_.mention]:text-accent-foreground [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:rounded [&_.mention]:text-xs",
             disabled && "opacity-50 cursor-not-allowed"

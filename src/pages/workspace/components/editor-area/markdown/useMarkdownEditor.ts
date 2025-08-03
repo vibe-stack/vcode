@@ -34,6 +34,8 @@ import { Superscript } from '@tiptap/extension-superscript';
 import { HardBreak } from '@tiptap/extension-hard-break';
 import { History } from '@tiptap/extension-history';
 import { SearchExtension } from './search-extension';
+import { CommentMark } from './extensions/comment-extension';
+import { useCommentsStore } from '@/stores/comments';
 
 export function useMarkdownEditor({ buffer, isFocused = false, onChange, onFocus }: MarkdownEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -43,6 +45,7 @@ export function useMarkdownEditor({ buffer, isFocused = false, onChange, onFocus
   const { localContent, isDirty, updateLocalContent, saveBuffer } = useBufferSyncManager(buffer);
   const updateBufferContent = useBufferStore(state => state.updateBufferContent);
   const setBufferDirty = useBufferStore(state => state.setBufferDirty);
+  const { getCommentById } = useCommentsStore();
 
   const markdownContent = useMemo(() => {
     if (typeof localContent === 'string') return localContent;
@@ -69,6 +72,18 @@ export function useMarkdownEditor({ buffer, isFocused = false, onChange, onFocus
   useEffect(() => {
     setBufferDirty(buffer.id, isDirty);
   }, [isDirty, buffer.id, setBufferDirty]);
+
+  const handleCommentClick = useCallback((commentId: string) => {
+    const comment = getCommentById(commentId);
+    if (comment && editor) {
+      // Navigate to comment and highlight it
+      editor.chain()
+        .focus()
+        .setTextSelection({ from: comment.startPos, to: comment.endPos })
+        .scrollIntoView()
+        .run();
+    }
+  }, [getCommentById]);
 
   const editor = useEditor({
     extensions: [
@@ -97,6 +112,9 @@ export function useMarkdownEditor({ buffer, isFocused = false, onChange, onFocus
       TableCell.configure({ HTMLAttributes: { class: 'border border-zinc-300 dark:border-zinc-700 p-2' } }),
       Highlight.configure({ HTMLAttributes: { class: 'bg-yellow-200 dark:bg-yellow-800 px-1 rounded' } }),
       SearchExtension,
+      CommentMark.configure({
+        onCommentClick: handleCommentClick,
+      }),
       Subscript, Superscript, HardBreak, History,
     ],
     content: markdownContent,
