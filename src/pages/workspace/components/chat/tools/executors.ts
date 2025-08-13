@@ -12,6 +12,10 @@ export interface ToolExecutionResult {
       cwd: string;
       terminalId: string;
     };
+    contextRules?: {
+      rules: string;
+      sources: string[];
+    };
   };
 }
 
@@ -20,26 +24,7 @@ export interface ToolExecutionResult {
  * These have access to the most up-to-date file state
  */
 export const frontendToolExecutors = {
-  async readFile(args: { filePath: string }): Promise<ToolExecutionResult> {
-    try {
-      let filePath = args.filePath;
-      if (!filePath.startsWith('/')) {
-        const currentProject = await window.projectApi.getCurrentProject();
-        if (currentProject) {
-          filePath = `${currentProject}/${filePath}`;
-        }
-      }
-      const result = await window.projectApi.openFile(filePath);
-      return {
-        message: result.content,
-      };
-    } catch (error) {
-      console.error('[readFile tool] Error:', error);
-      throw new Error(`Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  },
-
-  async writeFile(args: { filePath: string; content: string }): Promise<ToolExecutionResult> {
+  async readFile(args: { filePath: string; sessionId?: string }): Promise<ToolExecutionResult> {
     try {
       let filePath = args.filePath;
       if (!filePath.startsWith('/')) {
@@ -49,14 +34,129 @@ export const frontendToolExecutors = {
         }
       }
       
+      const result = await window.projectApi.openFile(filePath);
+      
+      // Always try to get context rules for this file
+      let contextRules = null;
+      try {
+        const currentProject = await window.projectApi.getCurrentProject();
+        console.log('[readFile] Current project:', currentProject);
+        console.log('[readFile] File path:', filePath);
+        console.log('[readFile] Session ID:', args.sessionId);
+        
+        if (currentProject) {
+          if (args.sessionId) {
+            // Use context tracker for token efficiency across the session
+            const { contextTracker } = await import('./context-tracker');
+            console.log('[readFile] Using context tracker...');
+            contextRules = await contextTracker.getNewContextForFiles(
+              args.sessionId, 
+              [filePath], 
+              currentProject
+            );
+
+            console.log("Context rules that were found", contextRules);
+          } else {
+            // Fallback: get context rules directly (less efficient but still works)
+            const { contextRulesService } = await import('./context-rules-service');
+            console.log('[readFile] Using direct context rules service...');
+            contextRules = await contextRulesService.getContextForFile(filePath, currentProject);
+
+            console.log("Context rules fallback", contextRules);
+          }
+        } else {
+          console.warn('[readFile] No current project found');
+        }
+      } catch (error) {
+        console.warn('[readFile tool] Failed to get context rules:', error);
+      }
+      
+      // Format the response based on whether we have context
+      let message: string;
+      if (contextRules && contextRules.rules.trim()) {
+        // Include context rules with clear separation and explicit instructions
+        message = `# File: ${filePath}
+
+${result.content}
+
+---
+
+## ⚠️ IMPORTANT: Context Rules for This File
+
+**Please follow these specific rules when working with this file:**
+
+${contextRules.rules}
+
+*📁 Context sources: ${contextRules.sources.map(s => s.split('/').pop()).join(', ')}*
+
+**These are project-specific requirements that MUST be followed in any modifications to this file.**`;
+      } else {
+        // Just the file content
+        message = result.content;
+      }
+
+      console.log("MESSAGE THE AI RECEIVED", message);
+      
+      return {
+        message,
+        metadata: contextRules ? { contextRules } : undefined
+      };
+    } catch (error) {
+      console.error('[readFile tool] Error:', error);
+      throw new Error(`Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  },
+
+  async writeFile(args: { filePath: string; content: string; sessionId?: string }): Promise<ToolExecutionResult> {
+    try {
+      let filePath = args.filePath;
+      if (!filePath.startsWith('/')) {
+        const currentProject = await window.projectApi.getCurrentProject();
+        if (currentProject) {
+          filePath = `${currentProject}/${filePath}`;
+        }
+      }
+
+      // Get context rules BEFORE processing content to ensure they're applied
+      let contextRules = null;
+      try {
+        const currentProject = await window.projectApi.getCurrentProject();
+        if (currentProject) {
+          if (args.sessionId) {
+            const { contextTracker } = await import('./context-tracker');
+            contextRules = await contextTracker.getNewContextForFiles(
+              args.sessionId, 
+              [filePath], 
+              currentProject
+            );
+          } else {
+            const { contextRulesService } = await import('./context-rules-service');
+            contextRules = await contextRulesService.getContextForFile(filePath, currentProject);
+          }
+        }
+      } catch (error) {
+        console.warn('[writeFile tool] Failed to get context rules:', error);
+      }
+      
       // Process the content to handle escaped characters (like \n)
-      const processedContent = args.content
+      let processedContent = args.content
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
         .replace(/\\r/g, '\r')
         .replace(/\\"/g, '"')
         .replace(/\\'/g, "'")
         .replace(/\\\\/g, '\\');
+
+      // Apply context rules to the content if they exist
+      if (contextRules && contextRules.rules.includes('// Edited by AI')) {
+        // Check if the content already has the comment
+        if (!processedContent.includes('// Edited by AI')) {
+          // Add the comment at the top for TypeScript/JavaScript files
+          if (filePath.endsWith('.ts') || filePath.endsWith('.tsx') || filePath.endsWith('.js') || filePath.endsWith('.jsx')) {
+            processedContent = '// Edited by AI\n' + processedContent;
+          }
+        }
+      }
       
       // Get previous content for snapshot
       let prevState = '';
@@ -99,14 +199,15 @@ export const frontendToolExecutors = {
       }
       
       return {
-        message: `Successfully wrote to ${filePath}`,
+        message: `Successfully ${operation === 'create' ? 'created' : 'updated'} ${filePath}${contextRules ? `\n\n✅ **Context Rules Applied:**\n${contextRules.rules}\n\n*These rules were automatically enforced during file creation/update.*` : ''}`,
         metadata: {
           fileChanges: [{
             filePath,
             operation,
             prevState,
             nextState: processedContent,
-          }]
+          }],
+          contextRules: contextRules || undefined
         }
       };
     } catch (error) {

@@ -143,10 +143,7 @@ export function MessageComponent({ message, onCopy, onDelete, onToolApprove, onT
     );
 }
 
-const MarkdownRenderer = ({ content }: { content?: string }) => {
-    // Debug: log the content being rendered
-    console.log('MarkdownRenderer content:', content);
-    
+const MarkdownRenderer = ({ content }: { content?: string }) => {    
     return (
         <div className="markdown-content max-w-full min-w-0 overflow-hidden">
             <Markdown 

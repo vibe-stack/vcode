@@ -6,3 +6,4 @@ export { useChatActions } from './use-chat-actions';
 export { useAutoScroll } from './use-auto-scroll';
 export { useSnapshotCleanup } from './use-snapshot-cleanup';
 export { useToolExpansion } from './use-tool-expansion';
+export { useChatContextTracking } from './use-chat-context-tracking';

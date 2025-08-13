@@ -16,6 +16,7 @@ import {
     useChatActions,
     useAutoScroll,
     useSnapshotCleanup,
+    useChatContextTracking,
 } from './hooks';
 
 export function ChatPanel() {
@@ -47,6 +48,9 @@ export function ChatPanel() {
 
     // Auto-scroll when messages change
     useAutoScroll({ messages, scrollToBottom });
+
+    // Context tracking for .aicontext rules
+    useChatContextTracking(currentSessionId, messages, setMessages);
 
     // Persistence hooks
     useChatPersistence({

@@ -42,9 +42,10 @@ class ToolExecutionServiceImpl implements ToolExecutionService {
     }
 
     try {
-      // Execute the tool
+      // Execute the tool with sessionId for context tracking
       const executor = frontendToolExecutors[toolName as keyof FrontendToolExecutors];
-      const result = await executor(toolInvocation.args) as ToolExecutionResult;
+      const enhancedArgs = { ...toolInvocation.args, sessionId };
+      const result = await executor(enhancedArgs) as ToolExecutionResult;
       
       // Handle file change snapshots
       if (result.metadata?.fileChanges) {

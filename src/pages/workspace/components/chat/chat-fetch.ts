@@ -34,6 +34,29 @@ export const chatFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
           requestId,
         };
         
+        // Check if any of the recent messages contain context rules
+        // and inject them as system context if needed
+        let hasContextRules = false;
+        for (const message of body.messages.slice(-3)) { // Check last 3 messages
+          if (message.role === 'tool' && message.content && 
+              message.content.includes('Context Rules for This File')) {
+            hasContextRules = true;
+            break;
+          }
+        }
+        
+        // If context rules were found in recent tool responses, 
+        // add a system message to ensure the AI follows them
+        if (hasContextRules) {
+          requestData.messages = [
+            {
+              role: 'system',
+              content: 'IMPORTANT: You have received context rules in previous tool responses. Please carefully follow any project-specific requirements, coding standards, or rules that were provided. These rules take precedence over general best practices and must be applied to any code you write or modify.'
+            },
+            ...requestData.messages
+          ];
+        }
+        
         window.ai.sendMessage(requestData)
           .then(response => {
             // noop
