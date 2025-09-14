@@ -30,7 +30,16 @@ export const DraggableDebugOverlay: React.FC<DraggableDebugOverlayProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeDirection, setResizeDirection] = useState<string>('');
+  const [resizeStart, setResizeStart] = useState({ mouseX: 0, mouseY: 0, width: 0, height: 0, x: 0, y: 0 });
   const overlayRef = useRef<HTMLDivElement>(null);
+  
+  // Refs to track mouse event handlers for proper cleanup
+  const mouseHandlersRef = useRef<{
+    handleMouseMove?: (e: MouseEvent) => void;
+    handleMouseUp?: (e: MouseEvent) => void;
+    handleMouseLeave?: (e: MouseEvent) => void;
+    handleVisibilityChange?: () => void;
+  }>({});
 
   useEffect(() => {
     // Capture console.log messages that start with [GROK]
@@ -87,7 +96,7 @@ export const DraggableDebugOverlay: React.FC<DraggableDebugOverlayProps> = ({
     };
   }, []);
 
-  // Handle mouse events for dragging and resizing
+  // Robust mouse event handling with proper cleanup and escape detection
   useEffect(() => {
     const getContainerBounds = () => {
       if (containerRef?.current) {
@@ -121,7 +130,18 @@ export const DraggableDebugOverlay: React.FC<DraggableDebugOverlayProps> = ({
       return { x: e.clientX, y: e.clientY };
     };
 
+    // Clean up any active drag/resize state
+    const cleanup = () => {
+      setIsDragging(false);
+      setIsResizing(false);
+      setResizeDirection('');
+    };
+
+    // Handle mouse move with validation
     const handleMouseMove = (e: MouseEvent) => {
+      // Prevent default to avoid text selection during drag
+      e.preventDefault();
+      
       if (isDragging) {
         const mousePos = getRelativeMousePosition(e);
         const newX = mousePos.x - dragOffset.x;
@@ -131,26 +151,29 @@ export const DraggableDebugOverlay: React.FC<DraggableDebugOverlayProps> = ({
       } else if (isResizing) {
         const mousePos = getRelativeMousePosition(e);
         const bounds = getContainerBounds();
-        let newWidth = size.width;
-        let newHeight = size.height;
-        let newX = position.x;
-        let newY = position.y;
+        
+        // Calculate deltas from initial resize position
+        const deltaX = mousePos.x - resizeStart.mouseX;
+        const deltaY = mousePos.y - resizeStart.mouseY;
+        
+        let newWidth = resizeStart.width;
+        let newHeight = resizeStart.height;
+        let newX = resizeStart.x;
+        let newY = resizeStart.y;
 
         if (resizeDirection.includes('right')) {
-          newWidth = Math.max(250, Math.min(mousePos.x - position.x, bounds.right - position.x));
+          newWidth = Math.max(250, Math.min(resizeStart.width + deltaX, bounds.right - resizeStart.x));
         }
         if (resizeDirection.includes('left')) {
-          const deltaX = mousePos.x - position.x;
-          newWidth = Math.max(250, size.width - deltaX);
-          newX = Math.max(bounds.left, Math.min(position.x + deltaX, position.x + size.width - 250));
+          newWidth = Math.max(250, resizeStart.width - deltaX);
+          newX = Math.max(bounds.left, Math.min(resizeStart.x + deltaX, resizeStart.x + resizeStart.width - 250));
         }
         if (resizeDirection.includes('bottom')) {
-          newHeight = Math.max(200, Math.min(mousePos.y - position.y, bounds.bottom - position.y));
+          newHeight = Math.max(200, Math.min(resizeStart.height + deltaY, bounds.bottom - resizeStart.y));
         }
         if (resizeDirection.includes('top')) {
-          const deltaY = mousePos.y - position.y;
-          newHeight = Math.max(200, size.height - deltaY);
-          newY = Math.max(bounds.top, Math.min(position.y + deltaY, position.y + size.height - 200));
+          newHeight = Math.max(200, resizeStart.height - deltaY);
+          newY = Math.max(bounds.top, Math.min(resizeStart.y + deltaY, resizeStart.y + resizeStart.height - 200));
         }
 
         setSize({ width: newWidth, height: newHeight });
@@ -158,25 +181,115 @@ export const DraggableDebugOverlay: React.FC<DraggableDebugOverlayProps> = ({
       }
     };
 
-    const handleMouseUp = () => {
+    // Handle mouse up with cleanup
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
+      cleanup();
+    };
+
+    // Handle mouse leave - stop drag/resize when mouse leaves window
+    const handleMouseLeave = (e: MouseEvent) => {
+      // Only cleanup if mouse actually leaves the viewport
+      if (e.clientX < 0 || e.clientX > window.innerWidth || 
+          e.clientY < 0 || e.clientY > window.innerHeight) {
+        cleanup();
+      }
+    };
+
+    // Handle visibility change (tab switch, window minimize, etc.)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        cleanup();
+      }
+    };
+
+    // Handle focus loss
+    const handleBlur = () => {
+      cleanup();
+    };
+
+    // Handle Escape key
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && (isDragging || isResizing)) {
+        e.preventDefault();
+        cleanup();
+      }
+    };
+
+    // Store handlers in ref for cleanup
+    mouseHandlersRef.current = {
+      handleMouseMove,
+      handleMouseUp,
+      handleMouseLeave,
+      handleVisibilityChange
+    };
+
+    // Add event listeners when dragging or resizing
+    if (isDragging || isResizing) {
+      // Mouse events on document for global capture
+      document.addEventListener('mousemove', handleMouseMove, { passive: false });
+      document.addEventListener('mouseup', handleMouseUp, { passive: false });
+      document.addEventListener('mouseleave', handleMouseLeave);
+      
+      // Visibility and focus events
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('blur', handleBlur);
+      
+      // Keyboard events
+      document.addEventListener('keydown', handleKeyDown);
+      
+      // Prevent text selection during drag
+      document.body.style.userSelect = 'none';
+      document.body.style.pointerEvents = 'none';
+      
+      // Re-enable pointer events on the overlay itself
+      if (overlayRef.current) {
+        overlayRef.current.style.pointerEvents = 'auto';
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      // Remove all event listeners
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('keydown', handleKeyDown);
+      
+      // Restore document state
+      document.body.style.userSelect = '';
+      document.body.style.pointerEvents = '';
+      
+      if (overlayRef.current) {
+        overlayRef.current.style.pointerEvents = '';
+      }
+    };
+  }, [isDragging, isResizing, dragOffset, size, position, resizeDirection, resizeStart, containerRef]);
+
+  // Cleanup on unmount or visibility change
+  useEffect(() => {
+    return () => {
+      // Ensure cleanup on unmount
       setIsDragging(false);
       setIsResizing(false);
       setResizeDirection('');
+      
+      // Restore document state
+      document.body.style.userSelect = '';
+      document.body.style.pointerEvents = '';
     };
-
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, isResizing, dragOffset, size, position, resizeDirection, containerRef]);
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Prevent any existing drag/resize operations
+    if (isDragging || isResizing) return;
+    
     if (!containerRef?.current) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
     
     // Calculate mouse position relative to container
     const containerRect = containerRef.current.getBoundingClientRect();
@@ -192,7 +305,29 @@ export const DraggableDebugOverlay: React.FC<DraggableDebugOverlayProps> = ({
   };
 
   const handleResizeMouseDown = (e: React.MouseEvent, direction: string) => {
+    // Prevent any existing drag/resize operations
+    if (isDragging || isResizing) return;
+    
+    if (!containerRef?.current) return;
+    
+    e.preventDefault();
     e.stopPropagation();
+    
+    // Calculate mouse position relative to container
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - containerRect.left;
+    const mouseY = e.clientY - containerRect.top;
+    
+    // Store initial resize state
+    setResizeStart({
+      mouseX,
+      mouseY,
+      width: size.width,
+      height: size.height,
+      x: position.x,
+      y: position.y
+    });
+    
     setResizeDirection(direction);
     setIsResizing(true);
   };
@@ -267,13 +402,31 @@ export const DraggableDebugOverlay: React.FC<DraggableDebugOverlayProps> = ({
           <span className="text-sm font-medium">Inspector Debug</span>
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={injectManualScript} className="h-6 w-6 p-0">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={injectManualScript} 
+            className="h-6 w-6 p-0"
+            title="Inject debug script"
+          >
             <Code className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={clearMessages} className="h-6 w-6 p-0">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearMessages} 
+            className="h-6 w-6 p-0"
+            title="Clear all messages"
+          >
             <Trash2 className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClose} 
+            className="h-6 w-6 p-0"
+            title="Close inspector debug panel"
+          >
             <X className="h-3 w-3" />
           </Button>
         </div>
